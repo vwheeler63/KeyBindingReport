@@ -6,8 +6,9 @@ class AsciiTableFormat(IntEnum):
     """
     Formats supported by AsciiTable
     """
-    OUTLINED = 0
-    RESTRUCTUREDTEXT = 1
+    BARE = 0
+    OUTLINED = 1
+    RESTRUCTUREDTEXT = 2
 
 
 class AsciiTable():
@@ -44,75 +45,140 @@ class AsciiTable():
                 if (width := len(field)) > self.max_column_widths[i]:
                     self.max_column_widths[i] = width
 
-    def as_string(self, fmt: AsciiTableFormat):
-        """ Representation of `self` as a string """
-        lines = []
-
-        # -----------------------------------------------------------------
-        # Prepare.
-        # -----------------------------------------------------------------
+    def _row_separator(self, line_char: str):
         row_sep_parts = ['+']
 
         for max_w in self.max_column_widths:
-            col_segment = '-' * (max_w + 2)
+            col_segment = line_char * (max_w + 2)
             row_sep_parts.append(col_segment)
             row_sep_parts.append('+')
 
-        row_sep = ''.join(row_sep_parts)
-        title_sep = ''
+        return ''.join(row_sep_parts)
 
-        if fmt == AsciiTableFormat.RESTRUCTUREDTEXT:
-            row_sep_parts.clear()
-            row_sep_parts.append('+')
 
-            for max_w in self.max_column_widths:
-                col_segment = '=' * (max_w + 2)
-                row_sep_parts.append(col_segment)
-                row_sep_parts.append('+')
+    def _single_line_row_separator(self):
+        return self._row_separator('-')
 
-            title_sep = ''.join(row_sep_parts)
 
-        # -----------------------------------------------------------------
-        # Build table.
-        # -----------------------------------------------------------------
-        lines.append(row_sep)
+    def _double_line_row_separator(self):
+        return self._row_separator('=')
+
+
+    def _bare_string_repr(self):
+        """
+        Default                [S]   [ ]   [U]
+        .git                   [ ]   [ ]   [U]
+        A File Icon            [ ]   [I]   [ ]
+        ASP                    [S]   [ ]   [ ]
+        ActionScript           [S]   [ ]   [ ]
+        AppleScript            [S]   [ ]   [ ]
+
+        Default column separation == 3 spaces.
+        """
+        lines = []
         line_parts = []
+        col_sep = '   '
 
-        if fmt == AsciiTableFormat.OUTLINED:
-            for i, row in enumerate(self.data):
-                line_parts.clear()
-                line_parts.append('|')
-                for col in row:
-                    line_parts.append(' ')
-                    line_parts.append(col)
-                    line_parts.append(' |')
-                line = ''.join(line_parts)
-                lines.append(line)
-        elif fmt == AsciiTableFormat.RESTRUCTUREDTEXT:
-            last_row_idx = self.row_count - 1
+        # Build table in `lines` list.
+        for row in self.data:
+            line_parts.clear()
+            last_col_idx = len(row) - 1
+            for col in row:
+                line_parts.append(col)
+            line = col_sep.join(line_parts)
+            lines.append(line)
 
-            for i, row in enumerate(self.data):
-                line_parts.clear()
-                line_parts.append('|')
-                for col in row:
-                    line_parts.append(' ')
-                    line_parts.append(col)
-                    line_parts.append(' |')
-                line = ''.join(line_parts)
-                lines.append(line)
+        return '\n'.join(lines)
 
-                if i == 0:
-                    lines.append(title_sep)
-                elif i < last_row_idx:
-                    lines.append(row_sep)
 
-        # After last line.
+    def _outlined_string_repr(self):
+        """
+        +------------------------+-----+-----+-----+
+        | Default                | [S] | [ ] | [U] |
+        | .git                   | [ ] | [ ] | [U] |
+        | A File Icon            | [ ] | [I] | [ ] |
+        | ASP                    | [S] | [ ] | [ ] |
+        | ActionScript           | [S] | [ ] | [ ] |
+        | AppleScript            | [S] | [ ] | [ ] |
+        +------------------------+-----+-----+-----+
+        """
+        lines = []
+        line_parts = []
+        row_sep = self._single_line_row_separator()
+
+        # Build table in `lines` list.
         lines.append(row_sep)
 
-        # -----------------------------------------------------------------
-        # Return string representation to caller.
-        # -----------------------------------------------------------------
+        for row in self.data:
+            line_parts.clear()
+            line_parts.append('|')
+            for col in row:
+                line_parts.append(' ')
+                line_parts.append(col)
+                line_parts.append(' |')
+            line = ''.join(line_parts)
+            lines.append(line)
+
+        lines.append(row_sep)
+
         return '\n'.join(lines)
+
+
+    def _restructuredtext_string_repr(self):
+        """
+        +------------------------+-----+-----+-----+
+        | Default                | [S] | [ ] | [U] |
+        +========================+=====+=====+=====+
+        | .git                   | [ ] | [ ] | [U] |
+        +------------------------+-----+-----+-----+
+        | A File Icon            | [ ] | [I] | [ ] |
+        +------------------------+-----+-----+-----+
+        | ASP                    | [S] | [ ] | [ ] |
+        +------------------------+-----+-----+-----+
+        | ActionScript           | [S] | [ ] | [ ] |
+        +------------------------+-----+-----+-----+
+        | AppleScript            | [S] | [ ] | [ ] |
+        +------------------------+-----+-----+-----+
+        """
+        lines = []
+        line_parts = []
+        row_sep = self._single_line_row_separator()
+        title_sep = self._double_line_row_separator()
+
+        # Build table in `lines` list.
+        lines.append(row_sep)
+        last_row_idx = self.row_count - 1
+
+        for i, row in enumerate(self.data):
+            line_parts.clear()
+            line_parts.append('|')
+            for col in row:
+                line_parts.append(' ')
+                line_parts.append(col)
+                line_parts.append(' |')
+            line = ''.join(line_parts)
+            lines.append(line)
+
+            if i == 0:
+                lines.append(title_sep)
+            else:
+                lines.append(row_sep)
+
+        return '\n'.join(lines)
+
+
+    def as_string(self, fmt: AsciiTableFormat):
+        """ Representation of `self` as a string """
+        if fmt == AsciiTableFormat.BARE:
+            result = self._bare_string_repr()
+        elif fmt == AsciiTableFormat.OUTLINED:
+            result = self._outlined_string_repr()
+        elif fmt == AsciiTableFormat.RESTRUCTUREDTEXT:
+            result = self._restructuredtext_string_repr()
+        else:
+            result = ''
+
+        return result
 
 
 if __name__ == '__main__':
@@ -134,5 +200,6 @@ if __name__ == '__main__':
     # ---------------------------------------------------------------------
     at = AsciiTable(rows)
     print(repr(at))
+    print(at.as_string(AsciiTableFormat.BARE))
     print(at.as_string(AsciiTableFormat.OUTLINED))
     print(at.as_string(AsciiTableFormat.RESTRUCTUREDTEXT))
