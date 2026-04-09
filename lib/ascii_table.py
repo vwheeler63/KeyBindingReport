@@ -2,16 +2,16 @@ from typing import List, Iterable
 from enum import IntEnum
 
 
-class AsciiTableFormat(IntEnum):
+class Format(IntEnum):
     """
-    Formats supported by AsciiTable
+    Formats supported by Generator
     """
     BARE = 0
     OUTLINED = 1
     RESTRUCTUREDTEXT = 2
 
 
-class AsciiTable():
+class Generator():
     """
     ASCII Tables that can generate representations of themselves
     in a variety of formats.
@@ -23,7 +23,7 @@ class AsciiTable():
         self._gather_metadata()
 
     def __repr__(self):
-        result = f'{{AsciiTable: rows={self.row_count}, cols={self.column_count}}}\n'
+        result = f'{{Generator: rows={self.row_count}, cols={self.column_count}}}\n'
         for i, w in enumerate(self.max_column_widths):
             result += f'  Col {i + 1} max width: {w:>2}\n'
         return result
@@ -167,13 +167,13 @@ class AsciiTable():
         return '\n'.join(lines)
 
 
-    def as_string(self, fmt: AsciiTableFormat):
+    def as_string(self, fmt: Format):
         """ Representation of `self` as a string """
-        if fmt == AsciiTableFormat.BARE:
+        if fmt == Format.BARE:
             result = self._bare_string_repr()
-        elif fmt == AsciiTableFormat.OUTLINED:
+        elif fmt == Format.OUTLINED:
             result = self._outlined_string_repr()
-        elif fmt == AsciiTableFormat.RESTRUCTUREDTEXT:
+        elif fmt == Format.RESTRUCTUREDTEXT:
             result = self._restructuredtext_string_repr()
         else:
             result = ''
@@ -196,10 +196,10 @@ if __name__ == '__main__':
             rows.append(fields)
 
     # ---------------------------------------------------------------------
-    # ``rows`` is now a List[Iterable[str]] needed by ``AsciiTable``.
+    # ``rows`` is now a List[Iterable[str]] needed by ``Generator``.
     # ---------------------------------------------------------------------
-    at = AsciiTable(rows)
+    at = Generator(rows)
     print(repr(at))
-    print(at.as_string(AsciiTableFormat.BARE))
-    print(at.as_string(AsciiTableFormat.OUTLINED))
-    print(at.as_string(AsciiTableFormat.RESTRUCTUREDTEXT))
+    print(at.as_string(Format.BARE))
+    print(at.as_string(Format.OUTLINED))
+    print(at.as_string(Format.RESTRUCTUREDTEXT))
