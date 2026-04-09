@@ -1,6 +1,6 @@
-# BuildKeymapsDoc
+# KeyBindingReport
 
-BuildKeymapsDoc is a Sublime Text package that builds a beautiful `.rst` document that shows how most of the keyboard keys are mapped and where.
+**KeyBindingReport** is a Sublime Text package that builds a beautiful `.rst` document that shows how most of the keyboard keys are mapped and where.
 
 The concept is to programmatically re-generate the source file that generates this [Default Key Bindings](http://crystal-clear-research.com/docs/quickrefs/sublime_text/default_key_bindings.html) web page.
 
