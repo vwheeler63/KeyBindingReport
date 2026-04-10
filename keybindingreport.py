@@ -430,8 +430,7 @@ class KeyBinding():
 
 # Regex to extract package name from resource path.
 # Example of input:  'Packages/ScopeView/Default (Windows).sublime-keymap'
-pkg_name_re = re.compile(r'^Packages/([^/]+)/(.*)$')
-main_key_re = re.compile(r'(\w+)$')
+pkg_name_from_resource_path_re = re.compile(r'^Packages/([^/]+)/(.*)$')
 
 # Key Name Groups, indexed by class ``KeyGroup``.
 key_name_groups = [
@@ -507,51 +506,53 @@ def _add_binding_to_main_key_dict(binding: KeyBinding):
         print('In _add_binding_to_main_key_dict()...')
 
     global gdictByMainKey
-    keypress_str = binding.keys()[0]
-    match = main_key_re.search(keypress_str)
+    lsWorkingKeypress = keypress_str = binding.keys()[0]
 
-    if match:
-        main_key_name = match[1]
+    if debugging:
+        print(f'  {keypress_str=}')
+
+    # Here we know gdictByMainKey[main_key_name] exists.
+    key_modifier_index = 0
+
+    modifier_str = 'shift+'
+    if modifier_str in lsWorkingKeypress:
+        key_modifier_index |= ModifierKeyBit.SHIFT
+        lsWorkingKeypress = lsWorkingKeypress.replace(modifier_str, '')
+
+    modifier_str = 'ctrl+'
+    if modifier_str in lsWorkingKeypress:
+        key_modifier_index |= ModifierKeyBit.CTRL
+        lsWorkingKeypress = lsWorkingKeypress.replace(modifier_str, '')
+
+    modifier_str = 'alt+'
+    if modifier_str in lsWorkingKeypress:
+        key_modifier_index |= ModifierKeyBit.ALT
+        lsWorkingKeypress = lsWorkingKeypress.replace(modifier_str, '')
+
+    # Now ``keypress_str`` contains just the name of the main key.
+    main_key_name = lsWorkingKeypress
+    assert main_key_name in keypress_str, f'  ERROR!  Somehow [{main_key_name}] is not in [{keypress_str}].'
+    print(f'  {main_key_name=}')
+    # if debugging:
+    #     print(f'  Computed modifier: [0b{key_modifier_index:03b}]')
+
+    if main_key_name not in gdictByMainKey:
         if debugging:
-            print(f'  {keypress_str=} {main_key_name=}')
+            print(f'  ERROR!  Found key name [{main_key_name}] not in gdictByMainKey.')
+        empty_list = [None] * 8
+        gdictByMainKey[main_key_name] = empty_list
 
-        if main_key_name not in gdictByMainKey:
-            if debugging:
-                print(f'  ERROR!  Found key name [{main_key_name}] not in gdictByMainKey.')
-            empty_list = [None] * 8
-            gdictByMainKey[main_key_name] = empty_list
+    by_main_key_item = gdictByMainKey[main_key_name]
+    key_binding_list = by_main_key_item[key_modifier_index]
 
-        # Here we know gdictByMainKey[main_key_name] exists.
-        key_modifier_index = 0
-
-        modifier_str = 'shift+'
-        if modifier_str in keypress_str:
-            key_modifier_index |= ModifierKeyBit.SHIFT
-
-        modifier_str = 'ctrl+'
-        if modifier_str in keypress_str:
-            key_modifier_index |= ModifierKeyBit.CTRL
-
-        modifier_str = 'alt+'
-        if modifier_str in keypress_str:
-            key_modifier_index |= ModifierKeyBit.ALT
-
-        # Now ``keypress_str`` contains just the name of the main key.
-        assert main_key_name in keypress_str, f'  ERROR!  Somehow [{main_key_name}] is not in [{keypress_str}].'
-        # if debugging:
-        #     print(f'  Computed modifier: [0b{key_modifier_index:03b}]')
-
-        by_main_key_item = gdictByMainKey[main_key_name]
+    if key_binding_list is None:
+        # Lazy list creation
+        by_main_key_item[key_modifier_index] = []
         key_binding_list = by_main_key_item[key_modifier_index]
 
-        if key_binding_list is None:
-            # Lazy list creation
-            by_main_key_item[key_modifier_index] = []
-            key_binding_list = by_main_key_item[key_modifier_index]
-
-        key_binding_list.append(binding)
-        # if debugging:
-        #     print(f'  Added [{keypress_str}] binding to item [{key_modifier_index}].')
+    key_binding_list.append(binding)
+    # if debugging:
+    #     print(f'  Added [{keypress_str}] binding to item [{key_modifier_index}].')
 
     #keys, cmd, args, ctxt = binding.extracted_json_parts()
     #print(f'{keys=}, {cmd=}, {args=}, {ctxt=}')
@@ -636,8 +637,7 @@ def _build_lookup_data(pkg: str):
     _build_empty_main_key_dict()
 
     for path in keymap_paths:
-        print(f'{path=}')
-        match = pkg_name_re.search(path)
+        match = pkg_name_from_resource_path_re.search(path)
 
         # Pattern recognized?
         if not match:
@@ -715,4 +715,13 @@ class KeyBindingsReportCommand(sublime_plugin.TextCommand):
         _build_lookup_data(pkg)
         llstKeyGroup = key_name_groups[key_group]
         # clip.copy(pprint.pformat(gdictByMainKey))
-        clip.copy(pprint.pformat(gdictByKeySquence))
+        # import os
+        # this_dir, _ = os.path.split(__file__)
+        # tgt_file = os.path.join(this_dir, 'by_main_key.txt')
+        # with open(tgt_file, 'w', encoding='utf-8') as f:
+        #     print(f'Writing to [{tgt_file}]...')
+        #     f.write(pprint.pformat(gdictByMainKey))
+        # tgt_file = os.path.join(this_dir, 'by_key_seq.txt')
+        # with open(tgt_file, 'w', encoding='utf-8') as f:
+        #     print(f'Writing to [{tgt_file}]...')
+        #     f.write(pprint.pformat(gdictByKeySquence))
