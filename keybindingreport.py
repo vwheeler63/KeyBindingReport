@@ -386,8 +386,21 @@ class ModifierKeyBit(IntFlag):
     CTRL          = 0b010
     ALT           = 0b100
 
+    NONE          = 0b000
     ALL           = 0b111
     ANY           = 0b111
+
+
+class FlagBit(IntFlag):
+    SHOW_UNBOUND_KEY_COMBINATIONS = 0b00000001
+    SHOW_PACKAGE_NAME             = 0b00000010
+    ADD_COMMENTS_COLUMN           = 0b00000100
+    INCLUDE_UNTRANSLATED_CONTEXTS = 0b00001000
+    INCLUDE_ENGLISH_CONTEXTS      = 0b00010000
+
+    NONE                          = 0b00000000
+    ALL                           = 0b11111111
+    ANY                           = 0b11111111
 
 
 class KeyBinding():
@@ -831,7 +844,8 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             package  : str      = 'Default',
             key_group: KeyGroup = KeyGroup.F_KEYS,
             key_name : str      = '',
-            format   : Format   = Format.OUTLINED
+            format   : Format   = Format.OUTLINED,
+            flags    : int      = 0
             ):
         """
         Generate `key_group` Key-Binding Report in format `format`.
@@ -851,6 +865,17 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             NAMED_KEYS    = 3
             KEYPAD_KEYS   = 4
             F_KEYS        = 5
+
+        class FlagBit(IntFlag):
+            SHOW_UNBOUND_KEY_COMBINATIONS = 0b00000001
+            SHOW_PACKAGE_NAME             = 0b00000010
+            ADD_COMMENTS_COLUMN           = 0b00000100
+            INCLUDE_UNTRANSLATED_CONTEXTS = 0b00001000
+            INCLUDE_ENGLISH_CONTEXTS      = 0b00010000
+
+            NONE                          = 0b00000000
+            ALL                           = 0b11111111
+            ANY                           = 0b11111111
 
         +-----------------------------------------+---------------------------+
         | Description                             |          Arguments        |
@@ -877,12 +902,13 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         | to a Package.                           |         |- F_KEYS     |   |
         +-----------------------------------------+---------+-------------+---+
 
-        :param self:       KeyBindingReportCommand object connected to current View
-        :param edit:       sublime.Edit connected to current View, needed to edit Buffer
-        :param package:    Name of package; None or '' when not applicable
-        :param key_group:  Which key group to report on
-        :param key_name:   Key name; ignored when not applicable
-        :param format:     Which output format (ascii_table.Format)
+        :param self:          KeyBindingReportCommand object connected to current View
+        :param edit:          sublime.Edit connected to current View, needed to edit Buffer
+        :param package:       Name of package; None or '' when not applicable
+        :param key_group:     Which key group to report on
+        :param key_name:      Key name; ignored when not applicable
+        :param format:        Which output format (ascii_table.Format)
+        :param flags:         Any bitwise-OR-ed combination of `FlagBit` bits.
         :return:  None
         """
         t0 = datetime.now()
