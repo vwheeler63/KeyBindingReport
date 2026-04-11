@@ -3,11 +3,9 @@ from enum import IntEnum
 
 
 class Format(IntEnum):
-    """
-    Formats supported by Generator
-    """
-    BARE = 0
-    OUTLINED = 1
+    """ Formats supported by Generator """
+    BARE             = 0
+    OUTLINED         = 1
     RESTRUCTUREDTEXT = 2
 
 

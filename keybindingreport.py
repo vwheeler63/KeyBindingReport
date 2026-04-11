@@ -285,16 +285,71 @@ modifier key name strings in different orders, it is necessary to parse
 those strings and re-code them to ensure they are in a consistent order
 to be able to serve as a dictionary key.  The `ModifierKeyBit` class
 will serve to help index into the list above.
+
+
+Ways to Limit Output
+====================
+
+Key:
+    Cmd:
+        KBR = KeyBindingReportCommand
+        WBR = WhichBindingReportCommand
+    key
+        I   = ignored
+
+class KeyGroup(IntEnum):
+    ALL           = -3
+    KEY           = -2
+
+    KEY_SEQUENCES = -1  # Multiple-key-press sequences, e.g. ["ctrl+k", "ctrl+u"]
+    LETTER_KEYS   = 0
+    NUMBER_KEYS   = 1
+    SYMBOL_KEYS   = 2
+    NAMED_KEYS    = 3
+    KEYPAD_KEYS   = 4
+    F_KEYS        = 5
+
++-----------------------------------------+-----+--------------------------------------+
+| Description                             | Cmd |             Arguments                |
+|                                         |     +-----------+---------------+----------+
+|                                         |     | package   | key_group     | key_name |
++=========================================+=====+===========+===============+==========+
+| By Package.  Output all key bindings    | KBR | 'pkgname' | ALL           | I        |
+| contained in Package (e.g. Default or   |     |           |               |          |
+| a 3rd-party Package). This also implies |     |           |               |          |
+| that the look-up data structures can    |     |           |               |          |
+| also be limited to that Package.        |     |           |               |          |
++-----------------------------------------+-----+-----------+---------------+----------+
+| By specified key.  Output that key's    | KBR | None      | KEY           | 'a'      |
+| bindings in all Packages that contain   |     |           |               |          |
+| binding(s) for that key.                |     |           |               |          |
++-----------------------------------------+-----+-----------+---------------+----------+
+| By specified key limited to a Package.  | KBR | 'pkgname' | KEY           | 'a'      |
+| Output all of key's binding(s).         |     |           |               |          |
++-----------------------------------------+-----+-----------+---------------+----------+
+| By specified ``KeyGroup``, using        | KBR | None      | KEY_SEQUENCES | I        |
+| bindings from all Packages.             |     |           | - F_KEYS      |          |
++-----------------------------------------+-----+-----------+---------------+----------+
+| By specified ``KeyGroup``, limited      | KBR | 'pkgname' | KEY_SEQUENCES | I        |
+| to a Package.                           |     |           | - F_KEYS      |          |
++-----------------------------------------+-----+-----------+---------------+----------+
+| By specified key based on current scope.| WBR |        ["ctrl+k", "ctrl+b"]          |
+| Report binding selected the same way    |     |           ["ctrl+shift+p"]           |
+| Sublime Text selects it:  reverse search|     |                 etc.                 |
+| selecting first binding where           |     |                                      |
+| current scope matches key context.      |     |                                      |
++-----------------------------------------+-----+--------------------------------------+
+
 """
 import sublime_plugin
 import sublime
 import pprint
 import re
+from datetime import datetime
 from typing import List, Tuple, Dict
 from enum import IntEnum, IntFlag
 from .lib.ascii_table import Format, Generator
 # TODO: rmv after testing.
-from .lib import windows_clipboard as clip
 from .lib.debug import DebugBit, is_debugging, set_debugging_bits
 
 platform_name = {
@@ -305,27 +360,25 @@ platform_name = {
 platform_name_w_parens = '(' + platform_name + ')'
 
 
-# -------------------------------------------------------------------------
+# =========================================================================
 # Package-Wide Classes
-# -------------------------------------------------------------------------
-
-class Source(IntEnum):
-    PACKAGE         = 0  # Packages/<pkg>/stem.sublime-keymap
-    DEFAULT         = 1  # PACKAGE with <pkg> = "Default"
-    CURRENT_CONTEXT = 2  # Implying all packages.
-
+# =========================================================================
 
 class KeyGroup(IntEnum):
+    """ Non-negative values index into ``key_name_groups``. """
+    ALL_KEYS      = -3
+    SPECIFIED_KEY = -2
+    KEY_SEQUENCES = -1  # Multiple-key-press sequences, e.g. ["ctrl+k", "ctrl+u"]
+
     LETTER_KEYS   = 0
     NUMBER_KEYS   = 1
     SYMBOL_KEYS   = 2
     NAMED_KEYS    = 3
     KEYPAD_KEYS   = 4
     F_KEYS        = 5
-    KEY_SEQUENCES = 6  # Multiple-key-press sequences, e.g. ["ctrl+k", "ctrl+u"]
 
-    LAST          = 6
-    COUNT         = 7
+    LAST          = 5
+    COUNT         = 6
 
 
 class ModifierKeyBit(IntFlag):
@@ -424,9 +477,9 @@ class KeyBinding():
         return keys, cmd, args, ctxt
 
 
-# -------------------------------------------------------------------------
+# =========================================================================
 # Constants (can be assigned/generated once on Package load)
-# -------------------------------------------------------------------------
+# =========================================================================
 
 # Regex to extract package name from resource path.
 # Example of input:  'Packages/ScopeView/Default (Windows).sublime-keymap'
@@ -450,12 +503,12 @@ key_name_groups = [
 ]
 
 # Generate ``key_names`` from ``key_name_groups``.
-# Pre-allocate array instead of 103 ``append()`` calls (inefficient).
 count = 0
 
 for grp in key_name_groups:
     count += len(grp)
 
+# Pre-allocate array instead of 103 ``append()`` calls (inefficient).
 key_names = [None] * count
 i = 0
 
@@ -478,13 +531,17 @@ key_index_by_key_name_dict = {}
 for i, key_name in enumerate(key_names):
     key_index_by_key_name_dict[key_name] = i
 
-# Create 2 lookup dictionaries.
+# Create 2 lookup data structures.
 gdictByMainKey = {}
 gdictByKeySquence = {}
 
 # Clean up.
 del i, count, grp, key_name
 
+
+# =========================================================================
+# Function Definitions
+# =========================================================================
 
 def _add_binding_to_main_key_dict(binding: KeyBinding):
     """
@@ -532,7 +589,6 @@ def _add_binding_to_main_key_dict(binding: KeyBinding):
     # Now ``keypress_str`` contains just the name of the main key.
     main_key_name = lsWorkingKeypress
     assert main_key_name in keypress_str, f'  ERROR!  Somehow [{main_key_name}] is not in [{keypress_str}].'
-    print(f'  {main_key_name=}')
     # if debugging:
     #     print(f'  Computed modifier: [0b{key_modifier_index:03b}]')
 
@@ -628,15 +684,67 @@ def _build_empty_main_key_dict():
     #     print(repr(gdictByMainKey))
 
 
-def _build_lookup_data(pkg: str):
+def _build_lookup_data(
+        package  : str      = 'Default',
+        key_group: KeyGroup = KeyGroup.F_KEYS,
+        key_name : str      = ''
+        ):
+    """
+    Build lookup data required by the report dictated by the 3 arguments.
+    The descriptions in the table below are for the output, but they also have
+    implications about the data required to support them.  And we don't gather
+    information that won't be needed.  For example, if the Package is limited
+    to the ``Default`` Package, then there is no need to process any other
+    ``.sublime-keymap`` files.
+
+    Key:
+        I = ignored
+
+    +-----------------------------------------+----------------------------------+
+    | Description                             |          Arguments               |
+    |                                         +---------+-------------+----------+
+    |                                         | package | key_group   | key_name |
+    +=========================================+=========+=============+==========+
+    | By Package.  Output all key bindings    |'pkgname'| ALL         | I        |
+    | contained in Package (e.g. Default or   |         |             |          |
+    | a 3rd-party Package). This also implies |         |             |          |
+    | that the look-up data structures can    |         |             |          |
+    | also be limited to that Package.        |         |             |          |
+    +-----------------------------------------+---------+-------------+----------+
+    | By specified key limited to a Package.  |'pkgname'| KEY         | 'a'      |
+    | Output all of key's binding(s).         |         |             |          |
+    +-----------------------------------------+---------+-------------+----------+
+    | By specified key.  Output that key's    | None    | KEY         | 'a'      |
+    | bindings in all Packages that contain   |         |             |          |
+    | binding(s) for that key.                |         |             |          |
+    +-----------------------------------------+---------+-------------+----------+
+    | By specified ``KeyGroup``, using        | None    |KEY_SEQUENCES| I        |
+    | bindings from all Packages.             |         |- F_KEYS     |          |
+    +-----------------------------------------+---------+-------------+----------+
+    | By specified ``KeyGroup``, limited      |'pkgname'|KEY_SEQUENCES| I        |
+    | to a Package.                           |         |- F_KEYS     |          |
+    +-----------------------------------------+---------+-------------+----------+
+
+    :param package:    Name of package; None or '' when not applicable
+    :param key_group:  Which key group to report on
+    :param key_name:   Key name; ignored when not applicable
+    :return:  None
+    """
     debugging = is_debugging(DebugBit.FILTERING)
     if debugging:
-        print(f'In _build_lookup_data({pkg=})')
+        print(f'In _build_lookup_data({package=})')
+
+    global gdictByMainKey
+    global gdictByKeySquence
+    # Start fresh.
+    gdictByMainKey = {}
+    gdictByKeySquence = {}
 
     keymap_paths = sublime.find_resources('*.sublime-keymap')
     _build_empty_main_key_dict()
 
     for path in keymap_paths:
+        print(f'{path=}')
         match = pkg_name_from_resource_path_re.search(path)
 
         # Pattern recognized?
@@ -647,14 +755,14 @@ def _build_lookup_data(pkg: str):
 
         pkg_name = match[1]
 
-        # Filter out Packages other than ``pkg``.
-        if pkg_name != pkg:
+        # Filter out Packages other than ``package``.
+        if pkg_name != package:
             if debugging:
-                print(f'  Package mismatch:  [{pkg}] != [{pkg_name}]')
+                print(f'  Package mismatch:  [{package}] != [{pkg_name}]')
             continue
 
         if debugging:
-            print(f'  Matches pkg[{pkg}]:  {path}')
+            print(f'  Matches pkg[{package}]:  {path}')
         file_name = match[2]
 
         if 'Default (' in file_name:
@@ -680,7 +788,37 @@ def _build_lookup_data(pkg: str):
                 print(f'  Not using {file_name}.')
 
 
-class KeyBindingsReportCommand(sublime_plugin.TextCommand):
+# =========================================================================
+# Commands
+# =========================================================================
+
+class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
+    """ Generate Key-Binding Report for specified keypress. """
+
+    def run(
+            self     : sublime_plugin.TextCommand,
+            edit     : sublime.Edit,
+            key_name : str      = 'f2',
+            format   : Format   = Format.OUTLINED
+            ):
+        """
+        By specified key based on current scope Report binding selected the
+        same way Sublime Text selects it:  reverse search selecting first
+        binding where current scope matches key context.  Generate output
+        in format `format`.
+
+        :param self:      KeyBindingReportCommand object connected to current View
+        :param edit:      sublime.Edit connected to current View, needed to edit Buffer
+        :param key_name:  Key name; ignored when not applicable
+        :param format:    Which output format (ascii_table.Format)
+        :return:  None
+        """
+        t0 = datetime.now()
+        _build_lookup_data(package, key_group, key_name)
+        t1 = datetime.now()
+
+
+class KeyBindingReportCommand(sublime_plugin.TextCommand):
     """ Generate Key-Binding Report in specified format.
 
     This needs to inherit from `sublime_plugin.TextCommand` because
@@ -690,31 +828,69 @@ class KeyBindingsReportCommand(sublime_plugin.TextCommand):
     def run(
             self     : sublime_plugin.TextCommand,
             edit     : sublime.Edit,
-            src      : Source   = Source.PACKAGE,
-            pkg      : str      = 'Default',
+            package  : str      = 'Default',
             key_group: KeyGroup = KeyGroup.F_KEYS,
+            key_name : str      = '',
             format   : Format   = Format.OUTLINED
             ):
         """
         Generate `key_group` Key-Binding Report in format `format`.
 
-        See module docstring for details.
+        Key:
+            I = ignored
 
-        :param self:       KeyBindingsReportCommand object connected to current View
+        class KeyGroup(IntEnum):
+            # Non-negative values index into ``key_name_groups``.
+            ALL_KEYS      = -3
+            SPECIFIED_KEY = -2
+            KEY_SEQUENCES = -1  # Multiple-key-press sequences, e.g. ["ctrl+k", "ctrl+u"]
+
+            LETTER_KEYS   = 0
+            NUMBER_KEYS   = 1
+            SYMBOL_KEYS   = 2
+            NAMED_KEYS    = 3
+            KEYPAD_KEYS   = 4
+            F_KEYS        = 5
+
+        +-----------------------------------------+---------------------------+
+        | Description                             |          Arguments        |
+        |                                         +---------+-------------+---+
+        |                                         | package | key_group   |key|
+        +=========================================+=========+=============+===+
+        | By Package.  Output all key bindings    |'pkgname'| ALL_KEYS    |I  |
+        | contained in Package (e.g. Default or   |         |             |   |
+        | a 3rd-party Package). This also implies |         |             |   |
+        | that the look-up data structures can    |         |             |   |
+        | also be limited to that Package.        |         |             |   |
+        +-----------------------------------------+---------+-------------+---+
+        | By specified key limited to a Package.  |'pkgname'|SPECIFIED_KEY|'a'|
+        | Output all of key's binding(s).         |         |             |   |
+        +-----------------------------------------+---------+-------------+---+
+        | By specified key.  Output that key's    | None    |SPECIFIED_KEY|'a'|
+        | bindings in all Packages that contain   |         |             |   |
+        | binding(s) for that key.                |         |             |   |
+        +-----------------------------------------+---------+-------------+---+
+        | By specified ``KeyGroup``, using        | None    |KEY_SEQUENCES|I  |
+        | bindings from all Packages.             |         |- F_KEYS     |   |
+        +-----------------------------------------+---------+-------------+---+
+        | By specified ``KeyGroup``, limited      |'pkgname'|KEY_SEQUENCES|I  |
+        | to a Package.                           |         |- F_KEYS     |   |
+        +-----------------------------------------+---------+-------------+---+
+
+        :param self:       KeyBindingReportCommand object connected to current View
         :param edit:       sublime.Edit connected to current View, needed to edit Buffer
-        :param key_group:  Which key group to report on?
-        :param format:     Which output format?
+        :param package:    Name of package; None or '' when not applicable
+        :param key_group:  Which key group to report on
+        :param key_name:   Key name; ignored when not applicable
+        :param format:     Which output format (ascii_table.Format)
         :return:  None
         """
-        global gdictByMainKey
-        global gdictByKeySquence
-        # Start fresh.
-        gdictByMainKey = {}
-        gdictByKeySquence = {}
-
-        _build_lookup_data(pkg)
+        t0 = datetime.now()
+        _build_lookup_data(package, key_group, key_name)
+        t1 = datetime.now()
+        print('Time to build data structures: ', str(t1 - t0))
         llstKeyGroup = key_name_groups[key_group]
-        # clip.copy(pprint.pformat(gdictByMainKey))
+
         # import os
         # this_dir, _ = os.path.split(__file__)
         # tgt_file = os.path.join(this_dir, 'by_main_key.txt')
@@ -725,3 +901,15 @@ class KeyBindingsReportCommand(sublime_plugin.TextCommand):
         # with open(tgt_file, 'w', encoding='utf-8') as f:
         #     print(f'Writing to [{tgt_file}]...')
         #     f.write(pprint.pformat(gdictByKeySquence))
+
+        tgt_file = r'r:\by_main_key.txt'
+        with open(tgt_file, 'w', encoding='utf-8') as f:
+            # print(f'Writing to [{tgt_file}]...')
+            f.write(pprint.pformat(gdictByMainKey))
+        tgt_file = r'r:\by_key_seq.txt'
+        with open(tgt_file, 'w', encoding='utf-8') as f:
+            # print(f'Writing to [{tgt_file}]...')
+            f.write(pprint.pformat(gdictByKeySquence))
+        t2 = datetime.now()
+        print('Time write files             : ', str(t2 - t1))
+        print('Total                        : ', str(t2 - t0))
