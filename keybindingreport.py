@@ -346,7 +346,7 @@ import sublime
 import pprint
 import re
 from datetime import datetime
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 from enum import IntEnum, IntFlag
 from .lib.ascii_table import Format, Generator
 # TODO: rmv after testing.
@@ -445,11 +445,30 @@ class KeyBinding():
         """
         return len(self.json_binding['keys'])
 
-    def keys(self) -> tuple:
+    def keys(self) -> list:
         return self.json_binding['keys']
 
     def keys_as_tuple(self) -> tuple:
         return tuple(self.json_binding['keys'])
+
+    def command(self) -> str:
+        return self.json_binding['keys']
+
+    def args(self) -> Optional[dict]:
+        result = None
+
+        if 'args' in self.json_binding:
+            result = self.json_binding['args']
+
+        return result
+
+    def context(self) -> Optional[list]:
+        result = None
+
+        if 'context' in self.json_binding:
+            result = self.json_binding['context']
+
+        return result
 
     def extracted_json_parts(self) -> Tuple[Tuple[str], str, dict, List[dict]]:
         """
