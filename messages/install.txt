@@ -1,0 +1,82 @@
+KeyBindingReport is a Sublime Text Package that produces reports about
+the current state of Sublime Text key bindings, using any of a number
+of output formats.
+
+
+KeyBindingReport: Generate Report
+=================================
+
+This command generates a report about current key bindings present in
+your Sublime Text installation.
+
+You can limit this report by passing it:
+
+- an optional list of Package names
+- an optional list of Key Groups
+- an optional list of key names
+
+You can specify the report's output format, and tell the report
+(through passed flags) whether you would like it to include any or
+all of the following:
+
+- unbound key combinations (useful if you're looking for unbound
+  key combinations you can use)
+- the Package name for each binding
+- a comments column (useful if you intend to copy the report into
+  a document and manually edit it by adding comments)
+- untranslated contexts (conditions which limit when that key binding
+  is chosen)
+- those same contexts translated into English
+
+
+KeyBindingReport: Which Binding?
+================================
+
+This command allows you to input (or pass it) a list of key
+combinations, such as
+
+  [["ctrl+p"]]
+  [["ctrl+k", "ctrl+b"], ["ctrl+k", "ctrl+u"]]
+  [["ctrl+p"], ["ctrl+shift+p"]]
+
+and for each key-press/key-sequence in the list, it will do a search
+the same way Sublime Text does when you hit keys, and the report will
+include:
+
+- details about the specific key binding was selected for each
+  key-press/key-sequence given the current scope in the current View;
+
+- which Package contained each key binding;
+
+
+Output Formats
+==============
+
+All output formats are in the form of an ASCII table.  The current
+formats supported are:
+
+- Bare
+- Outlined (box around report with lines between columns)
+- reStructuredText
+
+
+Quick Start
+===========
+
+Review the README to learn how to use it (Usage and Settings sections)
+and enjoy!
+
+
+Problems?
+---------
+
+If you encounter any problems with KeyBindingReport, or think that it
+can be improved to make your work easier, please log an issue with
+the KeyBindingReport issue tracker:
+
+    https://github.com/vwheeler63/KeyBindingReport/issues
+
+
+
+
+

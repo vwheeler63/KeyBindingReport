@@ -1,0 +1,244 @@
+[
+	// Items listed here become available in the Command Palette.
+	{
+		"caption": "KeyBindingReport: Open Readme",
+		"command": "open_file",
+		"args": {
+			"file": "${packages}/KeyBindingReport/README.md"
+		}
+	},
+	{
+		"caption": "Preferences: KeyBindingReport Settings",
+		"command": "edit_settings",
+		"args": {
+			"base_file": "${packages}/KeyBindingReport/resources/settings/KeyBindingReport.sublime-settings",
+			"default": "{\n\t$0\n}\n"
+		}
+	},
+	{
+		"caption": "Preferences: KeyBindingReport Key Bindings",
+		"command": "edit_settings",
+		"args": {
+			"base_file": "${packages}/KeyBindingReport/resources/keymaps/Default ($platform).sublime-keymap",
+			"default": "[\n\t$0\n]\n"
+		}
+	},
+
+	{
+		"caption": "KeyBindingReport: For Specific Key Combinations in Default Package",
+		"command": "key_binding_report",
+		"args": {
+			"packages": ["Default"],
+			"key_groups": [-2],
+			"format": 1,
+			"flags": 255,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Key Sequences in Default Package",
+		"command": "key_binding_report",
+		"args": {
+			"packages": ["Default"],
+			"key_groups": [-1],
+			"key_names": [],
+			"format": 1,
+			"flags": 255,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Letter Keys in Default Package",
+		"command": "key_binding_report",
+		"args": {
+			"packages": ["Default"],
+			"key_groups": [0],
+			"key_names": [],
+			"format": 1,
+			"flags": 255,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Number Keys in Default Package",
+		"command": "key_binding_report",
+		"args": {
+			"packages": ["Default"],
+			"key_groups": [1],
+			"key_names": [],
+			"format": 1,
+			"flags": 255,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Symbol Keys in Default Package",
+		"command": "key_binding_report",
+		"args": {
+			"packages": ["Default"],
+			"key_groups": [2],
+			"key_names": [],
+			"format": 1,
+			"flags": 255,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Named Keys in Default Package",
+		"command": "key_binding_report",
+		"args": {
+			"packages": ["Default"],
+			"key_groups": [3],
+			"key_names": [],
+			"format": 1,
+			"flags": 255,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Function Keys in Default Package",
+		"command": "key_binding_report",
+		"args": {
+			"packages": ["Default"],
+			"key_groups": [4],
+			"key_names": [],
+			"format": 1,
+			"flags": 255,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Keypad Keys in Default Package",
+		"command": "key_binding_report",
+		"args": {
+			"packages": ["Default"],
+			"key_groups": [5],
+			"key_names": [],
+			"format": 1,
+			"flags": 255,
+		},
+	},
+
+	{
+		"caption": "KeyBindingReport: For Specific Key Combinations for All Installed Packages",
+		"command": "key_binding_report",
+		"args": {
+			"packages": null,
+			"key_groups": [-2],
+			"format": 1,
+			"flags": 255,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Key Sequences for All Installed Packages",
+		"command": "key_binding_report",
+		"args": {
+			"packages": null,
+			"key_groups": [-1],
+			"key_names": [],
+			"format": 1,
+			"flags": 255,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Letter Keys for All Installed Packages",
+		"command": "key_binding_report",
+		"args": {
+			"packages": null,
+			"key_groups": [0],
+			"key_names": [],
+			"format": 1,
+			"flags": 255,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Number Keys for All Installed Packages",
+		"command": "key_binding_report",
+		"args": {
+			"packages": null,
+			"key_groups": [1],
+			"key_names": [],
+			"format": 1,
+			"flags": 255,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Symbol Keys for All Installed Packages",
+		"command": "key_binding_report",
+		"args": {
+			"packages": null,
+			"key_groups": [2],
+			"key_names": [],
+			"format": 1,
+			"flags": 255,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Named Keys for All Installed Packages",
+		"command": "key_binding_report",
+		"args": {
+			"packages": null,
+			"key_groups": [3],
+			"key_names": [],
+			"format": 1,
+			"flags": 255,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Function Keys for All Installed Packages",
+		"command": "key_binding_report",
+		"args": {
+			"packages": null,
+			"key_groups": [4],
+			"key_names": [],
+			"format": 1,
+			"flags": 255,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Keypad Keys for All Installed Packages",
+		"command": "key_binding_report",
+		"args": {
+			"packages": null,
+			"key_groups": [5],
+			"key_names": [],
+			"format": 1,
+			"flags": 255,
+		},
+	},
+
+	{
+		"caption": "KeyBindingReport: Which Binding?",
+		"command": "key_binding_report_which_binding",
+	},
+
+// packages  : str      = ['Default'],
+// key_groups: KeyGroup = [KeyGroup.F_KEYS],
+// key_names : str      = [],
+// format   : Format   = Format.OUTLINED,
+// flags    : int      = 0
+
+
+// class FlagBit(IntFlag):
+//     SHOW_UNBOUND_KEY_COMBINATIONS = 0b00000001  #   1
+//     SHOW_PACKAGE_NAME             = 0b00000010  #   2
+//     ADD_COMMENTS_COLUMN           = 0b00000100  #   4
+//     INCLUDE_UNTRANSLATED_CONTEXTS = 0b00001000  #   8
+//     INCLUDE_ENGLISH_CONTEXTS      = 0b00010000  #  16
+
+//     NONE                          = 0b00000000  #   0
+//     ALL                           = 0b11111111  # 255
+//     ANY                           = 0b11111111  # 255
+
+
+
+// class KeyGroup(IntEnum):
+//     """ Non-negative values index into ``key_name_groups``. """
+//     ALL_KEYS      = -3
+//     SPECIFIED_KEY = -2
+//     KEY_SEQUENCES = -1  # Multiple-key-press sequences, e.g. ["ctrl+k", "ctrl+u"]
+
+//     LETTER_KEYS   = 0
+//     NUMBER_KEYS   = 1
+//     SYMBOL_KEYS   = 2
+//     NAMED_KEYS    = 3
+//     KEYPAD_KEYS   = 4
+//     F_KEYS        = 5
+
+//     LAST          = 5
+//     COUNT         = 6
+
+]

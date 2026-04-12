@@ -1,960 +1,123 @@
-r"""
-KeyBindingReport
-****************
+""" ***********************************************************************
+Key Binding Report
+===========================================================================
 
-Definitions
-===========
+KeyBindingReport is a Sublime Text Package that produces reports about
+the current state of Sublime Text key bindings, using any of a number
+of output formats.
 
-key modifier
-    the possible combination of the [Ctrl], [Alt] and [Shift] modifier keys
-    that were part of a key-press.  The ``ModifierKeyBit`` class provides
-    bits which are OR-ed together to form this integer value [0-7].
+See `README.md` and `src/core.py` for more details.
 
-key press
-    a single keystroke with a possible key modifier.  It may be hyphenated
-    when used as a compound noun.
 
-    Each key-press has a "main" key, which is in the ``key_names`` list below.
 
-key ID
-    index into the ``key_names`` list identifying a particular keyboard key.
-
-key-press ID
-    an integer whose bits are the bitwise-OR-ed combination of the key ID
-    and the key modifier value like this:
-
-        keypress_id = (i << 3) | modifier_value
-
-    where:
-
-    - `i` is the key ID (index into the `key_names` list), and
-    - `modifier_value` is comprised of OR-ed bits from ``ModifierKeyBit``.
-
-key-press sequence
-    A key-press sequence is when a Command is bound to a sequence of more than one
-    key-press.  Example:
-
-    - ["ctrl+k", "ctrl+b"] (show/hide Side Bar),
-    - ["ctrl+k", "ctrl+u"] (upper-case selected text or word if no text is selected),
-    - ["ctrl+k", "ctrl+l"] (lower-case selected text or word if no text is selected).
-
-KeyBinding Object
-    an instance of the ``KeyBinding`` class, containing the JSON Key-Binding
-    object from a `.sublime-keymap` file (defining the binding of an individual
-    key press), plus some additional data like the name of the Package it came
-    from.  Example of JSON Key-Binding object:
-
-    .. code-block:: json
-
-        {
-            "keys": ["alt+up"],
-            "command": "box_drawing_draw_one_character",
-            "args": {
-                "line_count": 1,
-                "direction": 0,
-            },
-            "context": [
-                { "key": "box_drawing.ok_to_draw", "match_all": true },
-            ]
-        },
-
------
-alt+up
-Design Factor
-=============
-
-In the ``Default`` Package and in most other places where official ``.sublime-keymap``
-files can be found, the "keys" entry (e.g. ``"keys": ["alt+shift+up"]``) in each
-Key-Binding Object has a specific order of modifier-key strings among the '+'
-characters, and it is always in this sequence:
-
-- ctrl
-- alt
-- shift
-
-However, Sublime |nbsp| Text allows users to include key overrides in
-``.sublime-keymap`` files that do not follow this pattern, so when we read
-in Key-Binding Objects from ``.sublime-keymap`` files, we cannot rely on
-this sequence since some of them are user override files.  Therefore, we
-use the ``ModifierKeyBit`` class to generate a numeric value in the range
-[0-7] which gives a consistent unique integer value which can be used in
-different ways as needed.  Such values will be created something like this:
-
-.. code-block:: py
-
-    key_modifier_index = 0
-
-    modifier_str = 'shift+'
-    if modifier_str in keypress_str:
-        key_modifier_index |= ModifierKeyBit.SHIFT
-        keypress_str = keypress_str.replace(modifier_str, '')
-
-    modifier_str = 'ctrl+'
-    if modifier_str in keypress_str:
-        key_modifier_index |= ModifierKeyBit.CTRL
-        keypress_str = keypress_str.replace(modifier_str, '')
-
-    modifier_str = 'alt+'
-    if modifier_str in keypress_str:
-        key_modifier_index |= ModifierKeyBit.ALT
-        keypress_str = keypress_str.replace(modifier_str, '')
-
-    # Now ``keypress_str`` contains just the name of the main key.
-
-
-Key-Binding Lookup Data Structures
-==================================
-
-To generate the Key-Binding Report, the preparation to do that involves
-building several "lookup data structures" from the contents of the installed
-``.sublime-keymap`` files.  One of these structures is similar to what
-Sublime Text probably uses internally to map each key-press to the Command
-it is bound to.
-
-In this design we choose NOT to incur the overhead of getting notified when
-any of the Package ``.sublime-keymap`` files change.  To do that we'd have to:
-
-- load each as a settings object (there are 41 of them in a modest
-  Sublime Text installation, so we can count on 50 or 60 in installations
-  that have a lot of Packages installed);
-- using each object thus loaded, establish an "on-change" event for it to
-  catch when any overrides of those keymaps got updated.
-
-Thus, we cannot simply build these dictionaries ONCE when the Package is
-loaded, but rather need to build them on-the-fly when a report is needed.
-This also reduces Sublime Text's start-up time a bit by not automatically
-doing that build for installations that include this Package.
-
-Here is what the data structures look like.
-
-
-By Main-Key Dictionary
-----------------------
-
-This dictionary is for key bindings that involve only one key-press.
-
-KEYS:
-
-Its keys are the key names of the main key in each key press.
-See key names below.  Example:  "up".
-
-VALUES:
-
-Each entry's VALUE is a list of exactly 8 possible key modifiers, where
-the ``ModifierKeyBit`` class combinations of modifier keys forms the index
-of which list item, as described above under "Design Factor".
-
-Key:
-    A = Alt
-    C = Ctrl
-    S = Shift
-    i = Index
-
-+----------+-+-+-+---+
-| Key Name |A|C|S| i |
-+==========+=+=+=+===+
-| up       | | | | 0 |
-| up       | | |x| 1 |
-| up       | |x| | 2 |
-| up       | |x|x| 3 |
-| up       |x| | | 4 |
-| up       |x| |x| 5 |
-| up       |x|x| | 6 |
-| up       |x|x|x| 7 |
-+----------+-+-+-+---+
-
-Each such list item then contains ``None`` or a list of ``KeyBinding``
-objects for that particular key-press.  The order of that list is in
-``.sublime-keymap`` file-loading order, and thus is similar to what
-Sublime Text uses internally to map keystrokes by doing a reverse-sequence
-search on that list, until it finds a context that matches the current
-context.
-
-This also makes it possible to, in a user-input box, ask the user to
-identify a key press (with possible modifiers), and then compute what key
-binding it would hit in that search, including the name of the Package that
-contains it.
-
-.. code-block:: text
-
-    by_main_key_dict
-        "a": [
-                None,   # binding list for unmodified 'a' key
-                None,   # binding list for [Shift-a]
-                [...],  # binding list for [Ctrl-a]
-                [...],  # binding list for [Ctrl-Shift-a]
-                None,   # binding list for [Alt-a]
-                None,   # binding list for [Alt-Shift-a]
-                None,   # binding list for [Alt-Ctrl-a]
-                None,   # binding list for [Alt-Ctrl-Shift-a]
-            ]
-
-
-By Key Sequence Dictionary
---------------------------
-
-This dictionary is for key bindings that involve more than one key-press.
-This dictionary is used in combination with ``by_main_key_dict`` so that when
-a key-press is mapped in both places (as is the case with [Ctrl-T] when the
-``sublime-rst-completion`` Package is installed), if the context is such
-that the key-press in THIS dictionary may also apply, the key-press has to
-be repeated in order to select the Key-Binding from plain ``by_main_key_dict``,
-whereas if the additional key-presses are found in sequence in this
-dictionary, that Key-Binding is chosen instead.  If a key-press is
-encountered not contained in a known key sequence in this dictionary, then
-the whole key sequence is abandoned, the key sequence state machine is
-reset, and no Key Binding is selected.
-
-KEYS:
-
-The key for each entry is the tuple of key-presses that make it up.
-(Lists cannot be dictionary keys because they are mutable.)
-Example:  ``("ctrl+k", "ctrl+up")``.
-
-VALUES:
-
-Each entry's VALUE is a list of Key-Binding objects (defined above)
-associated with the key-press sequence in the key.  The order of that list
-is in ``.sublime-keymap`` file-loading order, and thus is similar to what
-Sublime Text uses internally to map keystrokes by doing a reverse-sequence
-search on that list, until it finds a context that matches the current
-context.
-
-This also makes it possible to, in a user-input box, ask for a key-press
-sequence, and tell the user exactly what key binding it would hit in
-that search, including the name of the Package that contains it.
-
-.. code-block:: text
-
-    by_key_seq_dict
-        ("ctrl+k", "ctrl+up"):
-            [
-                Key-Binding object,
-                Key-Binding object,
-                Key-Binding object,
-                ...
-            ]
-
-
-Key Names
-=========
-
-Key names are specified either by the (non-shifted) character printed on
-the key, or a key name:
-
-.. code-block:: text
-
-    a   n   0   ,   up           keypad0         f1    f11
-    b   o   1   .   down         keypad1         f2    f12
-    c   p   2   \   left         keypad2         f3    f13
-    d   q   3   /   right        keypad3         f4    f14
-    e   r   4   ;   insert       keypad4         f5    f15
-    f   s   5   '   delete       keypad5         f6    f16
-    g   t   6   `   home         keypad6         f7    f17
-    h   u   7   +   end          keypad7         f8    f18
-    i   v   8   -   pageup       keypad8         f9    f19
-    j   w   9   =   pagedown     keypad9         f10   f20
-    k   x       [   backspace    keypad_period
-    l   y       ]   tab          keypad_divide
-    m   z           enter        keypad_multiply
-                    pause        keypad_minus
-                    escape       keypad_plus
-                    space        keypad_enter
-                    break        clear
-                    context_menu
-    \___/   ^   ^     ^            ^             \_______/
-      |     |   |     |            |                 |
-      |     |   |     |            |                 +-- F_KEYS
-      |     |   |     |            +-- KEYPAD_KEYS
-      |     |   |     +-- NAMED_KEYS
-      |     |   +-- SYMBOL_KEYS
-      |     +-- NUMBER_KEYS
-      +-- LETTER_KEYS
-
-    The above enumerator names are from the ``KeyGroup`` class.
-
-in that order.  Indexing into the list will be done using ``class
-ModifierKeyBit`` bits.  Thus somewhere in the decoding will be
-something like this:
-
-Note:  this modifier-key order is for the report.  This differs from the
-modifier-key order of strings necessary in the "keys" entries, where
-the order must be "ctrl", "alt", "shift" to form consistent dictionary
-entries.  In fact, because Sublime Text allows users to combine these
-modifier key name strings in different orders, it is necessary to parse
-those strings and re-code them to ensure they are in a consistent order
-to be able to serve as a dictionary key.  The `ModifierKeyBit` class
-will serve to help index into the list above.
-
-
-Ways to Limit Output
-====================
-
-Key:
-    Cmd:
-        KBR = KeyBindingReportCommand
-        WBR = WhichBindingReportCommand
-    key
-        I   = ignored
-
-class KeyGroup(IntEnum):
-    ALL           = -3
-    KEY           = -2
-
-    KEY_SEQUENCES = -1  # Multiple-key-press sequences, e.g. ["ctrl+k", "ctrl+u"]
-    LETTER_KEYS   = 0
-    NUMBER_KEYS   = 1
-    SYMBOL_KEYS   = 2
-    NAMED_KEYS    = 3
-    KEYPAD_KEYS   = 4
-    F_KEYS        = 5
-
-+-----------------------------------------+-----+--------------------------------------+
-| Description                             | Cmd |             Arguments                |
-|                                         |     +-----------+---------------+----------+
-|                                         |     | package   | key_group     | key_name |
-+=========================================+=====+===========+===============+==========+
-| By Package.  Output all key bindings    | KBR | 'pkgname' | ALL           | I        |
-| contained in Package (e.g. Default or   |     |           |               |          |
-| a 3rd-party Package). This also implies |     |           |               |          |
-| that the look-up data structures can    |     |           |               |          |
-| also be limited to that Package.        |     |           |               |          |
-+-----------------------------------------+-----+-----------+---------------+----------+
-| By specified key.  Output that key's    | KBR | None      | KEY           | 'a'      |
-| bindings in all Packages that contain   |     |           |               |          |
-| binding(s) for that key.                |     |           |               |          |
-+-----------------------------------------+-----+-----------+---------------+----------+
-| By specified key limited to a Package.  | KBR | 'pkgname' | KEY           | 'a'      |
-| Output all of key's binding(s).         |     |           |               |          |
-+-----------------------------------------+-----+-----------+---------------+----------+
-| By specified ``KeyGroup``, using        | KBR | None      | KEY_SEQUENCES | I        |
-| bindings from all Packages.             |     |           | - F_KEYS      |          |
-+-----------------------------------------+-----+-----------+---------------+----------+
-| By specified ``KeyGroup``, limited      | KBR | 'pkgname' | KEY_SEQUENCES | I        |
-| to a Package.                           |     |           | - F_KEYS      |          |
-+-----------------------------------------+-----+-----------+---------------+----------+
-| By specified key based on current scope.| WBR |        ["ctrl+k", "ctrl+b"]          |
-| Report binding selected the same way    |     |           ["ctrl+shift+p"]           |
-| Sublime Text selects it:  reverse search|     |                 etc.                 |
-| selecting first binding where           |     |                                      |
-| current scope matches key context.      |     |                                      |
-+-----------------------------------------+-----+--------------------------------------+
-
-"""
-import sublime_plugin
-import sublime
-import pprint
-import re
-from datetime import datetime
-from typing import List, Tuple, Dict, Optional
-from enum import IntEnum, IntFlag
-from .lib.ascii_table import Format, Generator
-# TODO: rmv after testing.
-from .lib.debug import DebugBit, is_debugging, set_debugging_bits
-
-platform_name = {
-    'osx': 'OSX',
-    'windows': 'Windows',
-    'linux': 'Linux',
-}[sublime.platform()]
-platform_name_w_parens = '(' + platform_name + ')'
+@version  1.0  11-Apr-2026 18:21 vw  - Created
+*********************************************************************** """
+import importlib
+import sys
+import os
+from typing import Tuple
 
 
 # =========================================================================
-# Package-Wide Classes
+# Data
 # =========================================================================
 
-class KeyGroup(IntEnum):
-    """ Non-negative values index into ``key_name_groups``. """
-    ALL_KEYS      = -3
-    SPECIFIED_KEY = -2
-    KEY_SEQUENCES = -1  # Multiple-key-press sequences, e.g. ["ctrl+k", "ctrl+u"]
+# Use name of parent directory as `package_name`.
+module_path, _ = os.path.splitext(os.path.realpath(__file__))
+_, submodule_name = os.path.split(module_path)
+package_name = __package__
+this_module_name = f'{package_name}.{submodule_name}'
+del _, module_path, submodule_name
+_reload_indent_level = -1
 
-    LETTER_KEYS   = 0
-    NUMBER_KEYS   = 1
-    SYMBOL_KEYS   = 2
-    NAMED_KEYS    = 3
-    KEYPAD_KEYS   = 4
-    F_KEYS        = 5
-
-    LAST          = 5
-    COUNT         = 6
-
-
-class ModifierKeyBit(IntFlag):
-    SHIFT         = 0b001
-    CTRL          = 0b010
-    ALT           = 0b100
-
-    NONE          = 0b000
-    ALL           = 0b111
-    ANY           = 0b111
-
-
-class FlagBit(IntFlag):
-    SHOW_UNBOUND_KEY_COMBINATIONS = 0b00000001
-    SHOW_PACKAGE_NAME             = 0b00000010
-    ADD_COMMENTS_COLUMN           = 0b00000100
-    INCLUDE_UNTRANSLATED_CONTEXTS = 0b00001000
-    INCLUDE_ENGLISH_CONTEXTS      = 0b00010000
-
-    NONE                          = 0b00000000
-    ALL                           = 0b11111111
-    ANY                           = 0b11111111
-
-
-class KeyBinding():
-    """
-    Representation of a Key-Binding JSON object from a ``.sublime-keymap``
-    file, plus some additional data needed for reporting, e.g. what Package
-    the binding is from.
-    """
-    def __init__(self, json_binding_obj: dict, pkg_name: str, file_name: str):
-        self.json_binding = json_binding_obj
-        self.pkg_name     = pkg_name
-        self.file_name    = file_name
-
-    def __repr__(self):
-        pkg = self.pkg_name
-        keys = repr(self.json_binding['keys'])
-        cmd = self.json_binding['command']
-        args_dict = {}
-        context = []
-
-        if 'args' in self.json_binding:
-            args_dict = repr(self.json_binding['args'])
-        if 'context' in self.json_binding:
-            context = repr(self.json_binding['context'])
-
-        result = f'<pkg={pkg} {keys}: {cmd}'
-
-        if args_dict:
-            result += f'({args_dict})'
-        else:
-            result += '()'
-
-        if context:
-            result += f', {context=}'
-
-        result += '>'
-        return result
-
-    def keypress_count(self) -> int:
-        """
-        Number of key-presses in binding.
-        """
-        return len(self.json_binding['keys'])
-
-    def keys(self) -> list:
-        return self.json_binding['keys']
-
-    def keys_as_tuple(self) -> tuple:
-        return tuple(self.json_binding['keys'])
-
-    def command(self) -> str:
-        return self.json_binding['keys']
-
-    def args(self) -> Optional[dict]:
-        result = None
-
-        if 'args' in self.json_binding:
-            result = self.json_binding['args']
-
-        return result
-
-    def context(self) -> Optional[list]:
-        result = None
-
-        if 'context' in self.json_binding:
-            result = self.json_binding['context']
-
-        return result
-
-    def extracted_json_parts(self) -> Tuple[Tuple[str], str, dict, List[dict]]:
-        """
-        Parts of JSON Key-Binding object, extracted as:
-
-        - keys   :  Tuple[str]   (e.g. ("alt+up"))
-        - command:  str          (e.g. 'box_drawing_draw_one_character')
-        - args   :  dict or None (e.g. {'direction': 0, 'line_count': 1})
-        - context:  List[dict]   (e.g. [{'key': 'box_drawing.ok_to_draw', 'match_all': True}])
-
-        Examples above use this JSON binding as input:
-        {
-            "keys": ["alt+up"],
-            "command": "box_drawing_draw_one_character",
-            "args": {
-                "line_count": 1,
-                "direction": 0,
-            },
-            "context": [
-                { "key": "box_drawing.ok_to_draw", "match_all": true },
-            ]
-        },
-        """
-        json_binding = self.json_binding
-        keys = tuple(json_binding['keys'])
-        cmd  = json_binding['command']
-
-        if 'args' in json_binding:
-            args = json_binding['args']
-        else:
-            args = None
-
-        if 'context' in json_binding:
-            ctxt = json_binding['context']
-        else:
-            ctxt = None
-
-        return keys, cmd, args, ctxt
+# Can't use `debugging = is_debugging(DebugBits.IMPORTING)` here because
+# the import required to support it causes a circular import.
+debugging = True
+if debugging:
+    print(f'{this_module_name}  >>> module execution')
 
 
 # =========================================================================
-# Constants (can be assigned/generated once on Package load)
+# Load / Reload
 # =========================================================================
 
-# Regex to extract package name from resource path.
-# Example of input:  'Packages/ScopeView/Default (Windows).sublime-keymap'
-pkg_name_from_resource_path_re = re.compile(r'^Packages/([^/]+)/(.*)$')
-
-# Key Name Groups, indexed by class ``KeyGroup``.
-key_name_groups = [
-    # LETTER_KEYS   = 0
-    ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'],
-    # NUMBER_KEYS   = 1
-    ['0','1','2','3','4','5','6','7','8','9'],
-    # SYMBOL_KEYS   = 2
-    [',','.','\\','/',';',"'",'`','+','-','=','[',']'],
-    # NAMED_KEYS    = 3
-    ['up','down','left','right','insert','delete','home','end','pageup','pagedown','backspace','tab','enter','pause','escape','space','break','context_menu'],
-    # KEYPAD_KEYS   = 4
-    ['keypad0','keypad1','keypad2','keypad3','keypad4','keypad5','keypad6','keypad7','keypad8','keypad9','keypad_period','keypad_divide','keypad_multiply','keypad_minus','keypad_plus','keypad_enter','clear'],
-    # F_KEYS = 5
-    ['f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12','f13','f14','f15','f16','f17','f18','f19','f20'],
-    # KEY_SEQUENCES = 6  # Key combos with more than one key-press
-]
-
-# Generate ``key_names`` from ``key_name_groups``.
-count = 0
-
-for grp in key_name_groups:
-    count += len(grp)
-
-# Pre-allocate array instead of 103 ``append()`` calls (inefficient).
-key_names = [None] * count
-i = 0
-
-for grp in key_name_groups:
-    for key_name in grp:
-        key_names[i] = key_name
-        i += 1
-
-# Generate ``key_index_by_key_name_dict`` from ``key_names``.
-# This dictionary's values index into ``key_names``, while also giving
-# each key name an integer value.  This enables us to produce a unique
-# integer value for each possible key with all 8 modifier possibilities
-# with something like this:
-#
-#     keypress_id = (i << 3) | modifier_value
-#
-# where ``modifier_value`` is comprised of OR-ed bits from ModifierKeyBit.
-key_index_by_key_name_dict = {}
-
-for i, key_name in enumerate(key_names):
-    key_index_by_key_name_dict[key_name] = i
-
-# Create 2 lookup data structures.
-gdictByMainKey = {}
-gdictByKeySquence = {}
-
-# Clean up.
-del i, count, grp, key_name
-
-
-# =========================================================================
-# Function Definitions
-# =========================================================================
-
-def _add_binding_to_main_key_dict(binding: KeyBinding):
+def reload(dotted_subpkg: str, submodules: Tuple[str, ...] = ()):
     """
-    by_main_key_dict
-        "a": [
-                None,   # binding list for unmodified 'a' key
-                None,   # binding list for [Shift-a]
-                [...],  # binding list for [Ctrl-a]
-                [...],  # binding list for [Ctrl-Shift-a]
-                None,   # binding list for [Alt-a]
-                None,   # binding list for [Alt-Shift-a]
-                None,   # binding list for [Alt-Ctrl-a]
-                None,   # binding list for [Alt-Ctrl-Shift-a]
-            ]
+    Reload each module in `submodules` only if previously loaded.  This is a
+    precondition of calling ``importlib.reload()`` but is also for efficiency:
+
+    - if Sublime Text is just starting, nothing important happens here (because
+      the cached modules will not have been added to ``sys.modules`` yet), and
+      and the various ``import`` statements do the loading in the usual way;
+
+    - if ``Package Control`` is updating this Package (or the central Plugin
+      was just saved during development), then this function recursively
+      reloads each loaded module, and the ``import`` statements then do
+      nothing since each target module will already be in ``sys.modules``.
+
+    Note:  The below works on the basis that ``<sublime_data>/Packages``
+           directory was placed in ``sys.path`` by Sublime Text.  So the
+           module names being constructed below have to look like this:
+
+               MyPackage.subdir.module
+               MyPackage.subdir.subdir.module
+               etc.
+
+    :param dotted_subpkg:  dotted directory portion of module names that
+                             will be found in the keys of ``sys.modules``.
+                             Example:  'MyPackage.src.commands'
+    :param submodules:     tuple of submodule names
     """
-    assert binding.keypress_count() == 1, f'Number of elements in `keys` expected 1, got {binding.keypress_count()}!'
-    debugging = is_debugging(DebugBit.BUILDING_MAIN_KEY_DICT)
+    global _reload_indent_level
+    _reload_indent_level += 1
+    indent = '  ' * _reload_indent_level
     if debugging:
-        print('In _add_binding_to_main_key_dict()...')
+        if _reload_indent_level == 0:
+            print('vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv')
+        print(f'{indent}reload():  >>> {dotted_subpkg=} {submodules=}')
 
-    global gdictByMainKey
-    lsWorkingKeypress = keypress_str = binding.keys()[0]
-
-    if debugging:
-        print(f'  {keypress_str=}')
-
-    # Here we know gdictByMainKey[main_key_name] exists.
-    key_modifier_index = 0
-
-    modifier_str = 'shift+'
-    if modifier_str in lsWorkingKeypress:
-        key_modifier_index |= ModifierKeyBit.SHIFT
-        lsWorkingKeypress = lsWorkingKeypress.replace(modifier_str, '')
-
-    modifier_str = 'ctrl+'
-    if modifier_str in lsWorkingKeypress:
-        key_modifier_index |= ModifierKeyBit.CTRL
-        lsWorkingKeypress = lsWorkingKeypress.replace(modifier_str, '')
-
-    modifier_str = 'alt+'
-    if modifier_str in lsWorkingKeypress:
-        key_modifier_index |= ModifierKeyBit.ALT
-        lsWorkingKeypress = lsWorkingKeypress.replace(modifier_str, '')
-
-    # Now ``keypress_str`` contains just the name of the main key.
-    main_key_name = lsWorkingKeypress
-    assert main_key_name in keypress_str, f'  ERROR!  Somehow [{main_key_name}] is not in [{keypress_str}].'
-    # if debugging:
-    #     print(f'  Computed modifier: [0b{key_modifier_index:03b}]')
-
-    if main_key_name not in gdictByMainKey:
-        if debugging:
-            print(f'  ERROR!  Found key name [{main_key_name}] not in gdictByMainKey.')
-        empty_list = [None] * 8
-        gdictByMainKey[main_key_name] = empty_list
-
-    by_main_key_item = gdictByMainKey[main_key_name]
-    key_binding_list = by_main_key_item[key_modifier_index]
-
-    if key_binding_list is None:
-        # Lazy list creation
-        by_main_key_item[key_modifier_index] = []
-        key_binding_list = by_main_key_item[key_modifier_index]
-
-    key_binding_list.append(binding)
-    # if debugging:
-    #     print(f'  Added [{keypress_str}] binding to item [{key_modifier_index}].')
-
-    #keys, cmd, args, ctxt = binding.extracted_json_parts()
-    #print(f'{keys=}, {cmd=}, {args=}, {ctxt=}')
-
-
-def _add_binding_to_key_seq_dict(binding: KeyBinding):
-    """
-    by_key_seq_dict
-        ("ctrl+k", "ctrl+up"):
-            [
-                Key-Binding object,
-                Key-Binding object,
-                Key-Binding object,
-                ...
-            ]
-    """
-    assert binding.keypress_count() > 1, f'Number of elements in `keys` expected > 1, got {binding.keypress_count()}!'
-    debugging = is_debugging(DebugBit.BUILDING_KEY_SEQ_DICT)
-    if debugging:
-        print('In _add_binding_to_key_seq_dict()...')
-
-    global gdictByKeySquence
-    keys_tpl = binding.keys_as_tuple()
-
-    if keys_tpl not in gdictByKeySquence:
-        # Lazy creation.
-        gdictByKeySquence[keys_tpl] = []
-
-    binding_list = gdictByKeySquence[keys_tpl]
-    binding_list.append(binding)
-    if debugging:
-        print(f'  Added binding for {keys_tpl}.')
-    # keys, cmd, args, ctxt = binding.extracted_json_parts()
-    # print(f'{keys=}, {cmd=}, {args=}, {ctxt=}')
-
-
-def _include_in_lookup_data(path: str, pkg_name: str, file_name: str):
-    lsRsrc = sublime.load_resource(path)
-    llstJsonKmaps = sublime.decode_value(lsRsrc)
-
-    for json_kmap in llstJsonKmaps:
-        binding = KeyBinding(json_kmap, pkg_name, file_name)
-        if binding.keypress_count() > 1:
-            _add_binding_to_key_seq_dict(binding)
-        else:
-            _add_binding_to_main_key_dict(binding)
-
-
-def _build_empty_main_key_dict():
-    """
-    by_main_key_dict
-        "a": [
-                None,   # binding list for unmodified 'a' key
-                None,   # binding list for [Shift-a]
-                [...],  # binding list for [Ctrl-a]
-                [...],  # binding list for [Ctrl-Shift-a]
-                None,   # binding list for [Alt-a]
-                None,   # binding list for [Alt-Shift-a]
-                None,   # binding list for [Alt-Ctrl-a]
-                None,   # binding list for [Alt-Ctrl-Shift-a]
-            ]
-    """
-    debugging = is_debugging(DebugBit.BUILDING_MAIN_KEY_DICT)
-    if debugging:
-        print('In _build_empty_main_key_dict()')
-    global gdictByMainKey
-    for key_name in key_names:
-        empty_list = [None] * 8
-        gdictByMainKey[key_name] = empty_list
-
-    # if debugging:
-    #     print('  Empty by-main-key dict:')
-    #     print(repr(gdictByMainKey))
-
-
-def _build_lookup_data(
-        package  : str      = 'Default',
-        key_group: KeyGroup = KeyGroup.F_KEYS,
-        key_name : str      = ''
-        ):
-    """
-    Build lookup data required by the report dictated by the 3 arguments.
-    The descriptions in the table below are for the output, but they also have
-    implications about the data required to support them.  And we don't gather
-    information that won't be needed.  For example, if the Package is limited
-    to the ``Default`` Package, then there is no need to process any other
-    ``.sublime-keymap`` files.
-
-    Key:
-        I = ignored
-
-    +-----------------------------------------+----------------------------------+
-    | Description                             |          Arguments               |
-    |                                         +---------+-------------+----------+
-    |                                         | package | key_group   | key_name |
-    +=========================================+=========+=============+==========+
-    | By Package.  Output all key bindings    |'pkgname'| ALL         | I        |
-    | contained in Package (e.g. Default or   |         |             |          |
-    | a 3rd-party Package). This also implies |         |             |          |
-    | that the look-up data structures can    |         |             |          |
-    | also be limited to that Package.        |         |             |          |
-    +-----------------------------------------+---------+-------------+----------+
-    | By specified key limited to a Package.  |'pkgname'| KEY         | 'a'      |
-    | Output all of key's binding(s).         |         |             |          |
-    +-----------------------------------------+---------+-------------+----------+
-    | By specified key.  Output that key's    | None    | KEY         | 'a'      |
-    | bindings in all Packages that contain   |         |             |          |
-    | binding(s) for that key.                |         |             |          |
-    +-----------------------------------------+---------+-------------+----------+
-    | By specified ``KeyGroup``, using        | None    |KEY_SEQUENCES| I        |
-    | bindings from all Packages.             |         |- F_KEYS     |          |
-    +-----------------------------------------+---------+-------------+----------+
-    | By specified ``KeyGroup``, limited      |'pkgname'|KEY_SEQUENCES| I        |
-    | to a Package.                           |         |- F_KEYS     |          |
-    +-----------------------------------------+---------+-------------+----------+
-
-    :param package:    Name of package; None or '' when not applicable
-    :param key_group:  Which key group to report on
-    :param key_name:   Key name; ignored when not applicable
-    :return:  None
-    """
-    debugging = is_debugging(DebugBit.FILTERING)
-    if debugging:
-        print(f'In _build_lookup_data({package=})')
-
-    global gdictByMainKey
-    global gdictByKeySquence
-    # Start fresh.
-    gdictByMainKey = {}
-    gdictByKeySquence = {}
-
-    keymap_paths = sublime.find_resources('*.sublime-keymap')
-    _build_empty_main_key_dict()
-
-    for path in keymap_paths:
-        print(f'{path=}')
-        match = pkg_name_from_resource_path_re.search(path)
-
-        # Pattern recognized?
-        if not match:
+    if not submodules:
+        # Called from top-level Plugin.
+        module_name = dotted_subpkg
+        if module_name in sys.modules:
             if debugging:
-                print(f'  >>> ERROR >>> Pattern not recognized!  [{path}]')
-            continue
-
-        pkg_name = match[1]
-
-        # Filter out Packages other than ``package``.
-        if pkg_name != package:
-            if debugging:
-                print(f'  Package mismatch:  [{package}] != [{pkg_name}]')
-            continue
-
-        if debugging:
-            print(f'  Matches pkg[{package}]:  {path}')
-        file_name = match[2]
-
-        if 'Default (' in file_name:
-            # Platform specific key binding---only use if platform matches.
-            use_it = ((platform_name_w_parens in file_name))
-
-            if not use_it:
+                print(f'{indent}Reloading({module_name})')
+            importlib.reload(sys.modules[module_name])
+    else:
+        # Called from subpackage.
+        for submodule in submodules:
+            module_name = f'{dotted_subpkg}.{submodule}'
+            if module_name in sys.modules:
                 if debugging:
-                    print(f'  Not a platform match:  {file_name}.')
-                continue
-            else:
-                if debugging:
-                    print(f'  Platform match:  {file_name}.')
-        else:
-            use_it = True
+                    print(f'{indent}Reloading({module_name})')
+                importlib.reload(sys.modules[module_name])
 
-        if use_it:
-            if debugging:
-                print(f'  Using {file_name}.')
-            _include_in_lookup_data(path, pkg_name, file_name)
-        else:
-            if debugging:
-                print(f'  Not using {file_name}.')
+    if debugging:
+        print(f'{indent}reload():  <<<')
+        if _reload_indent_level == 0:
+            print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
+
+    _reload_indent_level -= 1
+
+
+reload(package_name + '.lib')  # Recurse into .lib/ subpackage.
+reload(package_name + '.src')  # Recurse into .src/ subpackage.
+
+from .lib import *
+from .src import *
 
 
 # =========================================================================
-# Commands
+# Events
 # =========================================================================
 
-class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
-    """ Generate Key-Binding Report for specified keypress. """
-
-    def run(
-            self     : sublime_plugin.TextCommand,
-            edit     : sublime.Edit,
-            key_name : str      = 'f2',
-            format   : Format   = Format.OUTLINED
-            ):
-        """
-        By specified key based on current scope Report binding selected the
-        same way Sublime Text selects it:  reverse search selecting first
-        binding where current scope matches key context.  Generate output
-        in format `format`.
-
-        :param self:      KeyBindingReportCommand object connected to current View
-        :param edit:      sublime.Edit connected to current View, needed to edit Buffer
-        :param key_name:  Key name; ignored when not applicable
-        :param format:    Which output format (ascii_table.Format)
-        :return:  None
-        """
-        t0 = datetime.now()
-        _build_lookup_data(package, key_group, key_name)
-        t1 = datetime.now()
+def plugin_loaded():
+    core.on_plugin_loaded()
 
 
-class KeyBindingReportCommand(sublime_plugin.TextCommand):
-    """ Generate Key-Binding Report in specified format.
+def plugin_unloaded():
+    core.on_plugin_unloaded()
 
-    This needs to inherit from `sublime_plugin.TextCommand` because
-    the report is generated in the CURRENT CONTEXT, which is gotten
-    from `self.view`'s first caret.
-    """
-    def run(
-            self     : sublime_plugin.TextCommand,
-            edit     : sublime.Edit,
-            package  : str      = 'Default',
-            key_group: KeyGroup = KeyGroup.F_KEYS,
-            key_name : str      = '',
-            format   : Format   = Format.OUTLINED,
-            flags    : int      = 0
-            ):
-        """
-        Generate `key_group` Key-Binding Report in format `format`.
 
-        Key:
-            I = ignored
-
-        class KeyGroup(IntEnum):
-            # Non-negative values index into ``key_name_groups``.
-            ALL_KEYS      = -3
-            SPECIFIED_KEY = -2
-            KEY_SEQUENCES = -1  # Multiple-key-press sequences, e.g. ["ctrl+k", "ctrl+u"]
-
-            LETTER_KEYS   = 0
-            NUMBER_KEYS   = 1
-            SYMBOL_KEYS   = 2
-            NAMED_KEYS    = 3
-            KEYPAD_KEYS   = 4
-            F_KEYS        = 5
-
-        class FlagBit(IntFlag):
-            SHOW_UNBOUND_KEY_COMBINATIONS = 0b00000001
-            SHOW_PACKAGE_NAME             = 0b00000010
-            ADD_COMMENTS_COLUMN           = 0b00000100
-            INCLUDE_UNTRANSLATED_CONTEXTS = 0b00001000
-            INCLUDE_ENGLISH_CONTEXTS      = 0b00010000
-
-            NONE                          = 0b00000000
-            ALL                           = 0b11111111
-            ANY                           = 0b11111111
-
-        +-----------------------------------------+---------------------------+
-        | Description                             |          Arguments        |
-        |                                         +---------+-------------+---+
-        |                                         | package | key_group   |key|
-        +=========================================+=========+=============+===+
-        | By Package.  Output all key bindings    |'pkgname'| ALL_KEYS    |I  |
-        | contained in Package (e.g. Default or   |         |             |   |
-        | a 3rd-party Package). This also implies |         |             |   |
-        | that the look-up data structures can    |         |             |   |
-        | also be limited to that Package.        |         |             |   |
-        +-----------------------------------------+---------+-------------+---+
-        | By specified key limited to a Package.  |'pkgname'|SPECIFIED_KEY|'a'|
-        | Output all of key's binding(s).         |         |             |   |
-        +-----------------------------------------+---------+-------------+---+
-        | By specified key.  Output that key's    | None    |SPECIFIED_KEY|'a'|
-        | bindings in all Packages that contain   |         |             |   |
-        | binding(s) for that key.                |         |             |   |
-        +-----------------------------------------+---------+-------------+---+
-        | By specified ``KeyGroup``, using        | None    |KEY_SEQUENCES|I  |
-        | bindings from all Packages.             |         |- F_KEYS     |   |
-        +-----------------------------------------+---------+-------------+---+
-        | By specified ``KeyGroup``, limited      |'pkgname'|KEY_SEQUENCES|I  |
-        | to a Package.                           |         |- F_KEYS     |   |
-        +-----------------------------------------+---------+-------------+---+
-
-        :param self:          KeyBindingReportCommand object connected to current View
-        :param edit:          sublime.Edit connected to current View, needed to edit Buffer
-        :param package:       Name of package; None or '' when not applicable
-        :param key_group:     Which key group to report on
-        :param key_name:      Key name; ignored when not applicable
-        :param format:        Which output format (ascii_table.Format)
-        :param flags:         Any bitwise-OR-ed combination of `FlagBit` bits.
-        :return:  None
-        """
-        t0 = datetime.now()
-        _build_lookup_data(package, key_group, key_name)
-        t1 = datetime.now()
-        print('Time to build data structures: ', str(t1 - t0))
-        llstKeyGroup = key_name_groups[key_group]
-
-        # import os
-        # this_dir, _ = os.path.split(__file__)
-        # tgt_file = os.path.join(this_dir, 'by_main_key.txt')
-        # with open(tgt_file, 'w', encoding='utf-8') as f:
-        #     print(f'Writing to [{tgt_file}]...')
-        #     f.write(pprint.pformat(gdictByMainKey))
-        # tgt_file = os.path.join(this_dir, 'by_key_seq.txt')
-        # with open(tgt_file, 'w', encoding='utf-8') as f:
-        #     print(f'Writing to [{tgt_file}]...')
-        #     f.write(pprint.pformat(gdictByKeySquence))
-
-        tgt_file = r'r:\by_main_key.txt'
-        with open(tgt_file, 'w', encoding='utf-8') as f:
-            # print(f'Writing to [{tgt_file}]...')
-            f.write(pprint.pformat(gdictByMainKey))
-        tgt_file = r'r:\by_key_seq.txt'
-        with open(tgt_file, 'w', encoding='utf-8') as f:
-            # print(f'Writing to [{tgt_file}]...')
-            f.write(pprint.pformat(gdictByKeySquence))
-        t2 = datetime.now()
-        print('Time write files             : ', str(t2 - t1))
-        print('Total                        : ', str(t2 - t0))
+if debugging:
+    print(f'{this_module_name}  <<<')

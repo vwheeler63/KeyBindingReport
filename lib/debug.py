@@ -16,24 +16,24 @@ Package setting.
 
 Valid values for a ``debugging`` Package setting:
 
-- JSON bare true or false, implying "DebugBit.ALL" and "DebugBit.NONE" respectively;
+- JSON bare true or false, implying "DebugBits.ALL" and "DebugBits.NONE" respectively;
 - JSON integer containing necessary bits, e.g. 32 = 0x0020;
-- JSON string expressions of bit-wise OR-ed constants from the DebugBit class.
+- JSON string expressions of bit-wise OR-ed constants from the DebugBits class.
   (See below for examples.)
 
 Examples of valid ``debugging`` JSON Package setting strings:
 
-- "DebugBit.NONE"
-- "DebugBit.INITIALIZATION"
-- "DebugBit.ALL"
-- "DebugBit.CONTEXT_QUERY | DebugBit.PARAMETERS | DebugBit.PRECONDITIONS"
-- "DebugBit.INITIALIZATION | DebugBit.HEADER_COMMENT_BLOCKS"
+- "DebugBits.NONE"
+- "DebugBits.INITIALIZATION"
+- "DebugBits.ALL"
+- "DebugBits.CONTEXT_QUERY | DebugBits.PARAMETERS | DebugBits.PRECONDITIONS"
+- "DebugBits.INITIALIZATION | DebugBits.HEADER_COMMENT_BLOCKS"
 
 Note:  the spaces surrounding the '|' operator are optional,
     but are recommended for readability.
 
-See also docstring with DebugBit class below for details about how to
-set up the DebugBit class for your Sublime Text Package or Plugin.
+See also docstring with DebugBits class below for details about how to
+set up the DebugBits class for your Sublime Text Package or Plugin.
 
 See below for how to use this module in your Plugin code:
 
@@ -43,7 +43,7 @@ Usage
 
 .. code-block:: py
 
-    from .lib.debug import IntFlag, DebugBit, is_debugging, set_debugging_bits
+    from .lib.debug import IntFlag, DebugBits, is_debugging, set_debugging_bits
 
     def pc_setting():
         # ...function used to store and retrieve cached Package settings.
@@ -61,7 +61,7 @@ Usage
         # ...
         # This example illustrates calling ``is_debugging()``
         # just once per function for efficiency.
-        debugging = is_debugging(DebugBit.QUERY_CONTEXT_EVENT)
+        debugging = is_debugging(DebugBits.QUERY_CONTEXT_EVENT)
 
         # Later...
         if debugging:
@@ -90,7 +90,7 @@ Public API
     def subtract_debugging_bits(setting_value: Union[int, str, bool]):
         # Subtract 1 bits in ``selection_bits`` from Debug Module setting.
 
-    def is_debugging(selection_bits: DebugBit = DebugBit.ANY) -> int:
+    def is_debugging(selection_bits: DebugBits = DebugBits.ANY) -> int:
         # Do any 1 bits in `selection_bits` also exist in
         # the Debug Module setting?
         #
@@ -113,14 +113,14 @@ from typing import Union
 import re
 
 
-class DebugBit(IntFlag):
+class DebugBits(IntFlag):
     """
     Named bits used in debugging Packages.
 
     Maintenance Note:  when this class changes, update the documentation
     about it in the ``.sublime-settings`` file.
 
-    The actual bit names in the ``DebugBit`` class will change, Package to
+    The actual bit names in the ``DebugBits`` class will change, Package to
     Package, based on what is applicable to the Package using it.  It is,
     however, recommended to keep the NONE, DEBUGGING, ALL and ANY bits as
     all 4 of these values are used directly in this module, and are meant to:
@@ -129,7 +129,7 @@ class DebugBit(IntFlag):
     - announce in the Console Panel which debug bits are set, by both name
       and value (only when at least 1 bit is set).
 
-    Here is an example of the ``DebugBit`` set of values from the ProComment
+    Here is an example of the ``DebugBits`` set of values from the ProComment
     Package:
 
     .. code-block:: py
@@ -188,12 +188,12 @@ class DebugBit(IntFlag):
     # ---------------------------------------------------------------------
     # Core Bits
     # ---------------------------------------------------------------------
-    NONE                   = 0x0000
     DEBUGGING              = 0x0001
     LOAD_UNLOAD            = 0x0002
-    FILTERING              = 0x0004
-    BUILDING_MAIN_KEY_DICT = 0x0008
-    BUILDING_KEY_SEQ_DICT  = 0x0010
+    SETTINGS_CHANGED_EVENT = 0x0004
+    FILTERING              = 0x0008
+    BUILDING_MAIN_KEY_DICT = 0x0010
+    BUILDING_KEY_SEQ_DICT  = 0x0020
 
     # ---------------------------------------------------------------------
     # Importing Bits
@@ -208,11 +208,12 @@ class DebugBit(IntFlag):
     # the time the bit gets set.  This is the only bit that is like that.
     # All the other ones get set after the cached Package settings have
     # been brought in.
-    IMPORTING              = 0X2000
+    IMPORTING              = 0x8000
 
     # ---------------------------------------------------------------------
     # Utility Bits
     # ---------------------------------------------------------------------
+    NONE                   = 0x0000
     ALL                    = 0xFFFF
     ANY                    = 0xFFFF
 
@@ -225,7 +226,7 @@ class DebugBit(IntFlag):
 # output, getting away from the profuse "all at once" debug output.
 # =========================================================================
 
-_debugging: DebugBit = DebugBit.NONE
+_debugging: DebugBits = DebugBits.ALL
 _valid_debugging_string_re = None
 _cfg_debugging_print_format = '04X'
 
@@ -237,16 +238,16 @@ _cfg_debugging_print_format = '04X'
 def _debugging_string_validator_regex():
     r"""
     Only valid string expressions look like this:
-    'DebugBit.INITIALIZATION' or
-    'DebugBit.INITIALIZATION | DebugBit.QUERY_CONTEXT_EVENT | ...'
+    'DebugBits.INITIALIZATION' or
+    'DebugBits.INITIALIZATION | DebugBits.QUERY_CONTEXT_EVENT | ...'
 
-    Build this out of whatever is current in the DebugBit class:
+    Build this out of whatever is current in the DebugBits class:
 
-        ^\s*DebugBit\.(?:NONE|ALL|INITIALIZATION|...)
-          (?:\s*\|\s*DebugBit\.(?:NONE|ALL|INITIALIZATION|...))*\s*$
+        ^\s*DebugBits\.(?:NONE|ALL|INITIALIZATION|...)
+          (?:\s*\|\s*DebugBits\.(?:NONE|ALL|INITIALIZATION|...))*\s*$
 
     """
-    bit_class = DebugBit
+    bit_class = DebugBits
     attr_list = dir(bit_class)
     bit_names = []
 
@@ -264,19 +265,19 @@ def _debugging_string_validator_regex():
 
 
 def _securely_computed_bits_from_setting_input(
-        selection_bits: Union[int, str, bool, DebugBit]
-        ) -> DebugBit:
+        selection_bits: Union[int, str, bool, DebugBits]
+        ) -> DebugBits:
     """
-    Accept any of int | str | bool | DebugBit, and securely compute the
+    Accept any of int | str | bool | DebugBits, and securely compute the
     applicable Debug Module bits in an int:  ``result``.
     """
     global _valid_debugging_string_re
-    result = DebugBit.NONE
+    result = DebugBits.NONE
 
     # ---------------------------------------------------------------------
-    # DebugBit
+    # DebugBits
     # ---------------------------------------------------------------------
-    if isinstance(selection_bits, DebugBit):
+    if isinstance(selection_bits, DebugBits):
         result = selection_bits
 
     # ---------------------------------------------------------------------
@@ -296,9 +297,9 @@ def _securely_computed_bits_from_setting_input(
     # ---------------------------------------------------------------------
     elif isinstance(selection_bits, bool):
         if selection_bits:
-            result = DebugBit.ALL
+            result = DebugBits.ALL
         else:
-            result = DebugBit.NONE
+            result = DebugBits.NONE
     # ---------------------------------------------------------------------
     # Integer
     # ---------------------------------------------------------------------
@@ -314,27 +315,27 @@ def _securely_computed_bits_from_setting_input(
 
 
 def _report_debugging_setting():
-    if is_debugging(DebugBit.DEBUGGING):
+    if is_debugging(DebugBits.DEBUGGING):
         print('Debugging:')
         if _valid_debugging_string_re:
             print(f'  Validating regex: [{_valid_debugging_string_re.pattern}]')
         else:
             print(f'  Validating regex: [{_valid_debugging_string_re}]')
 
-    if is_debugging(DebugBit.ANY):
+    if is_debugging(DebugBits.ANY):
         print(f'Debugging: [0x{_debugging:{_cfg_debugging_print_format}}]')
         # Compute length of longest enumeration name with bit set.
         longest_name_len = 0
-        for enum_bit in DebugBit:
-            if enum_bit != DebugBit.ALL and enum_bit != DebugBit.ANY:
+        for enum_bit in DebugBits:
+            if enum_bit != DebugBits.ALL and enum_bit != DebugBits.ANY:
                 if _debugging & enum_bit._value_:
                     name_len = len(enum_bit._name_)
                     if name_len > longest_name_len:
                         longest_name_len = name_len
 
         # Report.
-        for enum_bit in DebugBit:
-            if enum_bit != DebugBit.ALL and enum_bit != DebugBit.ANY:
+        for enum_bit in DebugBits:
+            if enum_bit != DebugBits.ALL and enum_bit != DebugBits.ANY:
                 if _debugging & enum_bit._value_:
                     print(
                             f'  - {enum_bit._name_:{longest_name_len}}:  '
@@ -360,25 +361,25 @@ def _subtract_debugging_bits(selection_bits: int):
     _report_debugging_setting()
 
 
-def set_debugging_bits(setting_value: Union[int, str, bool, DebugBit]):
+def set_debugging_bits(setting_value: Union[int, str, bool, DebugBits]):
     """ Set Debug Module setting to ``selection_bits``. """
     bits = _securely_computed_bits_from_setting_input(setting_value)
     _set_debugging_bits(bits)
 
 
-def add_debugging_bits(setting_value: Union[int, str, bool, DebugBit]):
+def add_debugging_bits(setting_value: Union[int, str, bool, DebugBits]):
     """ Add '1' bits in ``selection_bits`` to Debug Module setting.  """
     bits = _securely_computed_bits_from_setting_input(setting_value)
     _add_debugging_bits(bits)
 
 
-def subtract_debugging_bits(setting_value: Union[int, str, bool, DebugBit]):
+def subtract_debugging_bits(setting_value: Union[int, str, bool, DebugBits]):
     """ Subtract '1' bits in ``selection_bits`` from Debug Module setting.  """
     bits = _securely_computed_bits_from_setting_input(setting_value)
     _subtract_debugging_bits(bits)
 
 
-def is_debugging(selection_bits: DebugBit = DebugBit.ANY) -> int:
+def is_debugging(selection_bits: DebugBits = DebugBits.ANY) -> int:
     """ Do any '1' bits in `selection_bits` also exist in
         the Debug Module  setting?
 

@@ -4,22 +4,40 @@
 
 
 
-## KeyBindingReportWhichBindingCommand
+## KeyBindingReport: Generate Report
 
-This command reports on the key bindings that Sublime Text would select given the current scope of the current View for a specified list of key presses and/or key-press sequences.
-
-
-
-## KeyBindingReportCommand
-
-This command reports on all the key bindings for a set of keys which may be limited to:
+This command reports about current key bindings present in your Sublime Text installation.  The report may be limited to:
 
 - a specified list of key names,
-- a specified list of key groups (e.g. F_KEYS),
+- a specified list of key groups (e.g. F_KEYS, see below for full list),
 - a specified list of Packages, or
 - combinations of the above
 
-with an option for output format and whether to show unbound key combinations.
+and allows an option for output format and whether to show:
+
+- unbound key combinations (useful if you're looking for unbound key combinations you can use)
+- the Package name for each binding
+- a comments column (useful if you intend to copy the report into a document and manually edit it by adding comments)
+- untranslated contexts (conditions which limit when that key binding is chosen)
+- those same contexts translated into English
+
+
+
+## KeyBindingReport: Which Binding?
+
+This command reports on the key bindings that Sublime Text would select given the current scope of the current View for a specified list of key presses and/or key-press sequences.
+
+This command allows you to input (or pass it) a list of key combinations, such as
+
+  [["ctrl+p"]]
+  [["ctrl+k", "ctrl+b"], ["ctrl+k", "ctrl+u"]]
+  [["ctrl+p"], ["ctrl+shift+p"]]
+
+and for each key-press/key-sequence in the list, it will do a search the same way Sublime Text does when you hit keys, and the report will include:
+
+- details about the specific key binding was selected for each key-press/key-sequence given the current scope in the current View;
+
+- which Package contained each key binding.
 
 
 
@@ -39,7 +57,7 @@ Needless to say, all doing justice to just one lengthy `.sublime-keymap` file to
 
 
 
-## Original Set of Columns
+## Columns that Are Always Included
 
 :Key:      key name
 :S:        shift-key modifier
@@ -54,13 +72,16 @@ Each `Command` has a footnote link when there is a key binding has a limiting co
 ![Symbol-Key Table from Original Document](docs/src/_static/images/orig_doc_symbol-key_table.png "Symbol-Key Table from Original Document")
 
 
-But there are many more variables at work, and in some cases, those variables can be important, and deserve their own column.  They are:
 
-- Package name containing Key Binding
-- include a "Comments" column (for possible manual editing later after moving the report into a document of some type)
-- footnotes choices
+## Optional Additional Details
 
-  - none (no mention of key contexts)
-  - untranslated context conditions
-  - English translation of context
-  - both
+You can optionally, through a flags keyword argument, cause the report to additionally include:
+
+- Package name containing each key binding,
+- a "Comments" column (for possible manual editing later after moving the report into a document of some type),
+- footnotes choices:
+
+  - none (no mention of key contexts [conditions which restrict when Sublime Text chooses a particular key binding]),
+  - untranslated key-binding contexts,
+  - English translations of key-binding contexts (more readable),
+  - both.

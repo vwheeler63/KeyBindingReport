@@ -1,0 +1,66 @@
+[
+	{
+		"id": "tools",
+		"children":
+		[
+			{
+				"caption": "KeyBindingReport",
+				"children":
+				[
+					{
+						"caption": "Key Bindings Report",
+						"mnemonic": "G",
+						"command": "show_overlay",
+						"args": {"overlay": "command_palette", "text": "KeyBindingReport: "}
+					},
+					{
+						"caption": "Which Binding Report",
+						"command": "key_binding_report_which_binding",
+					},
+				]
+			},
+		]
+	},
+
+	{
+		"id": "preferences",
+		"children": [
+			{
+				"caption": "Package Settings",
+				"mnemonic": "P",
+				"id": "package-settings",
+				"children": [
+					{
+						"caption": "KeyBindingReport",
+						"children": [
+							{
+								"caption": "README",
+								"command": "open_file",
+								"args": {
+									"file": "${packages}/KeyBindingReport/README.md"
+								}
+							},
+							{ "caption": "-" },
+							{
+								"caption": "Settings",
+								"command": "edit_settings",
+								"args": {
+									"base_file": "${packages}/KeyBindingReport/resources/settings/KeyBindingReport.sublime-settings",
+									"default": "{\n\t$0\n}\n"
+								}
+							},
+							{
+								"caption": "Key Bindings",
+								"command": "edit_settings",
+								"args": {
+									"base_file": "${packages}/KeyBindingReport/resources/keymaps/Default ($platform).sublime-keymap",
+									"default": "[\n\t$0\n]\n"
+								}
+							},
+						]
+					}
+				]
+			}
+		]
+	}
+]

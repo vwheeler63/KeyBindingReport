@@ -1,0 +1,39 @@
+// Place your settings in the file "Packages/User/ProComment.sublime-settings",
+// which overrides the settings in here.
+{
+	// String | Integer | Boolean
+	//
+	// Selectively turn on and off parts of debugging output in Console Panel.
+	//
+	// Valid values:
+	// - JSON Boolean (true or false, implying "DebugBits.ALL" and "DebugBits.NONE" respectively)
+	// - JSON Integer (containing necessary bits, e.g. 32 representing "DebugBits.COMMANDS")
+	// - String expressions of bit-wise OR-ed constants from the DebugBits class.
+	//   (See below.)
+	//
+	// class DebugBits:
+	//     NONE                   = 0x0000
+	//     DEBUGGING              = 0x0001
+	//     LOAD_UNLOAD            = 0x0002
+	//     SETTINGS_CHANGED_EVENT = 0x0004
+	//     QUERY_CONTEXT_EVENT    = 0x0008
+	//     ON_OFF_STATE           = 0x0010
+	//     COMMANDS               = 0x0020
+	//     BOX_DRAWING            = 0x0040
+	//     CHARACTER_SET          = 0x0080
+	//     IMPORTING              = 0X8000
+	//
+	//     ALL                    = 0xFFFF
+	//     ANY                    = 0xFFFF
+	//
+	// Examples of valid strings:
+	// - "DebugBits.NONE"
+	// - "DebugBits.LOAD_UNLOAD"
+	// - "DebugBits.ALL"
+	// - "DebugBits.QUERY_CONTEXT_EVENT | DebugBits.COMMANDS | DebugBits.BOX_DRAWING"
+	// - "DebugBits.BOX_DRAWING | DebugBits.ON_OFF_STATE"
+	//
+	// Note:  the spaces surrounding the '|' operator are optional,
+	//        but are recommended for readability.
+	"debugging": false,
+}
