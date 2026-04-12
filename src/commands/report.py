@@ -41,7 +41,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             KEYPAD_KEYS   = 4
             F_KEYS        = 5
 
-        class FlagBit(IntFlag):
+        class FlagBits(IntFlag):
             SHOW_UNBOUND_KEY_COMBINATIONS = 0b00000001
             SHOW_PACKAGE_NAME             = 0b00000010
             ADD_COMMENTS_COLUMN           = 0b00000100
@@ -83,7 +83,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         :param key_groups:    Which key group to report on
         :param key_names:     Key name; ignored when not applicable
         :param format:        Which output format (ascii_table.Format)
-        :param flags:         Any bitwise-OR-ed combination of `FlagBit` bits.
+        :param flags:         Any bitwise-OR-ed combination of `FlagBits` bits.
         :return:  None
         """
         t0 = datetime.now()

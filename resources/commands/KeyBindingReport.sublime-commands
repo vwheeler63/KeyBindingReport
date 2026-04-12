@@ -212,7 +212,7 @@
 // flags    : int      = 0
 
 
-// class FlagBit(IntFlag):
+// class FlagBits(IntFlag):
 //     SHOW_UNBOUND_KEY_COMBINATIONS = 0b00000001  #   1
 //     SHOW_PACKAGE_NAME             = 0b00000010  #   2
 //     ADD_COMMENTS_COLUMN           = 0b00000100  #   4

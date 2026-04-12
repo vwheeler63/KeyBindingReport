@@ -7,7 +7,7 @@ Definitions
 
 key modifier
     the possible combination of the [Ctrl], [Alt] and [Shift] modifier keys
-    that were part of a key-press.  The ``ModifierKeyBit`` class provides
+    that were part of a key-press.  The ``ModifierKeyBits`` class provides
     bits which are OR-ed together to form this integer value [0-7].
 
 key press
@@ -28,7 +28,7 @@ key-press ID
     where:
 
     - `i` is the key ID (index into the `key_names` list), and
-    - `modifier_value` is comprised of OR-ed bits from ``ModifierKeyBit``.
+    - `modifier_value` is comprised of OR-ed bits from ``ModifierKeyBits``.
 
 key-press sequence
     A key-press sequence is when a Command is bound to a sequence of more than one
@@ -76,7 +76,7 @@ However, Sublime |nbsp| Text allows users to include key overrides in
 ``.sublime-keymap`` files that do not follow this pattern, so when we read
 in Key-Binding Objects from ``.sublime-keymap`` files, we cannot rely on
 this sequence since some of them are user override files.  Therefore, we
-use the ``ModifierKeyBit`` class to generate a numeric value in the range
+use the ``ModifierKeyBits`` class to generate a numeric value in the range
 [0-7] which gives a consistent unique integer value which can be used in
 different ways as needed.  Such values will be created something like this:
 
@@ -86,17 +86,17 @@ different ways as needed.  Such values will be created something like this:
 
     modifier_str = 'shift+'
     if modifier_str in keypress_str:
-        key_modifier_index |= ModifierKeyBit.SHIFT
+        key_modifier_index |= ModifierKeyBits.SHIFT
         keypress_str = keypress_str.replace(modifier_str, '')
 
     modifier_str = 'ctrl+'
     if modifier_str in keypress_str:
-        key_modifier_index |= ModifierKeyBit.CTRL
+        key_modifier_index |= ModifierKeyBits.CTRL
         keypress_str = keypress_str.replace(modifier_str, '')
 
     modifier_str = 'alt+'
     if modifier_str in keypress_str:
-        key_modifier_index |= ModifierKeyBit.ALT
+        key_modifier_index |= ModifierKeyBits.ALT
         keypress_str = keypress_str.replace(modifier_str, '')
 
     # Now ``keypress_str`` contains just the name of the main key.
@@ -141,7 +141,7 @@ See key names below.  Example:  "up".
 VALUES:
 
 Each entry's VALUE is a list of exactly 8 possible key modifiers, where
-the ``ModifierKeyBit`` class combinations of modifier keys forms the index
+the ``ModifierKeyBits`` class combinations of modifier keys forms the index
 of which list item, as described above under "Design Factor".
 
 Key:
@@ -274,7 +274,7 @@ the key, or a key name:
     The above enumerator names are from the ``KeyGroup`` class.
 
 in that order.  Indexing into the list will be done using ``class
-ModifierKeyBit`` bits.  Thus somewhere in the decoding will be
+ModifierKeyBits`` bits.  Thus somewhere in the decoding will be
 something like this:
 
 Note:  this modifier-key order is for the report.  This differs from the
@@ -283,7 +283,7 @@ the order must be "ctrl", "alt", "shift" to form consistent dictionary
 entries.  In fact, because Sublime Text allows users to combine these
 modifier key name strings in different orders, it is necessary to parse
 those strings and re-code them to ensure they are in a consistent order
-to be able to serve as a dictionary key.  The `ModifierKeyBit` class
+to be able to serve as a dictionary key.  The `ModifierKeyBits` class
 will serve to help index into the list above.
 
 
@@ -421,7 +421,7 @@ class KeyGroup(IntEnum):
     COUNT         = 6
 
 
-class ModifierKeyBit(IntFlag):
+class ModifierKeyBits(IntFlag):
     SHIFT         = 0b001
     CTRL          = 0b010
     ALT           = 0b100
@@ -431,7 +431,7 @@ class ModifierKeyBit(IntFlag):
     ANY           = 0b111
 
 
-class FlagBit(IntFlag):
+class FlagBits(IntFlag):
     SHOW_UNBOUND_KEY_COMBINATIONS = 0b00000001  #   1
     SHOW_PACKAGE_NAME             = 0b00000010  #   2
     ADD_COMMENTS_COLUMN           = 0b00000100  #   4
@@ -604,7 +604,7 @@ for grp in key_name_groups:
 #
 #     keypress_id = (i << 3) | modifier_value
 #
-# where ``modifier_value`` is comprised of OR-ed bits from ModifierKeyBit.
+# where ``modifier_value`` is comprised of OR-ed bits from ModifierKeyBits.
 key_index_by_key_name_dict = {}
 
 for i, key_name in enumerate(key_names):
@@ -652,17 +652,17 @@ def _add_binding_to_main_key_dict(binding: KeyBinding):
 
     modifier_str = 'shift+'
     if modifier_str in lsWorkingKeypress:
-        key_modifier_index |= ModifierKeyBit.SHIFT
+        key_modifier_index |= ModifierKeyBits.SHIFT
         lsWorkingKeypress = lsWorkingKeypress.replace(modifier_str, '')
 
     modifier_str = 'ctrl+'
     if modifier_str in lsWorkingKeypress:
-        key_modifier_index |= ModifierKeyBit.CTRL
+        key_modifier_index |= ModifierKeyBits.CTRL
         lsWorkingKeypress = lsWorkingKeypress.replace(modifier_str, '')
 
     modifier_str = 'alt+'
     if modifier_str in lsWorkingKeypress:
-        key_modifier_index |= ModifierKeyBit.ALT
+        key_modifier_index |= ModifierKeyBits.ALT
         lsWorkingKeypress = lsWorkingKeypress.replace(modifier_str, '')
 
     # Now ``keypress_str`` contains just the name of the main key.
