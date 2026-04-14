@@ -40,7 +40,6 @@
 		"args": {
 			"packages": ["Default"],
 			"key_groups": [-1],
-			"key_names": [],
 			"format": 1,
 			"flags": 255,
 		},
@@ -51,7 +50,6 @@
 		"args": {
 			"packages": ["Default"],
 			"key_groups": [0],
-			"key_names": [],
 			"format": 1,
 			"flags": 255,
 		},
@@ -62,7 +60,6 @@
 		"args": {
 			"packages": ["Default"],
 			"key_groups": [1],
-			"key_names": [],
 			"format": 1,
 			"flags": 255,
 		},
@@ -73,7 +70,6 @@
 		"args": {
 			"packages": ["Default"],
 			"key_groups": [2],
-			"key_names": [],
 			"format": 1,
 			"flags": 255,
 		},
@@ -84,7 +80,6 @@
 		"args": {
 			"packages": ["Default"],
 			"key_groups": [3],
-			"key_names": [],
 			"format": 1,
 			"flags": 255,
 		},
@@ -95,7 +90,6 @@
 		"args": {
 			"packages": ["Default"],
 			"key_groups": [4],
-			"key_names": [],
 			"format": 1,
 			"flags": 255,
 		},
@@ -106,7 +100,6 @@
 		"args": {
 			"packages": ["Default"],
 			"key_groups": [5],
-			"key_names": [],
 			"format": 1,
 			"flags": 255,
 		},
@@ -116,7 +109,6 @@
 		"caption": "KeyBindingReport: For Specific Key Combinations for All Installed Packages",
 		"command": "key_binding_report",
 		"args": {
-			"packages": null,
 			"key_groups": [-2],
 			"format": 1,
 			"flags": 255,
@@ -126,9 +118,7 @@
 		"caption": "KeyBindingReport: Key Sequences for All Installed Packages",
 		"command": "key_binding_report",
 		"args": {
-			"packages": null,
 			"key_groups": [-1],
-			"key_names": [],
 			"format": 1,
 			"flags": 255,
 		},
@@ -137,9 +127,7 @@
 		"caption": "KeyBindingReport: Letter Keys for All Installed Packages",
 		"command": "key_binding_report",
 		"args": {
-			"packages": null,
 			"key_groups": [0],
-			"key_names": [],
 			"format": 1,
 			"flags": 255,
 		},
@@ -148,9 +136,7 @@
 		"caption": "KeyBindingReport: Number Keys for All Installed Packages",
 		"command": "key_binding_report",
 		"args": {
-			"packages": null,
 			"key_groups": [1],
-			"key_names": [],
 			"format": 1,
 			"flags": 255,
 		},
@@ -159,9 +145,7 @@
 		"caption": "KeyBindingReport: Symbol Keys for All Installed Packages",
 		"command": "key_binding_report",
 		"args": {
-			"packages": null,
 			"key_groups": [2],
-			"key_names": [],
 			"format": 1,
 			"flags": 255,
 		},
@@ -170,9 +154,7 @@
 		"caption": "KeyBindingReport: Named Keys for All Installed Packages",
 		"command": "key_binding_report",
 		"args": {
-			"packages": null,
 			"key_groups": [3],
-			"key_names": [],
 			"format": 1,
 			"flags": 255,
 		},
@@ -181,9 +163,7 @@
 		"caption": "KeyBindingReport: Function Keys for All Installed Packages",
 		"command": "key_binding_report",
 		"args": {
-			"packages": null,
 			"key_groups": [4],
-			"key_names": [],
 			"format": 1,
 			"flags": 255,
 		},
@@ -192,9 +172,7 @@
 		"caption": "KeyBindingReport: Keypad Keys for All Installed Packages",
 		"command": "key_binding_report",
 		"args": {
-			"packages": null,
 			"key_groups": [5],
-			"key_names": [],
 			"format": 1,
 			"flags": 255,
 		},
@@ -207,9 +185,9 @@
 
 // packages  : str      = ['Default'],
 // key_groups: KeyGroup = [KeyGroup.F_KEYS],
-// key_names : str      = [],
-// format   : Format   = Format.OUTLINED,
-// flags    : int      = 0
+// keys_list : str      = [],
+// format    : Format   = Format.OUTLINED,
+// flags     : int      = 0
 
 
 // class FlagBits(IntFlag):
@@ -227,18 +205,18 @@
 
 // class KeyGroup(IntEnum):
 //     """ Non-negative values index into ``key_name_groups``. """
-//     ALL_KEYS      = -3
-//     SPECIFIED_KEY = -2
-//     KEY_SEQUENCES = -1  # Multiple-key-press sequences, e.g. ["ctrl+k", "ctrl+u"]
+//     ALL_KEYS       = -3
+//     SPECIFIED_KEYS = -2
+//     KEY_SEQUENCES  = -1  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
 
-//     LETTER_KEYS   = 0
-//     NUMBER_KEYS   = 1
-//     SYMBOL_KEYS   = 2
-//     NAMED_KEYS    = 3
-//     KEYPAD_KEYS   = 4
-//     F_KEYS        = 5
+//     LETTER_KEYS    = 0
+//     NUMBER_KEYS    = 1
+//     SYMBOL_KEYS    = 2
+//     NAMED_KEYS     = 3
+//     KEYPAD_KEYS    = 4
+//     F_KEYS         = 5
 
-//     LAST          = 5
-//     COUNT         = 6
+//     LAST           = 5
+//     COUNT          = 6
 
 ]

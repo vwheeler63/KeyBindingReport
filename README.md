@@ -25,7 +25,7 @@ and allows an option for output format and whether to show:
 
 ## KeyBindingReport: Which Binding?
 
-This command reports on the key bindings that Sublime Text would select given the current scope of the current View for a specified list of key presses and/or key-press sequences.
+This command reports on the key bindings that Sublime Text would select given the current scope of the current View for a specified list of keypresses and/or keypress sequences.
 
 This command allows you to input (or pass it) a list of key combinations, such as
 
@@ -33,9 +33,9 @@ This command allows you to input (or pass it) a list of key combinations, such a
   [["ctrl+k", "ctrl+b"], ["ctrl+k", "ctrl+u"]]
   [["ctrl+p"], ["ctrl+shift+p"]]
 
-and for each key-press/key-sequence in the list, it will do a search the same way Sublime Text does when you hit keys, and the report will include:
+and for each keypress/keypress-sequence in the list, it will do a search the same way Sublime Text does when you hit keys, and the report will include:
 
-- details about the specific key binding was selected for each key-press/key-sequence given the current scope in the current View;
+- details about the specific key binding was selected for each keypress/keypress-sequence given the current scope in the current View;
 
 - which Package contained each key binding.
 

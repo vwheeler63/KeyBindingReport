@@ -191,9 +191,11 @@ class DebugBits(IntFlag):
     DEBUGGING              = 0x0001
     LOAD_UNLOAD            = 0x0002
     SETTINGS_CHANGED_EVENT = 0x0004
-    FILTERING              = 0x0008
-    BUILDING_MAIN_KEY_DICT = 0x0010
-    BUILDING_KEY_SEQ_DICT  = 0x0020
+    KEY_BINDING_REPORT     = 0x0008
+    WHICH_BINDING_REPORT   = 0x0010
+    FILTERING              = 0x0020
+    BUILDING_MAIN_KEY_DICT = 0x0040
+    BUILDING_KEY_SEQ_DICT  = 0x0080
 
     # ---------------------------------------------------------------------
     # Importing Bits
@@ -226,7 +228,7 @@ class DebugBits(IntFlag):
 # output, getting away from the profuse "all at once" debug output.
 # =========================================================================
 
-_debugging: DebugBits = DebugBits.ALL
+_debugging: DebugBits = DebugBits.NONE
 _valid_debugging_string_re = None
 _cfg_debugging_print_format = '04X'
 
@@ -291,7 +293,10 @@ def _securely_computed_bits_from_setting_input(
         if match:
             result = eval(selection_bits)
         else:
-            raise ValueError(f'Debug Module:  Error:  invalid string:  [{selection_bits}].')
+            raise ValueError(
+                    f'Debug Module:  Error:  invalid string:  [{selection_bits}]\n'
+                    f'  did not match [{_valid_debugging_string_re.pattern}].'
+                    )
     # ---------------------------------------------------------------------
     # Boolean
     # ---------------------------------------------------------------------

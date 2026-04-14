@@ -24,7 +24,7 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
     def run(
             self     : sublime_plugin.TextCommand,
             edit     : sublime.Edit,
-            key_name : str      = 'f2',
+            keys_list: List[List[str]] = [["f2"]],
             format   : Format   = Format.OUTLINED
             ):
         """
@@ -33,12 +33,16 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
         binding where current scope matches key context.  Generate output
         in format `format`.
 
-        :param self:      KeyBindingReportCommand object connected to current View
-        :param edit:      sublime.Edit connected to current View, needed to edit Buffer
-        :param key_name:  Key name; ignored when not applicable
-        :param format:    Which output format (ascii_table.Format)
+        :param self:        KeyBindingReportCommand object connected to current View
+        :param edit:        sublime.Edit connected to current View, needed to edit Buffer
+        :param keys_list:   List, tuple or set of "keys" (same format as "keys"
+                              elements from JSON key bindings).  Note that this enables
+                              you to specify more than one "keys" value.  Example:
+                              ``[["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]]``
+        :param format:      Which output format (ascii_table.Format)
         :return:  None
         """
+        debugging = is_debugging(DebugBits.WHICH_BINDING_REPORT)
         t0 = datetime.now()
-        core.build_lookup_data(package, key_group, key_name)
+        core.build_report_data(package, key_group, key_name)
         t1 = datetime.now()

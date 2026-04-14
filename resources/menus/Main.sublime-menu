@@ -9,7 +9,7 @@
 				[
 					{
 						"caption": "Key Bindings Report",
-						"mnemonic": "G",
+						"mnemonic": "K",
 						"command": "show_overlay",
 						"args": {"overlay": "command_palette", "text": "KeyBindingReport: "}
 					},
@@ -47,14 +47,6 @@
 								"args": {
 									"base_file": "${packages}/KeyBindingReport/resources/settings/KeyBindingReport.sublime-settings",
 									"default": "{\n\t$0\n}\n"
-								}
-							},
-							{
-								"caption": "Key Bindings",
-								"command": "edit_settings",
-								"args": {
-									"base_file": "${packages}/KeyBindingReport/resources/keymaps/Default ($platform).sublime-keymap",
-									"default": "[\n\t$0\n]\n"
 								}
 							},
 						]

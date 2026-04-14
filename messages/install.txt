@@ -39,12 +39,12 @@ combinations, such as
   [["ctrl+k", "ctrl+b"], ["ctrl+k", "ctrl+u"]]
   [["ctrl+p"], ["ctrl+shift+p"]]
 
-and for each key-press/key-sequence in the list, it will do a search
+and for each keypress/key-sequence in the list, it will do a search
 the same way Sublime Text does when you hit keys, and the report will
 include:
 
 - details about the specific key binding was selected for each
-  key-press/key-sequence given the current scope in the current View;
+  keypress/key-sequence given the current scope in the current View;
 
 - which Package contained each key binding;
 
