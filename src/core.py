@@ -882,13 +882,11 @@ def _build_empty_key_seq_dict():
 
 def _condition_test(
         view          : sublime.View,
-        scope         : str,
         keypress_tuple: Tuple[str],
         condition     : dict
         ):
     """
     :param view:            Current View (used to test if key context is applicable)
-    :param scope:           Scope string of first caret in View (if needed)
     :param keypress_tuple:  Tuple containing keypress/keypress sequence
     :param condition:       Single condition dictionary from key-binding context.
     """
@@ -901,15 +899,13 @@ def _condition_test(
     return result
 
 
-def _contex_applies(
+def _context_applies(
         view          : sublime.View,
-        scope         : str,
         keypress_tuple: Tuple[str],
         context       : List[dict]
         ):
     """
     :param view:            Current View (used to test if key context is applicable)
-    :param scope:           Scope string of first caret in View (if needed)
     :param keypress_tuple:  Tuple containing keypress/keypress sequence
     :param context:         Context entry from key-binding
     """
@@ -918,7 +914,7 @@ def _contex_applies(
     # Do all conditions pass?
     all_conditions_passed = True
     for condition in context:
-        if not _condition_test(view, scope, keypress_tuple, condition):
+        if not _condition_test(view, keypress_tuple, condition):
             all_conditions_passed = False
             break
 
@@ -931,7 +927,6 @@ def _contex_applies(
 
 def _conditionally_add_bindings_from_keymap(
         view                    : sublime.View,
-        scope                   : str,
         path                    : str,
         pkg_name                : str,
         file_name               : str,
@@ -950,7 +945,6 @@ def _conditionally_add_bindings_from_keymap(
 
 
     :param view:            Current View (used to test if key context is applicable)
-    :param scope:           Scope string of first caret in View (if needed)
     :param path:            Packages path to .sublime-keymap file
     :param pkg_name:        Name of package (extracted by caller and used here)
     :param file_name:       .sublime-keymap file name without path.
@@ -1065,9 +1059,8 @@ def _conditionally_add_bindings_from_keymap(
         # scope doesn't apply to the current scope.
         if limit_to_scope and 'context' in json_binding:
             # Do context conditions ALL fit limiting scope?
-            if not _contex_applies(
+            if not _context_applies(
                     view,
-                    scope,
                     keypress_tuple_bep,
                     json_binding['context']
                     ):
@@ -1173,7 +1166,6 @@ def build_report_data(
 
     # Use only first selection, and position of caret if any text is selected.
     sel_rgn = live_sel_rgn_list[0]
-    scope = view.scope_name(sel_rgn.b)
 
     # Loop through list of .sublime-keymap files in keymap-load order.
     keymap_paths = sublime.find_resources('*.sublime-keymap')
@@ -1220,7 +1212,6 @@ def build_report_data(
         # -----------------------------------------------------------------
         _conditionally_add_bindings_from_keymap(
                 view,
-                scope,
                 path,
                 pkg_name,
                 file_name,
