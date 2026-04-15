@@ -723,8 +723,8 @@ def encoded_keypress_from_components(main_key_name: str, key_modifier_code: int)
 
 def encoded_keypress(keypress_str: str) -> int:
     """ `keypress_str` encoded as ((i << 4) | modifier_value) """
-    kn, mod_val = main_key_and_modifier_code(keypress_str)
-    return encoded_keypress_from_components(kn, mod_val)
+    kn, mod_code = main_key_and_modifier_code(keypress_str)
+    return encoded_keypress_from_components(kn, mod_code)
 
 
 def _add_binding_to_main_key_dict(binding: KeyBinding, key_name: str, key_mod_code: int):
@@ -959,38 +959,15 @@ def _conditionally_add_bindings_from_keymap(
         keypress_tuple_bep = tuple(json_binding['keys'])
         keypress_count_bep = len(keypress_tuple_bep)
 
-        # Exclude key sequences (keypress_count_bep > 1)?
-        if keypress_count_bep > 1:
-            # Is a key sequence.
-            # Exclude if not accept_all_key_sequences and not in ``keys_set``
-            if not accept_all_key_sequences:
-                if keys_set:
-                    # Exclude if not in ``keys_set``.
-                    if keypress_tuple_bep not in keys_set:
-                        if _debugging_filtering_stage_ii:
-                            print(f'  Excluding {keypress_tuple_bep} because:\n'
-                                    f'    - KEY_SEQUENCES was not in `key_groups`,\n'
-                                    f'    - that keypress sequence was not in `keys_list`.'
-                                    )
-                        continue
-                else:
-                    # ``keys_set`` not present, exclude.
-                    if _debugging_filtering_stage_ii:
-                        print(f'  Excluding {keypress_tuple_bep} because:\n'
-                                f'    - KEY_SEQUENCES was not in `key_groups`, and\n'
-                                f'    - that keypress sequence was not in `keys_list`.'
-                                )
-                    continue
-        elif keypress_count_bep == 0:
-            # Binding encountered that has no "keys" entry!
-            # This is an error the user needs to fix.
-            print(f'{package_name} Error:  Cannot include JSON key binding with empty "keys" entry!\n'
-                    f'  {keypress_tuple_bep}'
-                    )
-            continue
-        else:
-            # Single keypress.  Exclude if neither in
-            # ``accepted_key_name_set`` nor ``keys_set``.
+        if keypress_count_bep == 1:
+            # -------------------------------------------------------------
+            # 1 keypress:  the most common execution branch.
+            #
+            # Exclude if neither in ``accepted_key_name_set`` nor ``keys_set``.
+            # -------------------------------------------------------------
+            keypress_str = keypress_tuple_bep[0]
+            key_name, mod_code = main_key_and_modifier_code(keypress_str)
+
             is_in_keys_set = ((
                         keys_set is not None
                     and len(keys_set) > 0
@@ -999,9 +976,6 @@ def _conditionally_add_bindings_from_keymap(
 
             if not is_in_keys_set:
                 if accepted_key_name_set:
-                    keypress_str = keypress_tuple_bep[0]
-                    key_name, mod_val = main_key_and_modifier_code(keypress_str)
-
                     if key_name not in accepted_key_name_set:
                         # This should be excluded UNLESS, but ``keys_set`` is
                         # additive, so if ``key_set`` was provided AND the
@@ -1021,6 +995,39 @@ def _conditionally_add_bindings_from_keymap(
                                 f'    - that keypress was not in `keys_list`.'
                                 )
                     continue
+        elif keypress_count_bep > 1:
+            # -------------------------------------------------------------
+            # 2+ keypress
+            #
+            # Exclude if not accept_all_key_sequences and not in ``keys_set``.
+            # -------------------------------------------------------------
+            if not accept_all_key_sequences:
+                if keys_set:
+                    # Exclude if not in ``keys_set``.
+                    if keypress_tuple_bep not in keys_set:
+                        if _debugging_filtering_stage_ii:
+                            print(f'  Excluding {keypress_tuple_bep} because:\n'
+                                    f'    - KEY_SEQUENCES was not in `key_groups`,\n'
+                                    f'    - that keypress sequence was not in `keys_list`.'
+                                    )
+                        continue
+                else:
+                    # ``keys_set`` not present, exclude.
+                    if _debugging_filtering_stage_ii:
+                        print(f'  Excluding {keypress_tuple_bep} because:\n'
+                                f'    - KEY_SEQUENCES was not in `key_groups`, and\n'
+                                f'    - that keypress sequence was not in `keys_list`.'
+                                )
+                    continue
+        else:
+            # -------------------------------------------------------------
+            # 0 keypresses (error condition).
+            # This is an error the user needs to fix, so report it.
+            # -------------------------------------------------------------
+            print(f'{package_name} Error:  Cannot include JSON key binding with empty "keys" entry!\n'
+                    f'  {keypress_tuple_bep}'
+                    )
+            continue
 
         # Exclude if caller requested a limiting scope, and the
         # scope doesn't apply to the current scope.
