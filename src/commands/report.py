@@ -1,25 +1,27 @@
 from enum import IntEnum, IntFlag
 from typing import Iterable, Optional
+import pprint  # For human-readable data dumps when debugging.
 from datetime import datetime
 import sublime_plugin
 import sublime
 from ...lib.ascii_table import Format, Generator
 from ...lib.debug import DebugBits, is_debugging
 from .. import core
-from ..core import KeyGroup, FlagBits
+from ..core import KeyGroup, FlagBits, package_name, gdictByMainKey, gdictByKeySquence
 
 
 class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
     """ Generate Key-Binding Report in specified format. """
 
     def run(
-            self      : sublime_plugin.ApplicationCommand,
-            packages  : Optional[Iterable[str]] = None,
-            key_groups: Optional[Iterable[KeyGroup]] = None,
-            key_names : Optional[Iterable[str]] = None,
-            keys_list : Optional[Iterable[Iterable[str]]] = None,
-            format    : Format   = Format.OUTLINED,
-            flags     : FlagBits = FlagBits.SHOW_UNBOUND_KEY_COMBINATIONS
+            self          : sublime_plugin.ApplicationCommand,
+            key_groups    : Optional[Iterable[KeyGroup]] = None,
+            key_names     : Optional[Iterable[str]] = None,
+            keys_list     : Optional[Iterable[Iterable[str]]] = None,
+            packages      : Optional[Iterable[str]] = None,
+            limit_to_scope: Optional[bool] = False,
+            format        : Format   = Format.OUTLINED,
+            flags         : FlagBits = FlagBits.SHOW_UNBOUND_KEY_COMBINATIONS
             ):
         r"""
         Generate Key-Binding Report in format `format`, limited by `packages`,
@@ -28,31 +30,40 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
         Precondition:   ``packages``, ``key_groups``, ``key_names`` and ``keys_list``
                         must each be a list, set, tuple or ``None``.
 
-        When combinations of
-
+        All of these arguments serve to LIMIT the output of the report.
         - packages,
-        - key_groups,
-        - key_names, and
-        - keys_list
+        - key_names,
+        - keys_list, and
+        - limit_to_scope
 
-        appear, the results are additive, in a logical way.  See detailed
-        parameters description below for details.
+        Omit them or pass ``None`` to intentionally remove limits in that
+        particular category.
 
+        When combinations of them appear, the results are additive, in a
+        logical way.  See detailed parameters description below for details.
+
+
+        Parameters:
+        -----------
         :param self:        Command object connected to Application
 
-        :param packages:    List, tuple or set of package names report
-                            should be limited to; ``None`` or ``[]`` when
-                            not applicable.
-
         :param key_groups:  List, tuple or set of ``KeyGroup`` integers,
-                            limiting report to those key groups; ``None``
-                            or ``[]`` when not applicable.
+                            limiting report to those key groups.
+                            ``KeyGroup.ALL`` is equivalent to specifying all
+                            the other key groups.
+
+                            ``None`` or ``[]`` when the only keys that should
+                            be included are in ``key_names`` and ``keys_list``.
+
+                            To get all individual keypresses plus all
+                            multi-keypress key sequences, pass
+                            ``[KeyGroup.ALL, KeyGroup.KEY_SEQUENCES]``.
 
         :param key_names:   List, tuple or set of key names. Meaning: report
                             on all key bindings connected to this key,
                             including all key-modifier combinations".  Only
-                            honored if found in ``core.key_names``.
-                            ``None`` or ``[]`` when not applicable.
+                            honored if found in ``core.all_key_names``.
+                            ``None`` or ``[]`` when key names are not limited.
 
         :param keys_list:   List, tuple or set of "keys" (same format
                             as "keys" elements from JSON key bindings,
@@ -60,9 +71,20 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
 
                                 [["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]].
 
-                            ``None`` or ``[]`` when not applicable. Meaning:
-                            report on key bindings connected to these
-                            specific keypresses/keypress sequences.
+                            Meaning:  report on key bindings connected to
+                            these specific keypresses/keypress sequences.
+                            ``None`` or ``[]`` when not applicable.
+
+        :param packages:    List, tuple or set of package names report
+                            should be limited to; ``None`` or ``[]`` when
+                            packages are not limited.
+
+        :param limit_to_scope:
+                            Whether to NOT include key bindings with context
+                            entries that do not match the current scope.
+                            When ``True``, this command fetches the current
+                            scope from the active View and passes it on
+                            to ``core.build_report_data()``.
 
         :param format:      Which output format (ascii_table.Format)
 
@@ -70,20 +92,21 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
 
         :return:  None
 
-        -----
+
+        Usage:
+        ------
 
         class KeyGroup(IntEnum):
             # Non-negative values index into ``key_name_groups``.
+            ALL            = -2  # Equivalent to specifying all groups >= 0.
             KEY_SEQUENCES  = -1  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
 
             LETTER_KEYS    =  0  # \
             NUMBER_KEYS    =  1  #  \
-            SYMBOL_KEYS    =  2  #   \__ These index into ``key_name_groups``.
-            NAMED_KEYS     =  3  #   /
-            F_KEYS         =  4  #  /
+            F_KEYS         =  2  #   \__ These index into ``key_name_groups``.
+            SYMBOL_KEYS    =  3  #   /
+            NAMED_KEYS     =  4  #  /
             KEYPAD_KEYS    =  5  # /
-
-            LAST           =  5
 
         class FlagBits(IntFlag):
             SHOW_UNBOUND_KEY_COMBINATIONS = 0b00000001
@@ -142,11 +165,11 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
             From these two, if either of them were specified, a list of
             accepted keys is built, or left as ``None`` if there are no
             restrictions on which keys are reported on.  Namely:
-            ``accepted_lone_key_name_list``.
+            ``accepted_key_name_set``.
 
-        3.  If (accepted_lone_key_name_list is not None and keys_list is not None),
+        3.  If (accepted_key_name_set is not None and keys_list is not None),
             this indicates the user has specified a ``keys_list`` which *may*
-            have overlap with ``accepted_lone_key_name_list``.  Since the latter
+            have overlap with ``accepted_key_name_set``.  Since the latter
             means "report on all possible key combinations for these keys",
             any keypress/keypress sequence present in ``keys_list`` which
             has one of those key names as the main key would be redundant and
@@ -165,10 +188,10 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
 
         How Resulting Args Are Prepared
         -------------------------------
-        accepted_lone_key_name_list = None
+        accepted_key_name_set = None
 
         If ``key_groups`` was provided:
-            accepted_lone_key_name_list = Unique list of accepted key
+            accepted_key_name_set = Unique list of accepted key
             names based on ``key_groups``.
 
         If ``keys_list`` was provided:
@@ -179,7 +202,7 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
         Now all 3 of:
 
         - packages,
-        - accepted_lone_key_name_list, and
+        - accepted_key_name_set, and
         - keys_list are passed to
 
         ``core.build_report_data()``.
@@ -193,10 +216,11 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
         debugging = is_debugging(DebugBits.KEY_BINDING_REPORT)
         if debugging:
             print('In KeyBindingReportCommand.run()...')
-            print(f'  {packages=}')
             print(f'  {key_groups=}')
             print(f'  {key_names=}')
             print(f'  {keys_list=}')
+            print(f'  {packages=}')
+            print(f'  {limit_to_scope=}')
             print(f'  {format=}')
             print(f'  flags=0b{flags:08b}')
 
@@ -205,10 +229,6 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
         # ---------------------------------------------------------------------
         req_type = 'list, tuple or set'
         after_msg = '  Aborting.'
-        if packages:
-            if not core.is_list_tuple_or_set(packages):
-                msg = core.arg_type_error_message(packages, 'packages', req_type, after_msg)
-                raise TypeError(msg)
         if key_groups:
             if not core.is_list_tuple_or_set(key_groups):
                 msg = core.arg_type_error_message(key_groups, 'key_groups', req_type, after_msg)
@@ -223,6 +243,10 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
                     msg = f'  Each of the keypresses in `keys_list` arg must be a {req_type}.' \
                           f'  At least 1 was type {type(keypresses)}.{after_msg}'
                     raise TypeError(msg)
+        if packages:
+            if not core.is_list_tuple_or_set(packages):
+                msg = core.arg_type_error_message(packages, 'packages', req_type, after_msg)
+                raise TypeError(msg)
 
         # ---------------------------------------------------------------------
         # Remove duplicates from limiting args, pursuant to:
@@ -231,15 +255,10 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
         #     for ``keys_list`` if present is converting its elements to
         #     tuples so they can more efficiently have duplicates removed.
         # ---------------------------------------------------------------------
-        if packages:
-            if len(packages) > 1:
-                packages = set(packages)
-        if key_groups:
-            if len(key_groups) > 1:
-                key_groups = set(key_groups)
-        if key_names:
-            if len(key_names) > 1:
-                key_names = set(key_names)
+        if key_groups and type(key_groups) != set:
+            key_groups = set(key_groups)
+        if key_names and type(key_names) != set:
+            key_names = set(key_names)
         if keys_list:
             # Remember:  this is a Iterable of Iterables, e.g.
             # [["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]].
@@ -252,15 +271,20 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
                 temp_set.add(keypress_tuple)
 
             keys_list = temp_set
+        if packages and type(packages) != set:
+            packages = set(packages)
+
+        # All of packages, key_groups, key_names, keys_list are now set objects.
 
         if debugging:
             print('After removing duplicates:')
-            print(f'  {packages=}')
             print(f'  {key_groups=}')
             print(f'  {key_names=}')
             print(f'  {keys_list=}')
+            print(f'  {packages=}')
+
         # ---------------------------------------------------------------------
-        # Prepare ``accepted_lone_key_name_list`` while removing overlap from
+        # Prepare ``accepted_key_name_set`` while removing overlap from
         # ``key_groups`` and ``keys_list` if both are present, pursuant to:
         #
         # 2.  If both ``key_names`` and ``key_groups`` are provided and are
@@ -274,49 +298,52 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
         #     From these two, if either of them were specified, a list of
         #     accepted keys is built, or left as ``None`` if there are no
         #     restrictions on which keys are reported on.  Namely:
-        #     ``accepted_lone_key_name_list``.
+        #     ``accepted_key_name_set``.
         # ---------------------------------------------------------------------
-        accepted_lone_key_name_list = None   # None == no limits on key-names.
+        accepted_key_name_set = None   # None == no limits on key-names.
 
         if key_groups or key_names:
-            accepted_lone_key_name_list = []
+            accepted_key_name_set = set()
             if key_groups:
                 # Load it with key names from the specified groups.
-                for key_grp_idx in key_groups:
-                    if key_grp_idx >= 0:
-                        key_grp_list = core.key_name_groups[key_grp_idx]
-                        accepted_lone_key_name_list.extend(key_grp_list)
+                if KeyGroup.ALL in key_groups:
+                    accepted_key_name_set.update(core.all_key_names)
+                else:
+                    for key_grp_idx in key_groups:
+                        if key_grp_idx >= 0:
+                            key_grp_list = core.key_name_groups[key_grp_idx]
+                            accepted_key_name_set.update(key_grp_list)
 
-            # Now ``accepted_lone_key_name_list`` contains keys in ``key_groups``
+            # Now ``accepted_key_name_set`` contains keys in ``key_groups``
             # if ``key_groups`` was specified, or is empty if not.  If not empty,
             # it gives us an intermediate list against which to check whether
             # there is any overlap in ``key_names``, in case both were specified.
             # Example ``key_names``:  ["k", "u", "f6", "enter"].
-            if key_names and accepted_lone_key_name_list:
+            if key_names and accepted_key_name_set:
                 # Remove any overlap in ``key_names`` resulting from any items in
-                # ``key_names`` that also appear in ``accepted_lone_key_name_list``.
+                # ``key_names`` that also appear in ``accepted_key_name_set``.
                 key_names_copy = key_names.copy()
 
                 for key_name in key_names_copy:
-                    if key_name in accepted_lone_key_name_list:
+                    if key_name in accepted_key_name_set:
                         key_names.remove(key_name)
 
             # Finally, add any names remaining in ``key_names`` into list.
             if key_names:
-                accepted_lone_key_name_list.extend(key_names)
+                accepted_key_name_set.update(key_names)
 
         if debugging:
             print('After removing overlap phase I:')
             print(f'  {key_names=}')
-            print(f'  {accepted_lone_key_name_list=}')
+            print(f'  {accepted_key_name_set=}')
 
         # -----------------------------------------------------------------
-        # Remove possible overlap between ``accepted_lone_key_name_list``
+        # Remove possible overlap between ``accepted_key_name_set``
         # and ``keys_list`` if both are present, pursuant to:
         #
-        # 3.  If (accepted_lone_key_name_list is not None and keys_list is not None),
+        # 3.  If (accepted_key_name_set is not None and keys_list is not None),
         #     this indicates the user has specified a ``keys_list`` which *may*
-        #     have overlap with ``accepted_lone_key_name_list``.  Since the latter
+        #     have overlap with ``accepted_key_name_set``.  Since the latter
         #     means "report on all possible key combinations for these keys",
         #     any keypress/keypress sequence present in ``keys_list`` which
         #     has one of those key names as the main key would be redundant and
@@ -325,7 +352,7 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
         # Example:
         # [("ctrl+k", "ctrl+u"), ("ctrl+p"), ("ctrl+shift+p")]
         # -----------------------------------------------------------------
-        if accepted_lone_key_name_list and keys_list:
+        if accepted_key_name_set and keys_list:
             keys_list_copy = keys_list.copy()
 
             print(f'{keys_list_copy=}')
@@ -334,7 +361,7 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
                 if len(keypress_tuple) == 1:
                     keypress = keypress_tuple[0]
                     key_name, _ = core.main_key_and_modifier_code(keypress)
-                    if key_name in accepted_lone_key_name_list:
+                    if key_name in accepted_key_name_set:
                         # Overlap
                         if debugging:
                             print(f'Removing overlap with key {key_name} in {keypress_tuple}.')
@@ -343,7 +370,7 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
         if debugging:
             print('After removing overlap phase II:')
             print(f'  {keys_list=}')
-            print(f'  {accepted_lone_key_name_list=}')
+            print(f'  {accepted_key_name_set=}')
 
         # -----------------------------------------------------------------
         # Remove possible overlap between ``key_groups`` and ``keys_list``
@@ -359,9 +386,13 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
         #     their occurrence would already be covered by the KEY_SEQUENCES
         #     key group.
         # -----------------------------------------------------------------
-        key_seq_is_in_key_groups = ((key_groups and KeyGroup.KEY_SEQUENCES in key_groups))
+        accept_all_key_sequences = ((
+                key_groups is not None
+                and len(key_groups) > 0
+                and KeyGroup.KEY_SEQUENCES in key_groups
+                ))
 
-        if keys_list and key_seq_is_in_key_groups:
+        if keys_list and key_groups and KeyGroup.KEY_SEQUENCES in key_groups:
             keys_list_copy = keys_list.copy()
 
             print(f'{keys_list_copy=}')
@@ -379,7 +410,7 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
 
         if debugging:
             print('After removing overlap phase III:')
-            print(f'  {key_seq_is_in_key_groups=}')
+            print(f'  {accept_all_key_sequences=}')
             print(f'  {keys_list=}')
 
         # ---------------------------------------------------------------------
@@ -388,12 +419,13 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
         t0 = datetime.now()
         core.build_report_data(
                 packages,
-                accepted_lone_key_name_list,
-                keys_list
+                accepted_key_name_set,
+                keys_list,
+                limit_to_scope,
+                accept_all_key_sequences
                 )
         t1 = datetime.now()
         print('Time to build data structures: ', str(t1 - t0))
-        llstKeyGroup = key_name_groups[key_group]
 
         # import os
         # this_dir, _ = os.path.split(__file__)

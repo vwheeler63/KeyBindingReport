@@ -52,7 +52,7 @@ keys_list
     - [["enter"], ["ctrl+k", "ctrl+u"], ["ctrl+k", "ctrl+u"]]
 
 key ID
-    index into the ``core.key_names`` list identifying a particular keyboard key.
+    index into the ``core.all_key_names`` list identifying a particular keyboard key.
 
 encoded keypress
     an integer whose bits are the bitwise-OR-ed combination of the key ID
@@ -62,7 +62,7 @@ encoded keypress
 
     where:
 
-    - ``i`` is the key ID (index into the ``core.key_names`` list), and
+    - ``i`` is the key ID (index into the ``core.all_key_names`` list), and
     - ``modifier_value`` is comprised of OR-ed bits from ``ModifierKeyBits``.
 
     While the key modifier code only needs 3 bits, 4 bits is used so its parts can
@@ -294,30 +294,32 @@ the key, or a key name:
 
 .. code-block:: text
 
-    a   n   0   ,   up           keypad0         f1    f11
-    b   o   1   .   down         keypad1         f2    f12
-    c   p   2   \   left         keypad2         f3    f13
-    d   q   3   /   right        keypad3         f4    f14
-    e   r   4   ;   insert       keypad4         f5    f15
-    f   s   5   '   delete       keypad5         f6    f16
-    g   t   6   `   home         keypad6         f7    f17
-    h   u   7   +   end          keypad7         f8    f18
-    i   v   8   -   pageup       keypad8         f9    f19
-    j   w   9   =   pagedown     keypad9         f10   f20
-    k   x       [   backspace    keypad_period
-    l   y       ]   tab          keypad_divide
-    m   z           enter        keypad_multiply
-                    pause        keypad_minus
-                    escape       keypad_plus
-                    space        keypad_enter
-                    break        clear
-                    context_menu
-    \___/   ^   ^     ^            ^             \_______/
-      |     |   |     |            |                 |
-      |     |   |     |            |                 +-- F_KEYS
-      |     |   |     |            +-- KEYPAD_KEYS
-      |     |   |     +-- NAMED_KEYS
-      |     |   +-- SYMBOL_KEYS
+    a   n   0   f1    ,   up           keypad0
+    b   o   1   f2    .   down         keypad1
+    c   p   2   f3    \   left         keypad2
+    d   q   3   f4    /   right        keypad3
+    e   r   4   f5    ;   insert       keypad4
+    f   s   5   f6    '   delete       keypad5
+    g   t   6   f7    `   home         keypad6
+    h   u   7   f8    +   end          keypad7
+    i   v   8   f9    -   pageup       keypad8
+    j   w   9   f10   =   pagedown     keypad9
+    k   x       f11   [   backspace    keypad_period
+    l   y       f12   ]   tab          keypad_divide
+    m   z       f13       enter        keypad_multiply
+                f14       pause        keypad_minus
+                f15       escape       keypad_plus
+                f16       space        keypad_enter
+                f17       break        clear
+                f18       context_menu
+                f19
+                f20
+    \___/   ^    ^    ^     ^            ^
+      |     |    |    |     |            |
+      |     |    |    |     |            +-- KEYPAD_KEYS
+      |     |    |    |     +-- NAMED_KEYS
+      |     |    |    +-- SYMBOL_KEYS
+      |     |    +-- F_KEYS
       |     +-- NUMBER_KEYS
       +-- LETTER_KEYS
 
@@ -334,7 +336,6 @@ See ``KeyBindingReportCommand`` docstring for details.
 
 from datetime import datetime
 from typing import List, Tuple, Dict, Set, Optional
-import pprint  # For human-readable data dumps when debugging.
 import re
 import os
 import sys
@@ -398,16 +399,15 @@ kbr_setting.default = {
 
 class KeyGroup(IntEnum):
     """ Non-negative values index into ``key_name_groups``. """
+    ALL            = -2  # Equivalent to specifying all groups >= 0.
     KEY_SEQUENCES  = -1  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
 
     LETTER_KEYS    =  0  # \
     NUMBER_KEYS    =  1  #  \
-    SYMBOL_KEYS    =  2  #   \__ These index into ``key_name_groups``.
-    NAMED_KEYS     =  3  #   /
-    F_KEYS         =  4  #  /
+    F_KEYS         =  2  #   \__ These index into ``key_name_groups``.
+    SYMBOL_KEYS    =  3  #   /
+    NAMED_KEYS     =  4  #  /
     KEYPAD_KEYS    =  5  # /
-
-    LAST           =  5
 
 
 class ModifierKeyBits(IntFlag):
@@ -560,41 +560,49 @@ platform_name_w_parens = '(' + platform_name + ')'
 # Regex to extract package name from resource path.
 # Example of input:  'Packages/ScopeView/Default (Windows).sublime-keymap'
 pkg_name_from_resource_path_re = re.compile(r'^Packages/([^/]+)/(.*)$')
+platform_name_from_file_name_re = re.compile(r'^Default \((.*)\)\.sublime-keymap$')
 
 # Key Name Groups, indexed by class ``KeyGroup``.
 key_name_groups = [
-    # LETTER_KEYS   = 0
+    # LETTER_KEYS == 0
     ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'],
-    # NUMBER_KEYS   = 1
+    # NUMBER_KEYS == 1
     ['0','1','2','3','4','5','6','7','8','9'],
-    # SYMBOL_KEYS   = 2
-    [',','.','\\','/',';',"'",'`','+','-','=','[',']'],
-    # NAMED_KEYS    = 3
-    ['up','down','left','right','insert','delete','home','end','pageup','pagedown','backspace','tab','enter','pause','escape','space','break','context_menu'],
-    # KEYPAD_KEYS   = 4
-    ['keypad0','keypad1','keypad2','keypad3','keypad4','keypad5','keypad6','keypad7','keypad8','keypad9','keypad_period','keypad_divide','keypad_multiply','keypad_minus','keypad_plus','keypad_enter','clear'],
-    # F_KEYS = 5
+    # F_KEYS      == 2
     ['f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12','f13','f14','f15','f16','f17','f18','f19','f20'],
-    # KEY_SEQUENCES = 6  # Key combos with more than one keypress
+    # SYMBOL_KEYS == 3
+    [',','.','\\','/',';',"'",'`','+','-','=','[',']',
+            '"', '(', ')', '[', ']', '{', '}'],
+            # These last 7 are added because these "bare" keypresses (i.e.
+            # having no ctrl/alt/shift key modifiers) are bound in the
+            # Default keymap, so these need to be here for them to be included.
+            #
+            # These "bare" keys are also bind-able, but this is not recommended:
+            # '`', '~', '!', '@', '#', '$', '%', '^', '&',
+            # '*', '_', '+', '|', ':', '"', '<', '>', '?'.
+    # NAMED_KEYS  == 4
+    ['up','down','left','right','insert','delete','home','end','pageup','pagedown','backspace','tab','enter','pause','escape','space','break','context_menu'],
+    # KEYPAD_KEYS == 5
+    ['keypad0','keypad1','keypad2','keypad3','keypad4','keypad5','keypad6','keypad7','keypad8','keypad9','keypad_period','keypad_divide','keypad_multiply','keypad_minus','keypad_plus','keypad_enter','clear'],
 ]
 
-# Generate ``key_names`` from ``key_name_groups``.
+# Generate ``all_key_names`` from ``key_name_groups``.
 count = 0
 
 for grp in key_name_groups:
     count += len(grp)
 
 # Pre-allocate array instead of 103 ``append()`` calls (inefficient).
-key_names = [None] * count
+all_key_names = [None] * count
 i = 0
 
 for grp in key_name_groups:
     for key_name in grp:
-        key_names[i] = key_name
+        all_key_names[i] = key_name
         i += 1
 
-# Generate ``key_index_by_key_name_dict`` from ``key_names``.
-# This dictionary's values index into ``key_names``, while also giving
+# Generate ``key_index_by_key_name_dict`` from ``all_key_names``.
+# This dictionary's values index into ``all_key_names``, while also giving
 # each key name an integer value.  This enables us to produce a unique
 # integer value for each possible key with all 8 modifier possibilities
 # with something like this:
@@ -604,7 +612,7 @@ for grp in key_name_groups:
 # where ``modifier_value`` is comprised of OR-ed bits from ModifierKeyBits.
 key_index_by_key_name_dict = {}
 
-for i, key_name in enumerate(key_names):
+for i, key_name in enumerate(all_key_names):
     key_index_by_key_name_dict[key_name] = i
 
 # Create 2 lookup data structures.
@@ -613,6 +621,42 @@ gdictByKeySquence = {}
 
 # Clean up.
 del i, count, grp, key_name
+
+
+# =========================================================================
+# Data
+# =========================================================================
+
+_debugging_filtering_stage_i = False
+_debugging_filtering_stage_ii = False
+_debugging_scope = False
+_debugging_building_main_key_dict = False
+_debugging_building_key_seq_dict = False
+
+
+def _update_debugging_flags():
+    """
+    Debugging is done this way (with global variables) so that we don't
+    have to call ``is_debugging()`` or pass debugging variables inside
+    a 6-deep call-stack while processing a 3-deep loop.  Both are
+    ``is_debugging()`` and loading up the stack with arguments that many
+    considered unnecessary CPU load, so it is done here ONCE and accessed
+    from within functions used in this loop below to avoid that overhead.
+
+    + for each .sublime-keymap file...
+      + for each JSON key binding...
+        + for each condition in context...
+    """
+    global _debugging_filtering_stage_i
+    global _debugging_filtering_stage_ii
+    global _debugging_scope
+    global _debugging_building_main_key_dict
+    global _debugging_building_key_seq_dict
+    _debugging_filtering_stage_i      = is_debugging(DebugBits.FILTERING_STAGE_I)
+    _debugging_filtering_stage_ii     = is_debugging(DebugBits.FILTERING_STAGE_II)
+    _debugging_scope                  = is_debugging(DebugBits.FILTERING_ON_SCOPE)
+    _debugging_building_main_key_dict = is_debugging(DebugBits.BUILDING_MAIN_KEY_DICT)
+    _debugging_building_key_seq_dict  = is_debugging(DebugBits.BUILDING_KEY_SEQ_DICT)
 
 
 # =========================================================================
@@ -672,11 +716,15 @@ def main_key_and_modifier_code(keypress_str: str) -> Tuple[str, int]:
     return main_key_name, key_modifier_code
 
 
+def encoded_keypress_from_components(main_key_name: str, key_modifier_code: int):
+    i = key_index_by_key_name_dict[main_key_name]
+    return (i << 4) | key_modifier_code
+
+
 def encoded_keypress(keypress_str: str) -> int:
     """ `keypress_str` encoded as ((i << 4) | modifier_value) """
     kn, mod_val = main_key_and_modifier_code(keypress_str)
-    i = key_index_by_key_name_dict[kn]
-    return (i << 4) | mod_val
+    return encoded_keypress_from_components(kn, mod_val)
 
 
 def _add_binding_to_main_key_dict(binding: KeyBinding, key_name: str, key_mod_code: int):
@@ -694,8 +742,8 @@ def _add_binding_to_main_key_dict(binding: KeyBinding, key_name: str, key_mod_co
             ]
     """
     global gdictByMainKey
-    debugging = is_debugging(DebugBits.BUILDING_MAIN_KEY_DICT)
-    if debugging:
+
+    if _debugging_building_main_key_dict:
         print('In _add_binding_to_main_key_dict()...')
         print(f'{key_name=}')
         print(f'{key_mod_code=}')
@@ -715,7 +763,7 @@ def _add_binding_to_main_key_dict(binding: KeyBinding, key_name: str, key_mod_co
         key_binding_list = by_main_key_item[key_mod_code]
 
     key_binding_list.append(binding)
-    # if debugging:
+    # if _debugging_building_main_key_dict:
     #     print(f'  Added [{keypress_str}] binding to item [{key_mod_code}].')
 
 
@@ -731,8 +779,7 @@ def _add_binding_to_key_seq_dict(binding: KeyBinding):
             ]
     """
     assert binding.keypress_count() > 1, f'Number of elements in `keys` expected > 1, got {binding.keypress_count()}!'
-    debugging = is_debugging(DebugBits.BUILDING_KEY_SEQ_DICT)
-    if debugging:
+    if _debugging_building_key_seq_dict:
         print('In _add_binding_to_key_seq_dict()...')
 
     global gdictByKeySquence
@@ -744,7 +791,7 @@ def _add_binding_to_key_seq_dict(binding: KeyBinding):
 
     binding_list = gdictByKeySquence[keys_tuple]
     binding_list.append(binding)
-    if debugging:
+    if _debugging_building_key_seq_dict:
         print(f'  Added binding for {keys_tuple}.')
 
 
@@ -765,18 +812,17 @@ def _build_empty_main_key_dict():
                 None,   # binding list for [Alt-Ctrl-Shift-a]
             ]
     """
-    debugging = is_debugging(DebugBits.BUILDING_MAIN_KEY_DICT)
-    if debugging:
+    if _debugging_building_main_key_dict:
         print('In _build_empty_main_key_dict()')
 
     global gdictByMainKey
     gdictByMainKey = {}
 
-    for key_name in key_names:
+    for key_name in all_key_names:
         empty_list = [None] * 8
         gdictByMainKey[key_name] = empty_list
 
-    # if debugging:
+    # if _debugging_building_main_key_dict:
     #     print('  Empty by-main-key dict:')
     #     print(repr(gdictByMainKey))
 
@@ -795,18 +841,211 @@ def _build_empty_key_seq_dict():
                 ...
             ]
     """
-    debugging = is_debugging(DebugBits.BUILDING_KEY_SEQ_DICT)
-    if debugging:
+    if _debugging_building_key_seq_dict:
         print('In _build_empty_key_seq_dict()')
 
     global gdictByKeySquence
     gdictByKeySquence = {}
 
 
+def _condition_test(
+        view          : sublime.View,
+        scope         : str,
+        keypress_tuple: Tuple[str],
+        condition     : dict
+        ):
+    """
+    :param view:            Current View (used to test if key context is applicable)
+    :param scope:           Scope string of first caret in View (if needed)
+    :param keypress_tuple:  Tuple containing keypress/keypress sequence
+    :param condition:       Single condition dictionary from key-binding context.
+    """
+    result = False
+
+    if not result:
+        if _debugging_scope:
+            print(f'  Excluding {keypress_tuple_bep} because context condition failed:\n    {condition}')
+
+    return result
+
+
+def _contex_applies(
+        view          : sublime.View,
+        scope         : str,
+        keypress_tuple: Tuple[str],
+        context       : List[dict]
+        ):
+    """
+    :param view:            Current View (used to test if key context is applicable)
+    :param scope:           Scope string of first caret in View (if needed)
+    :param keypress_tuple:  Tuple containing keypress/keypress sequence
+    :param context:         Context entry from key-binding
+    """
+    result = True
+
+    # Do all conditions pass?
+    all_conditions_passed = True
+    for condition in context:
+        if not _condition_test(view, scope, keypress_tuple, condition):
+            all_conditions_passed = False
+            break
+
+    if not all_conditions_passed:
+        if _debugging_scope:
+            print(f'  Excluding {keypress_tuple_bep} because context does not apply.')
+
+    return result
+
+
+def _conditionally_add_bindings_from_keymap(
+        view                    : sublime.View,
+        scope                   : str,
+        path                    : str,
+        pkg_name                : str,
+        file_name               : str,
+        accepted_key_name_set   : Optional[Set[str]],
+        keys_set                : Optional[Set[Tuple[str]]],
+        accept_all_key_sequences: bool,
+        limit_to_scope          : bool
+        ):
+    """
+    Add key bindings from ``path``, limited by:
+
+    - accepted_key_name_set   : Optional[Set[str]],
+    - keys_set                : Optional[Set[Tuple[str]]],
+    - limit_to_scope          : bool,
+    - accept_all_key_sequences: bool
+
+
+    :param view:            Current View (used to test if key context is applicable)
+    :param scope:           Scope string of first caret in View (if needed)
+    :param path:            Packages path to .sublime-keymap file
+    :param pkg_name:        Name of package (extracted by caller and used here)
+    :param file_name:       .sublime-keymap file name without path.
+
+    :param accepted_key_name_set:
+                            Optional:  Set against which to compare key
+                            names when keypress count == 1, to accept or
+                            reject key bindings being read; ``None`` == no
+                            limits on key bindings.
+
+    :param keys_set:        Optional:  Set of keypress tuples against which
+                            to compare individual JSON key binding objects.
+                            If the keypress tuple is a match, then it is
+                            included in the input data. ``None`` == no
+                            specific keypress/keypress sequences are added.
+
+    :param limit_to_scope:  Exclude key bindings that don't apply to current
+                            scope?
+
+    :param accept_all_key_sequences:
+                            Whether to accept all keypress sequences
+                            (i.e. JSON key-binding "keys" list values that
+                            have more than one keypress string in them).
+    """
+    if _debugging_filtering_stage_ii:
+        print(f'In _conditionally_add_bindings_from_keymap()')
+        print(f'  {path=}')
+        print(f'  {accepted_key_name_set=}')
+        print(f'  {keys_set=}')
+        print(f'  {accept_all_key_sequences=}')
+        print(f'  {limit_to_scope=}')
+
+    keymap_resource_str = sublime.load_resource(path)
+    json_key_bindings = sublime.decode_value(keymap_resource_str)
+
+    for json_binding in json_key_bindings:
+        # First, look for reasons to exclude key binding.
+        keypress_tuple_bep = tuple(json_binding['keys'])
+        keypress_count_bep = len(keypress_tuple_bep)
+
+        # Exclude key sequences (keypress_count_bep > 1)?
+        if keypress_count_bep > 1:
+            # Is a key sequence.
+            # Exclude if not accept_all_key_sequences and not in ``keys_set``
+            if not accept_all_key_sequences:
+                if keys_set:
+                    # Exclude if not in ``keys_set``.
+                    if keypress_tuple_bep not in keys_set:
+                        if _debugging_filtering_stage_ii:
+                            print(f'  Excluding {keypress_tuple_bep} because:\n'
+                                    f'    - KEY_SEQUENCES was not in `key_groups`,\n'
+                                    f'    - that keypress sequence was not in `keys_list`.'
+                                    )
+                        continue
+                else:
+                    # ``keys_set`` not present, exclude.
+                    if _debugging_filtering_stage_ii:
+                        print(f'  Excluding {keypress_tuple_bep} because:\n'
+                                f'    - KEY_SEQUENCES was not in `key_groups`, and\n'
+                                f'    - that keypress sequence was not in `keys_list`.'
+                                )
+                    continue
+        elif keypress_count_bep == 0:
+            # Binding encountered that has no "keys" entry!
+            # This is an error the user needs to fix.
+            print(f'{package_name} Error:  Cannot include JSON key binding with empty "keys" entry!\n'
+                    f'  {keypress_tuple_bep}'
+                    )
+            continue
+        else:
+            # Single keypress.  Exclude if neither in
+            # ``accepted_key_name_set`` nor ``keys_set``.
+            is_in_keys_set = ((
+                        keys_set is not None
+                    and len(keys_set) > 0
+                    and keypress_tuple_bep in keys_set
+                    ))
+
+            if not is_in_keys_set:
+                if accepted_key_name_set:
+                    keypress_str = keypress_tuple_bep[0]
+                    key_name, mod_val = main_key_and_modifier_code(keypress_str)
+
+                    if key_name not in accepted_key_name_set:
+                        # This should be excluded UNLESS, but ``keys_set`` is
+                        # additive, so if ``key_set`` was provided AND the
+                        # keypress is in it, then the caller specifically
+                        # requested that keypress, so it should be included.
+                        if _debugging_filtering_stage_ii:
+                            print(f'  Excluding {keypress_tuple_bep} because:\n'
+                                    f'    - that key_name was neither in `key_names` nor `key_groups`, and\n'
+                                    f'    - that keypress was not in `keys_list`.'
+                                    )
+                        continue
+                else:
+                    # Is neither in ``key_set`` nor ``accepted_key_name_set``.
+                    if _debugging_filtering_stage_ii:
+                        print(f'  Excluding {keypress_tuple_bep} because:\n'
+                                f'    - that key_name was neither in `key_names` nor `key_groups`, and\n'
+                                f'    - that keypress was not in `keys_list`.'
+                                )
+                    continue
+
+        # Exclude if caller requested a limiting scope, and the
+        # scope doesn't apply to the current scope.
+        if limit_to_scope and 'context' in json_binding:
+            # Do context conditions ALL fit limiting scope?
+            if not _contex_applies(
+                    view,
+                    scope,
+                    keypress_tuple_bep,
+                    json_binding['context']
+                    ):
+                continue
+
+        # When execution arrives here, none of the reasons to
+        # exclude the key binding applied:  it's okay to add.
+        binding = KeyBinding(json_binding, pkg_name, file_name)
+        _add_binding_to_key_seq_dict(binding)
+
+
 def build_report_data(
-        packages                   : Optional[List[str]],
-        accepted_lone_key_name_list: Optional[List[str]],
-        keys_list                  : Optional[Set[Tuple[str]]] = None
+        packages                 : Optional[Set[str]],
+        accepted_key_name_set    : Optional[Set[str]],
+        keys_set                 : Optional[Set[Tuple[str]]],
+        limit_to_scope           : bool,
+        accept_all_key_sequences : bool
         ):
     """
     Build report data required by the report dictated by the 3 arguments.
@@ -816,19 +1055,33 @@ def build_report_data(
         global gdictByMainKey
         global gdictByKeySquence
 
-    :param packages:    Optional:  List of packages to limit data to;
-                          ``None`` or [] == no limits on packages
+    Each of the parameters are part of enabling JSON key binding objects
+    to be rejected quickly, i.e. NOT included in the input data, so that
+    what is left in the INPUT data is exactly what the user requested.
 
-    :param accepted_lone_key_name_list:
-                        Optional:  List against which to compare key names when
-                        keypress count == 1, to accept or reject key bindings
-                        being read; ``None`` == no limits on key bindings.
 
-    :param keys_list:   Optional:  Set of keypress tuples against which to
-                        compare individual JSON key binding objects.  If
-                        the keypress tuple is a match, then it is included
-                        in the input data. ``None`` == no specific
-                        keypress/keypress sequences are added.
+    :param packages:        Optional:  Set of packages to limit data to;
+                            ``None`` == no limits on packages.
+
+    :param accepted_key_name_set:
+                            Optional:  Set against which to compare key
+                            names when keypress count == 1, to accept or
+                            reject key bindings being read; ``None`` == no
+                            limits on key bindings.
+
+    :param keys_set:        Optional:  Set of keypress tuples against which
+                            to compare individual JSON key binding objects.
+                            If the keypress tuple is a match, then it is
+                            included in the input data. ``None`` == no
+                            specific keypress/keypress sequences are added.
+
+    :param limit_to_scope:  Exclude key bindings that don't apply to current
+                            scope?
+
+    :param accept_all_key_sequences:
+                            Whether to accept all keypress sequences
+                            (i.e. JSON key-binding "keys" list values that
+                            have more than one keypress string in them).
 
     :return:  None
 
@@ -851,111 +1104,89 @@ def build_report_data(
 
 
     """
-    debugging = is_debugging(DebugBits.FILTERING)
-    if debugging:
-        print(f'In build_report_data({package=})')
-        print(f'{packages=}')
-        print(f'{accepted_lone_key_name_list=}')
-        print(f'{accepted_key_seq_tuples_list=}')
+    _update_debugging_flags()
+
+    if _debugging_filtering_stage_i:
+        print(f'In build_report_data()')
+        print(f'  {packages=}')
+        print(f'  {accepted_key_name_set=}')
+        print(f'  {keys_set=}')
+        print(f'  {limit_to_scope=}')
+        print(f'  {accept_all_key_sequences=}')
 
     # Start fresh.
     _build_empty_main_key_dict()
     _build_empty_key_seq_dict()
 
+    # Compute view and scope ONCE before we enter loop.
+    view = sublime.active_window().active_view()
+    live_sel_rgn_list = view.sel()
+    if len(live_sel_rgn_list) == 0 and limit_to_scope:
+        print(
+                f'  {package_name} Exception:\n'
+                '    There were no carets in View when the `key_binding_report`\n'
+                '    command was run and `limit_to_scope` == True.'
+                )
+        return
+
+    # Use only first selection, and position of caret if any text is selected.
+    sel_rgn = live_sel_rgn_list[0]
+    scope = view.scope_name(sel_rgn.b)
+
+    # Loop through list of .sublime-keymap files in keymap-load order.
     keymap_paths = sublime.find_resources('*.sublime-keymap')
 
     for path in keymap_paths:
-        print(f'{path=}')
         match = pkg_name_from_resource_path_re.search(path)
         if not match:
             raise AssertionError(f'  >>> ERROR >>> Resource path pattern not recognized!  [{path}]')
         pkg_name = match[1]
-
-        # Exclude Package if ``packages`` specified and Packages is not in list.
-        if packages and pkg_name not in packages:
-            if debugging:
-                print(f'  Excluding package:  [{package}]')
-            continue
-
-        if debugging:
-            print(f'  Including package:  [{package}]:  {path}')
-
         file_name = match[2]
 
-        # Exclude file if platform specific and doesn't match current platform.
+        # -----------------------------------------------------------------
+        # If `packages` specified, exclude Packages not in list.
+        # -----------------------------------------------------------------
+        if packages and pkg_name not in packages:
+            if _debugging_filtering_stage_i:
+                print(f'  Excluding package:  [{pkg_name}].')
+            continue
+
+        if _debugging_filtering_stage_i:
+            print(f'  Including package:  [{pkg_name}].')
+
+        # -----------------------------------------------------------------
+        # If platform-specific `.sublime-keymap` file, exclude if not
+        # current platform.
+        # -----------------------------------------------------------------
         if 'Default (' in file_name:
-            # Platform specific key binding.
-            use_it = ((platform_name_w_parens in file_name))
-
-            if not use_it:
-                if debugging:
-                    print(f'  Not a platform match:  {file_name}.')
+            # Is a platform-specific key binding.
+            if platform_name_w_parens not in file_name:
+                if _debugging_filtering_stage_i:
+                    match = platform_name_from_file_name_re.search(file_name)
+                    if match:
+                        lsPlatformName = match[1]
+                        print(f'  Not a platform match:  {lsPlatformName} != {platform_name}.')
+                    else:
+                        print(f'  Not a platform match:  {file_name}.')
                 continue
-            else:
-                if debugging:
-                    print(f'  Platform match:  {file_name}.')
-        else:
-            use_it = True
 
-        if use_it:
-            if debugging:
-                print(f'  Using {file_name}.')
+        if _debugging_filtering_stage_i:
+            print(f'  Using {file_name}.')
 
-            # ``.sublime-keymap`` file is accepted.
-            #
-            #     For each key binding:
-            #         keypress_count > 1?
-            #             # Look for possibility to reject.
-            #             if accepted_key_seq_tuples_list:
-            #                 keypress_tuple = tuple(keys)
-            #                 if keypress_tuple not in accepted_key_seq_tuples_list:
-            #                     continue
-            #
-            #             # When execution arrives here, it is okay to add.
-            #             _add_binding_to_key_seq_dict(binding)
-            #         else:
-            #             # Is only one keypress.
-            #             # Look for possibility to reject.
-            #             key_name, key_mod_code = main_key_and_modifier_code(keys)
-            #
-            #             if accepted_lone_key_name_list:
-            #                 if key_name not in accepted_lone_key_name_list:
-            #                     continue
-            #
-            #             # When execution arrives here, it is okay to add.
-            #             _add_binding_to_main_key_dict(binding)
-            keymap_resource_str = sublime.load_resource(path)
-            json_key_bindings = sublime.decode_value(keymap_resource_str)
-
-            for json_binding in json_key_bindings:
-                keypress_list = json_binding['keys']
-
-                if len(keypress_list) > 1:
-                    # Multiple keypresses.
-                    # Look for possibility to reject.
-                    if accepted_key_seq_tuples_list:
-                        keypress_tuple = tuple(keypress_list)
-                        if keypress_tuple not in accepted_key_seq_tuples_list:
-                            continue
-
-                    # When execution arrives here, it is okay to add.
-                    binding = KeyBinding(json_binding, pkg_name, file_name)
-                    _add_binding_to_key_seq_dict(binding)
-                else:
-                    # Single keypress.
-                    # Look for possibility to reject.
-                    key_name, key_mod_code = main_key_and_modifier_code(keypress_list[0])
-                    if accepted_lone_key_name_list:
-                        if key_name not in accepted_lone_key_name_list:
-                            continue
-
-                    # When execution arrives here, it is okay to add.
-                    binding = KeyBinding(json_binding, pkg_name, file_name)
-                    _add_binding_to_main_key_dict(binding, key_name, key_mod_code)
-
-        else:
-            if debugging:
-                print(f'  Not using {file_name}.')
+        # -----------------------------------------------------------------
+        # ``.sublime-keymap`` file is accepted.  Next stage.
+        # -----------------------------------------------------------------
+        _conditionally_add_bindings_from_keymap(
+                view,
+                scope,
+                path,
+                pkg_name,
+                file_name,
+                accepted_key_name_set,
+                keys_set,
+                accept_all_key_sequences,
+                limit_to_scope
+                )
 
 
 # =========================================================================
@@ -1014,5 +1245,3 @@ def on_plugin_unloaded():
 
     if is_debugging(DebugBits.LOAD_UNLOAD):
         print(f'{package_name}:  Plugin unloaded at {timestamp()}')
-
-dir()

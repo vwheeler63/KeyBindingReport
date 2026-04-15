@@ -202,21 +202,16 @@
 //     ANY                           = 0b11111111  # 255
 
 
-
 // class KeyGroup(IntEnum):
 //     """ Non-negative values index into ``key_name_groups``. """
-//     ALL_KEYS       = -3
-//     SPECIFIED_KEYS = -2
+//     ALL            = -2  # Equivalent to specifying all groups >= 0.
 //     KEY_SEQUENCES  = -1  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
 
-//     LETTER_KEYS    = 0
-//     NUMBER_KEYS    = 1
-//     SYMBOL_KEYS    = 2
-//     NAMED_KEYS     = 3
-//     KEYPAD_KEYS    = 4
-//     F_KEYS         = 5
-
-//     LAST           = 5
-//     COUNT          = 6
+//     LETTER_KEYS    =  0  # \
+//     NUMBER_KEYS    =  1  #  \
+//     F_KEYS         =  2  #   \__ These index into ``key_name_groups``.
+//     SYMBOL_KEYS    =  3  #   /
+//     NAMED_KEYS     =  4  #  /
+//     KEYPAD_KEYS    =  5  # /
 
 ]
