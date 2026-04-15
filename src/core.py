@@ -1037,7 +1037,10 @@ def _conditionally_add_bindings_from_keymap(
         # When execution arrives here, none of the reasons to
         # exclude the key binding applied:  it's okay to add.
         binding = KeyBinding(json_binding, pkg_name, file_name)
-        _add_binding_to_key_seq_dict(binding)
+        if keypress_count_bep > 1:
+            _add_binding_to_key_seq_dict(binding)
+        else:
+            _add_binding_to_main_key_dict(binding, key_name, mod_code)
 
 
 def build_report_data(
