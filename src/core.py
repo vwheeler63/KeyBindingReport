@@ -571,15 +571,16 @@ key_name_groups = [
     # F_KEYS      == 2
     ['f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12','f13','f14','f15','f16','f17','f18','f19','f20'],
     # SYMBOL_KEYS == 3
-    [',','.','\\','/',';',"'",'`','+','-','=','[',']',
-            '"', '(', ')', '[', ']', '{', '}'],
-            # These last 7 are added because these "bare" keypresses (i.e.
-            # having no ctrl/alt/shift key modifiers) are bound in the
-            # Default keymap, so these need to be here for them to be included.
-            #
-            # These "bare" keys are also bind-able, but this is not recommended:
-            # '`', '~', '!', '@', '#', '$', '%', '^', '&',
-            # '*', '_', '+', '|', ':', '"', '<', '>', '?'.
+    [',','.','\\','/',';',"'",'`','+','-','=','[',']',   # OK with or w/o key modifiers.
+            '"', '(', ')', '[', ']', '{', '}', '`',      # Only w/o key modifiers.
+            '~', '!', '@', '#', '$', '%', '^', '&',      # Only w/o key modifiers.
+            '*', '_', '+', '|', ':', '"', '<', '>', '?'  # Only w/o key modifiers.
+            ],
+            # The last 3 rows are added because these "bare" keypresses (i.e. having
+            # no ctrl/alt/shift key modifiers) are 100% bind-able in Sublime Text
+            # build 4200, and the first 7 of them can be found in the Default keymap.
+            # These need to be here for KeyBindingReport to find and report on them
+            # in the various keymaps where they occur.
     # NAMED_KEYS  == 4
     ['up','down','left','right','insert','delete','home','end','pageup','pagedown','backspace','tab','enter','pause','escape','space','break','context_menu'],
     # KEYPAD_KEYS == 5
