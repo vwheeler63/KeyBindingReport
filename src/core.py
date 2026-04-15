@@ -571,7 +571,7 @@ key_name_groups = [
     # F_KEYS      == 2
     ['f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12','f13','f14','f15','f16','f17','f18','f19','f20'],
     # SYMBOL_KEYS == 3
-    [',','.','\\','/',';',"'",'`','+','-','=','[',']',   # OK with or w/o key modifiers.
+    [',','.','\\','/',';',"'",'`','-','=','[',']',       # OK with or w/o key modifiers.
             '"', '(', ')', '[', ']', '{', '}', '`',      # Only w/o key modifiers.
             '~', '!', '@', '#', '$', '%', '^', '&',      # Only w/o key modifiers.
             '*', '_', '+', '|', ':', '"', '<', '>', '?'  # Only w/o key modifiers.
