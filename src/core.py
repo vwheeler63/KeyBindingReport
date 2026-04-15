@@ -5,7 +5,7 @@ KeyBindingReport
 Definitions
 ===========
 
-key modifier code
+key-modifier code
     integer value defining the possible combination of the modifier keys
     [Ctrl], [Alt] and [Shift] that were part of a keypress.  The
     ``ModifierKeyBits`` class provides bits which are bitwise-OR-ed together
@@ -56,7 +56,7 @@ key ID
 
 encoded keypress
     an integer whose bits are the bitwise-OR-ed combination of the key ID
-    and the key modifier value:
+    and the key-modifier value:
 
         encoded_keypress = (i << 4) | modifier_value
 
@@ -65,7 +65,7 @@ encoded keypress
     - ``i`` is the key ID (index into the ``core.all_key_names`` list), and
     - ``modifier_value`` is comprised of OR-ed bits from ``ModifierKeyBits``.
 
-    While the key modifier code only needs 3 bits, 4 bits is used so its parts can
+    While the key-modifier code only needs 3 bits, 4 bits is used so its parts can
     easily be seen in a hexadecimal representation of the integer result.
 
 JSON key-binding object
@@ -682,7 +682,7 @@ def arg_type_error_message(arg, arg_name: str, required_type: str, after_matter:
     if c in 'aeiou':
         article = 'an'
 
-    return f'`{arg_name}` arg must be {article} {required_type}. Instead got {type(arg)}.{after_matter}'
+    return f'`{arg_name}` arg must be {article} {required_type}. Got {type(arg)} instead.{after_matter}'
 
 
 # =========================================================================
@@ -690,7 +690,15 @@ def arg_type_error_message(arg, arg_name: str, required_type: str, after_matter:
 # =========================================================================
 
 def main_key_and_modifier_code(keypress_str: str) -> Tuple[str, int]:
-    """ Extract main key name and key-modifier code from ``keypress_str``. """
+    """
+    Key-modifier code from `keypress_str` (e.g. "ctrl+alt+shift+p").
+
+    :param keypress_str:  Keypress definition string compatible with
+                            Sublime Text `.sublime-keymap` "keys" entries
+
+    See "key-modifier code" and "encoded keypress" in definitions in
+    module docstring for details.
+    """
     lsWorkingKeypress = keypress_str
 
     # Here we know gdictByMainKey[main_key_name] exists.
@@ -716,13 +724,36 @@ def main_key_and_modifier_code(keypress_str: str) -> Tuple[str, int]:
     return main_key_name, key_modifier_code
 
 
-def encoded_keypress_from_components(main_key_name: str, key_modifier_code: int):
-    i = key_index_by_key_name_dict[main_key_name]
-    return (i << 4) | key_modifier_code
+def encoded_keypress_from_components(main_key_name: str, key_modifier_code: int) -> int:
+    """
+    Encoded keypress from `main_key_name` and `key_modifier_code`.
+
+    :param main_key_name:       Official name of key, found in `core.key_names`.
+                                  (See Key Names in module docstring for the list.)
+    :param key_modifier_code:   Integer representation of Ctrl+Alt+Shift key
+                                  modifiers accommodating keypress.
+                                  (See "key-modifier code" and "encoded keypress"
+                                  in definitions in module docstring for details.)
+    """
+    result = -1
+
+    if main_key_name in key_index_by_key_name_dict:
+        i = key_index_by_key_name_dict[main_key_name]
+        result = (i << 4) | key_modifier_code
+
+    return result
 
 
 def encoded_keypress(keypress_str: str) -> int:
-    """ `keypress_str` encoded as ((i << 4) | modifier_value) """
+    """
+    Encoded keypress from `keypress_str` (e.g. "ctrl+alt+shift+p").
+
+    :param keypress_str:  Keypress definition string compatible with
+                            Sublime Text `.sublime-keymap` "keys" entries
+
+    See "key-modifier code" and "encoded keypress" in definitions in
+    module docstring for details.
+    """
     kn, mod_code = main_key_and_modifier_code(keypress_str)
     return encoded_keypress_from_components(kn, mod_code)
 
