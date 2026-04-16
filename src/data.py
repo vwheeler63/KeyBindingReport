@@ -303,7 +303,7 @@ class KeyBindingData:
         self._debugging_removing_arg_overlap   = is_debugging(DebugBits.REMOVING_ARG_OVERLAP)
         self._debugging_filtering_stage_i      = is_debugging(DebugBits.FILTERING_STAGE_I)
         self._debugging_filtering_stage_ii     = is_debugging(DebugBits.FILTERING_STAGE_II)
-        self._debugging_scope                  = is_debugging(DebugBits.FILTERING_ON_SCOPE)
+        self._debugging_scope                  = is_debugging(DebugBits.FILTERING_ON_CONTEXT)
         self._debugging_building_main_key_dict = is_debugging(DebugBits.BUILDING_MAIN_KEY_DICT)
         self._debugging_building_key_seq_dict  = is_debugging(DebugBits.BUILDING_KEY_SEQ_DICT)
 
