@@ -671,13 +671,13 @@ class KeyBindingData:
             sequences_in_key_groups = False
             all_in_key_groups = False
 
-        accept_all_key_sequences = ((
+        incl_all_multi_key_seqs = ((
                 key_groups is not None
                 and len(key_groups) > 0
                 and (sequences_in_key_groups or all_in_key_groups)
                 ))
 
-        if keys_list and accept_all_key_sequences:
+        if keys_list and incl_all_multi_key_seqs:
             keys_list_copy = keys_list.copy()
 
             print(f'{keys_list_copy=}')
@@ -700,7 +700,7 @@ class KeyBindingData:
 
         if debugging:
             print('After removing overlap phase III:')
-            print(f'  {accept_all_key_sequences=}')
+            print(f'  {incl_all_multi_key_seqs=}')
             print(f'  {keys_list=}')
 
         # ---------------------------------------------------------------------
@@ -711,7 +711,7 @@ class KeyBindingData:
                 accepted_key_name_set,
                 keys_list,
                 limit_to_context,
-                accept_all_key_sequences
+                incl_all_multi_key_seqs
                 )
 
     def _is_list_tuple_or_set(self, obj) -> bool:
@@ -720,11 +720,11 @@ class KeyBindingData:
         return (( T == list or T == tuple or T == set ))
 
     def _build_report_data(self,
-            packages                 : Optional[Set[str]],
-            accepted_key_name_set    : Optional[Set[str]],
-            keys_set                 : Optional[Set[Tuple[str]]],
-            limit_to_context         : bool,
-            accept_all_key_sequences : bool
+            packages               : Optional[Set[str]],
+            accepted_key_name_set  : Optional[Set[str]],
+            keys_set               : Optional[Set[Tuple[str]]],
+            limit_to_context       : bool,
+            incl_all_multi_key_seqs: bool
             ):
         """
         Build report data required by the report dictated by the 3 arguments.
@@ -756,7 +756,7 @@ class KeyBindingData:
         :param limit_to_context:
                             Exclude key bindings that don't apply to current context?
 
-        :param accept_all_key_sequences:
+        :param incl_all_multi_key_seqs:
                             Whether to accept all keypress sequences (i.e. JSON
                             key-binding "keys" list values that have more than
                             one keypress string in them).
@@ -789,7 +789,7 @@ class KeyBindingData:
             print(f'  {accepted_key_name_set=}')
             print(f'  {keys_set=}')
             print(f'  {limit_to_context=}')
-            print(f'  {accept_all_key_sequences=}')
+            print(f'  {incl_all_multi_key_seqs=}')
 
         # Start fresh.
         self._build_empty_main_key_dict()
@@ -844,7 +844,7 @@ class KeyBindingData:
                     file_name,
                     accepted_key_name_set,
                     keys_set,
-                    accept_all_key_sequences,
+                    incl_all_multi_key_seqs,
                     limit_to_context
                     )
 
@@ -900,21 +900,21 @@ class KeyBindingData:
         self.mdictByKeySquence = {}
 
     def _conditionally_add_bindings_from_keymap(self,
-            path                    : str,
-            pkg_name                : str,
-            file_name               : str,
-            accepted_key_name_set   : Optional[Set[str]],
-            keys_set                : Optional[Set[Tuple[str]]],
-            accept_all_key_sequences: bool,
-            limit_to_scope          : bool
+            path                   : str,
+            pkg_name               : str,
+            file_name              : str,
+            accepted_key_name_set  : Optional[Set[str]],
+            keys_set               : Optional[Set[Tuple[str]]],
+            incl_all_multi_key_seqs: bool,
+            limit_to_scope         : bool
             ):
         """
         Add key bindings from ``path``, limited by:
 
-        - accepted_key_name_set   : Optional[Set[str]],
-        - keys_set                : Optional[Set[Tuple[str]]],
-        - limit_to_scope          : bool,
-        - accept_all_key_sequences: bool
+        - accepted_key_name_set  : Optional[Set[str]],
+        - keys_set               : Optional[Set[Tuple[str]]],
+        - incl_all_multi_key_seqs: bool,
+        - limit_to_scope         : bool
 
 
         :param path:            Packages path to .sublime-keymap file
@@ -936,7 +936,7 @@ class KeyBindingData:
         :param limit_to_scope:  Exclude key bindings that don't apply to current
                                 scope?
 
-        :param accept_all_key_sequences:
+        :param incl_all_multi_key_seqs:
                                 Whether to accept all keypress sequences
                                 (i.e. JSON key-binding "keys" list values that
                                 have more than one keypress string in them).
@@ -947,7 +947,7 @@ class KeyBindingData:
             print(f'  {path=}')
             print(f'  {accepted_key_name_set=}')
             print(f'  {keys_set=}')
-            print(f'  {accept_all_key_sequences=}')
+            print(f'  {incl_all_multi_key_seqs=}')
             print(f'  {limit_to_scope=}')
 
         keymap_resource_str = sublime.load_resource(path)
@@ -996,11 +996,11 @@ class KeyBindingData:
                         continue
             elif keypress_count_bep > 1:
                 # -------------------------------------------------------------
-                # 2+ keypress
+                # 2+ keypresses
                 #
-                # Exclude if not accept_all_key_sequences and not in ``keys_set``.
+                # Exclude if not incl_all_multi_key_seqs and not in ``keys_set``.
                 # -------------------------------------------------------------
-                if not accept_all_key_sequences:
+                if not incl_all_multi_key_seqs:
                     if keys_set:
                         # Exclude if not in ``keys_set``.
                         if keypress_tuple_bep not in keys_set:
