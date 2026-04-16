@@ -671,12 +671,6 @@ def timestamp() -> str:
     return now.strftime(fmt)
 
 
-def is_list_tuple_or_set(obj) -> bool:
-    """ Is passed class a list, set or tuple? """
-    T = type(obj)
-    return (( T == list or T == tuple or T == set ))
-
-
 def arg_type_error_message(arg, arg_name: str, required_type: str, after_matter: str = ''):
     c = required_type[0]
     article = 'a'

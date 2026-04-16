@@ -13,6 +13,11 @@ from ..core import KeyGroup, FlagBits, package_name, gdictByMainKey, gdictByKeyS
 class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
     """ Generate Key-Binding Report in specified format. """
 
+    def _is_list_tuple_or_set(obj) -> bool:
+        """ Is passed class a list, set or tuple? """
+        T = type(obj)
+        return (( T == list or T == tuple or T == set ))
+
     def run(
             self          : sublime_plugin.ApplicationCommand,
             key_groups    : Optional[Iterable[KeyGroup]] = None,
@@ -230,21 +235,21 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
         req_type = 'list, tuple or set'
         after_msg = '  Aborting.'
         if key_groups:
-            if not core.is_list_tuple_or_set(key_groups):
+            if not self._is_list_tuple_or_set(key_groups):
                 msg = core.arg_type_error_message(key_groups, 'key_groups', req_type, after_msg)
                 raise TypeError(msg)
         if keys_list:
-            if not core.is_list_tuple_or_set(keys_list):
+            if not self._is_list_tuple_or_set(keys_list):
                 msg = core.arg_type_error_message(keys_list, 'keys_list', req_type, after_msg)
                 raise TypeError(msg)
             # If execution arrives here, then we need to also test its members.
             for keypresses in keys_list:
-                if not core.is_list_tuple_or_set(keypresses):
+                if not self._is_list_tuple_or_set(keypresses):
                     msg = f'  Each of the keypresses in `keys_list` arg must be a {req_type}.' \
                           f'  At least 1 was type {type(keypresses)}.{after_msg}'
                     raise TypeError(msg)
         if packages:
-            if not core.is_list_tuple_or_set(packages):
+            if not self._is_list_tuple_or_set(packages):
                 msg = core.arg_type_error_message(packages, 'packages', req_type, after_msg)
                 raise TypeError(msg)
 
@@ -392,7 +397,7 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
                 and KeyGroup.KEY_SEQUENCES in key_groups
                 ))
 
-        if keys_list and key_groups and KeyGroup.KEY_SEQUENCES in key_groups:
+        if keys_list and accept_all_key_sequences:
             keys_list_copy = keys_list.copy()
 
             print(f'{keys_list_copy=}')
