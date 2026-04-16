@@ -445,11 +445,11 @@ class KeyBindingData:
             From these two, if either of them were specified, a list of
             accepted keys is built, or left as ``None`` if there are no
             restrictions on which keys are reported on.  Namely:
-            ``accepted_key_name_set``.
+            ``include_key_name_set``.
 
-        3.  If (accepted_key_name_set is not None and keys_list is not None),
+        3.  If (include_key_name_set is not None and keys_list is not None),
             this indicates the user has specified a ``keys_list`` which *may*
-            have overlap with ``accepted_key_name_set``.  Since the latter
+            have overlap with ``include_key_name_set``.  Since the latter
             means "report on all possible key combinations for these keys",
             any keypress/keypress sequence present in ``keys_list`` which
             has one of those key names as the main key would be redundant and
@@ -468,10 +468,10 @@ class KeyBindingData:
 
         How Resulting Args Are Prepared
         -------------------------------
-        accepted_key_name_set = None
+        include_key_name_set = None
 
         If ``key_groups`` was provided:
-            accepted_key_name_set = Unique list of accepted key
+            include_key_name_set = Unique list of accepted key
             names based on ``key_groups``.
 
         If ``keys_list`` was provided:
@@ -482,7 +482,7 @@ class KeyBindingData:
         Finally, all 3 of:
 
         - packages,
-        - accepted_key_name_set, and
+        - include_key_name_set, and
         - keys_list are passed to
 
         ``self._build_report_data()``.
@@ -562,7 +562,7 @@ class KeyBindingData:
             print(f'  {packages=}')
 
         # ---------------------------------------------------------------------
-        # Prepare ``accepted_key_name_set`` while removing overlap from
+        # Prepare ``include_key_name_set`` while removing overlap from
         # ``key_groups`` and ``keys_list` if both are present, pursuant to:
         #
         # 2.  If both ``key_names`` and ``key_groups`` are provided and are
@@ -576,52 +576,52 @@ class KeyBindingData:
         #     From these two, if either of them were specified, a list of
         #     accepted keys is built, or left as ``None`` if there are no
         #     restrictions on which keys are reported on.  Namely:
-        #     ``accepted_key_name_set``.
+        #     ``include_key_name_set``.
         # ---------------------------------------------------------------------
-        accepted_key_name_set = None   # None == no limits on key-names.
+        include_key_name_set = None   # None == no limits on key-names.
 
         if key_groups or key_names:
-            accepted_key_name_set = set()
+            include_key_name_set = set()
             if key_groups:
                 # Load it with key names from the specified groups.
                 if KeyGroup.ALL in key_groups:
-                    accepted_key_name_set.update(core.all_key_names)
+                    include_key_name_set.update(core.all_key_names)
                 else:
                     for key_grp_idx in key_groups:
                         if key_grp_idx >= 0:
                             key_grp_list = core.key_name_groups[key_grp_idx]
-                            accepted_key_name_set.update(key_grp_list)
+                            include_key_name_set.update(key_grp_list)
 
-            # Now ``accepted_key_name_set`` contains keys in ``key_groups``
+            # Now ``include_key_name_set`` contains keys in ``key_groups``
             # if ``key_groups`` was specified, or is empty if not.  If not empty,
             # it gives us an intermediate list against which to check whether
             # there is any overlap in ``key_names``, in case both were specified.
             # Example ``key_names``:  ["k", "u", "f6", "enter"].
-            if key_names and accepted_key_name_set:
+            if key_names and include_key_name_set:
                 # Remove any overlap in ``key_names`` resulting from any items in
-                # ``key_names`` that also appear in ``accepted_key_name_set``.
+                # ``key_names`` that also appear in ``include_key_name_set``.
                 key_names_copy = key_names.copy()
 
                 for key_name in key_names_copy:
-                    if key_name in accepted_key_name_set:
+                    if key_name in include_key_name_set:
                         key_names.remove(key_name)
 
             # Finally, add any names remaining in ``key_names`` into list.
             if key_names:
-                accepted_key_name_set.update(key_names)
+                include_key_name_set.update(key_names)
 
         if debugging:
             print('After removing overlap phase I:')
             print(f'  {key_names=}')
-            print(f'  {accepted_key_name_set=}')
+            print(f'  {include_key_name_set=}')
 
         # -----------------------------------------------------------------
-        # Remove possible overlap between ``accepted_key_name_set``
+        # Remove possible overlap between ``include_key_name_set``
         # and ``keys_list`` if both are present, pursuant to:
         #
-        # 3.  If (accepted_key_name_set is not None and keys_list is not None),
+        # 3.  If (include_key_name_set is not None and keys_list is not None),
         #     this indicates the user has specified a ``keys_list`` which *may*
-        #     have overlap with ``accepted_key_name_set``.  Since the latter
+        #     have overlap with ``include_key_name_set``.  Since the latter
         #     means "report on all possible key combinations for these keys",
         #     any keypress/keypress sequence present in ``keys_list`` which
         #     has one of those key names as the main key would be redundant and
@@ -630,7 +630,7 @@ class KeyBindingData:
         # Example:
         # [("ctrl+k", "ctrl+u"), ("ctrl+p"), ("ctrl+shift+p")]
         # -----------------------------------------------------------------
-        if accepted_key_name_set and keys_list:
+        if include_key_name_set and keys_list:
             keys_list_copy = keys_list.copy()
 
             print(f'{keys_list_copy=}')
@@ -639,7 +639,7 @@ class KeyBindingData:
                 if len(keypress_tuple) == 1:
                     keypress = keypress_tuple[0]
                     key_name, _ = core.main_key_and_modifier_code(keypress)
-                    if key_name in accepted_key_name_set:
+                    if key_name in include_key_name_set:
                         # Overlap
                         if debugging:
                             print(f'Removing overlap with key {key_name} in {keypress_tuple}.')
@@ -648,7 +648,7 @@ class KeyBindingData:
         if debugging:
             print('After removing overlap phase II:')
             print(f'  {keys_list=}')
-            print(f'  {accepted_key_name_set=}')
+            print(f'  {include_key_name_set=}')
 
         # -----------------------------------------------------------------
         # Remove possible overlap between ``key_groups`` and ``keys_list``
@@ -708,7 +708,7 @@ class KeyBindingData:
         # ---------------------------------------------------------------------
         self._build_report_data(
                 packages,
-                accepted_key_name_set,
+                include_key_name_set,
                 keys_list,
                 limit_to_context,
                 incl_all_multi_key_seqs
@@ -721,7 +721,7 @@ class KeyBindingData:
 
     def _build_report_data(self,
             packages               : Optional[Set[str]],
-            accepted_key_name_set  : Optional[Set[str]],
+            include_key_name_set   : Optional[Set[str]],
             keys_set               : Optional[Set[Tuple[str]]],
             limit_to_context       : bool,
             incl_all_multi_key_seqs: bool
@@ -742,7 +742,7 @@ class KeyBindingData:
         :param packages:    Optional:  Set of packages to limit data to;
                             ``None`` == no limits on packages.
 
-        :param accepted_key_name_set:
+        :param include_key_name_set:
                             Optional:  Set against which to compare key names when
                             keypress count == 1, to accept or reject key bindings
                             being read; ``None`` == no limits on key bindings.
@@ -786,7 +786,7 @@ class KeyBindingData:
         if debugging:
             print(f'In _build_report_data()')
             print(f'  {packages=}')
-            print(f'  {accepted_key_name_set=}')
+            print(f'  {include_key_name_set=}')
             print(f'  {keys_set=}')
             print(f'  {limit_to_context=}')
             print(f'  {incl_all_multi_key_seqs=}')
@@ -842,7 +842,7 @@ class KeyBindingData:
                     path,
                     pkg_name,
                     file_name,
-                    accepted_key_name_set,
+                    include_key_name_set,
                     keys_set,
                     incl_all_multi_key_seqs,
                     limit_to_context
@@ -903,7 +903,7 @@ class KeyBindingData:
             path                   : str,
             pkg_name               : str,
             file_name              : str,
-            accepted_key_name_set  : Optional[Set[str]],
+            include_key_name_set   : Optional[Set[str]],
             keys_set               : Optional[Set[Tuple[str]]],
             incl_all_multi_key_seqs: bool,
             limit_to_scope         : bool
@@ -911,7 +911,7 @@ class KeyBindingData:
         """
         Add key bindings from ``path``, limited by:
 
-        - accepted_key_name_set  : Optional[Set[str]],
+        - include_key_name_set   : Optional[Set[str]],
         - keys_set               : Optional[Set[Tuple[str]]],
         - incl_all_multi_key_seqs: bool,
         - limit_to_scope         : bool
@@ -921,7 +921,7 @@ class KeyBindingData:
         :param pkg_name:        Name of package (extracted by caller and used here)
         :param file_name:       .sublime-keymap file name without path.
 
-        :param accepted_key_name_set:
+        :param include_key_name_set:
                                 Optional:  Set against which to compare key
                                 names when keypress count == 1, to accept or
                                 reject key bindings being read; ``None`` == no
@@ -945,7 +945,7 @@ class KeyBindingData:
         if debugging:
             print(f'In _conditionally_add_bindings_from_keymap()')
             print(f'  {path=}')
-            print(f'  {accepted_key_name_set=}')
+            print(f'  {include_key_name_set=}')
             print(f'  {keys_set=}')
             print(f'  {incl_all_multi_key_seqs=}')
             print(f'  {limit_to_scope=}')
@@ -962,7 +962,7 @@ class KeyBindingData:
                 # -------------------------------------------------------------
                 # 1 keypress:  the most common execution branch.
                 #
-                # Exclude if neither in ``accepted_key_name_set`` nor ``keys_set``.
+                # Exclude if neither in ``include_key_name_set`` nor ``keys_set``.
                 # -------------------------------------------------------------
                 keypress_str = keypress_tuple_bep[0]
                 key_name, mod_code = main_key_and_modifier_code(keypress_str)
@@ -974,8 +974,8 @@ class KeyBindingData:
                         ))
 
                 if not is_in_keys_set:
-                    if accepted_key_name_set:
-                        if key_name not in accepted_key_name_set:
+                    if include_key_name_set:
+                        if key_name not in include_key_name_set:
                             # This should be excluded UNLESS, but ``keys_set`` is
                             # additive, so if ``key_set`` was provided AND the
                             # keypress is in it, then the caller specifically
@@ -987,7 +987,7 @@ class KeyBindingData:
                                         )
                             continue
                     else:
-                        # Is neither in ``key_set`` nor ``accepted_key_name_set``.
+                        # Is neither in ``key_set`` nor ``include_key_name_set``.
                         if debugging:
                             print(f'  Excluding {keypress_tuple_bep} because:\n'
                                     f'    - that key_name was neither in `key_names` nor `key_groups`, and\n'
