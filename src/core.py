@@ -571,10 +571,10 @@ key_name_groups = [
     # F_KEYS      == 2
     ['f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12','f13','f14','f15','f16','f17','f18','f19','f20'],
     # SYMBOL_KEYS == 3
-    [',','.','\\','/',';',"'",'`','-','=','[',']',       # OK with or w/o key modifiers.
-            '"', '(', ')', '[', ']', '{', '}', '`',      # Only w/o key modifiers.
-            '~', '!', '@', '#', '$', '%', '^', '&',      # Only w/o key modifiers.
-            '*', '_', '+', '|', ':', '"', '<', '>', '?'  # Only w/o key modifiers.
+    [',','.','\\','/',';',"'",'`','-','=','[',']',       # OK with or w/o key modifiers. (Unshifted)
+            '"', '(', ')', '[', ']', '{', '}', '`',      # Only w/o key modifiers.       (Shifted)
+            '~', '!', '@', '#', '$', '%', '^', '&',      # Only w/o key modifiers.       (Shifted)
+            '*', '_', '+', '|', ':', '"', '<', '>', '?'  # Only w/o key modifiers.       (Shifted)
             ],
             # The last 3 rows are added because these "bare" keypresses (i.e. having
             # no ctrl/alt/shift key modifiers) are 100% bind-able in Sublime Text
@@ -759,6 +759,59 @@ def encoded_keypress(keypress_str: str) -> int:
     return encoded_keypress_from_components(kn, mod_code)
 
 
+# =========================================================================
+# Context Checker
+# =========================================================================
+
+def _condition_test(
+        view          : sublime.View,
+        keypress_tuple: Tuple[str],
+        condition     : dict
+        ):
+    """
+    :param view:            Current View (used to test if key context is applicable)
+    :param keypress_tuple:  Tuple containing keypress/keypress sequence
+    :param condition:       Single condition dictionary from key-binding context.
+    """
+    result = False
+
+    if not result:
+        if _debugging_scope:
+            print(f'  Excluding {keypress_tuple_bep} because context condition failed:\n    {condition}')
+
+    return result
+
+
+def _context_applies(
+        view          : sublime.View,
+        keypress_tuple: Tuple[str],
+        context       : List[dict]
+        ):
+    """
+    :param view:            Current View (used to test if key context is applicable)
+    :param keypress_tuple:  Tuple containing keypress/keypress sequence
+    :param context:         Context entry from key-binding
+    """
+    result = True
+
+    # Do all conditions pass?
+    all_conditions_passed = True
+    for condition in context:
+        if not _condition_test(view, keypress_tuple, condition):
+            all_conditions_passed = False
+            break
+
+    if not all_conditions_passed:
+        if _debugging_scope:
+            print(f'  Excluding {keypress_tuple_bep} because context does not apply.')
+
+    return result
+
+
+# =========================================================================
+# Report Data Generator
+# =========================================================================
+
 def _add_binding_to_main_key_dict(binding: KeyBinding, key_name: str, key_mod_code: int):
     """
     by_main_key_dict
@@ -878,51 +931,6 @@ def _build_empty_key_seq_dict():
 
     global gdictByKeySquence
     gdictByKeySquence = {}
-
-
-def _condition_test(
-        view          : sublime.View,
-        keypress_tuple: Tuple[str],
-        condition     : dict
-        ):
-    """
-    :param view:            Current View (used to test if key context is applicable)
-    :param keypress_tuple:  Tuple containing keypress/keypress sequence
-    :param condition:       Single condition dictionary from key-binding context.
-    """
-    result = False
-
-    if not result:
-        if _debugging_scope:
-            print(f'  Excluding {keypress_tuple_bep} because context condition failed:\n    {condition}')
-
-    return result
-
-
-def _context_applies(
-        view          : sublime.View,
-        keypress_tuple: Tuple[str],
-        context       : List[dict]
-        ):
-    """
-    :param view:            Current View (used to test if key context is applicable)
-    :param keypress_tuple:  Tuple containing keypress/keypress sequence
-    :param context:         Context entry from key-binding
-    """
-    result = True
-
-    # Do all conditions pass?
-    all_conditions_passed = True
-    for condition in context:
-        if not _condition_test(view, keypress_tuple, condition):
-            all_conditions_passed = False
-            break
-
-    if not all_conditions_passed:
-        if _debugging_scope:
-            print(f'  Excluding {keypress_tuple_bep} because context does not apply.')
-
-    return result
 
 
 def _conditionally_add_bindings_from_keymap(
