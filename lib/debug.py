@@ -169,6 +169,12 @@ class DebugBits(IntFlag):
         # the time the bit gets set.  This is the only bit that is like that.
         # All the other ones get set after the cached Package settings have
         # been brought in.
+        #
+        # Turning on IMPORTING debugging in full is a 3-part process:
+        # - plugin.py:  debugging = True;
+        # - below:      _debugging: DebugBits = DebugBits.IMPORTING;
+        # - settings:   add DebugBits.IMPORTING to debugging setting string.
+        # ---------------------------------------------------------------------
         IMPORTING              = 0X2000
 
         # ---------------------------------------------------------------------
@@ -231,7 +237,7 @@ class DebugBits(IntFlag):
 # output, getting away from the profuse "all at once" debug output.
 # =========================================================================
 
-_debugging: DebugBits = DebugBits.NONE
+_debugging: DebugBits = DebugBits.IMPORTING
 _valid_debugging_string_re = None
 _cfg_debugging_print_format = '04X'
 

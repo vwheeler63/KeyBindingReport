@@ -1,3 +1,20 @@
+"""
+This module does all the data fetching of selected key bindings.
+
+Usage:
+
+    key_groups       = [KeyGroup.NUMBERS]
+    key_names        = ["q", "w", "a", "s"]
+    keys_list        = [["ctrl+p"], ["ctrl+shift+p"], ["ctrl+k", "ctrl+u"]]
+    packages         = ["Default"]
+    limit_to_context = False
+
+    key_data = KeyBindingData()
+    key_data.generate(key_groups, key_names, keys_list, packages, limit_to_context)
+
+Each time ``key_data.generate()`` is called produces a new data set.
+No memory of the previous call remains.
+"""
 import re
 from typing import List, Tuple, Set, Optional, Iterable
 from enum import IntEnum, IntFlag
@@ -5,6 +22,7 @@ import sublime
 from . import core
 from ..lib import context
 from ..lib.debug import DebugBits, is_debugging
+from ..lib.context import Context
 
 
 # =========================================================================
@@ -122,7 +140,7 @@ def encoded_keypress_from_components(main_key_name: str, key_modifier_code: int)
     """
     Encoded keypress from `main_key_name` and `key_modifier_code`.
 
-    :param main_key_name:       Official name of key, found in `core.key_names`.
+    :param main_key_name:       Official name of key, found in `all_key_names`.
                                   (See Key Names in module docstring for the list.)
     :param key_modifier_code:   Integer representation of Ctrl+Alt+Shift key
                                   modifiers accommodating keypress.
@@ -185,6 +203,8 @@ class KeyBinding():
     file, plus some additional data needed for reporting, e.g. what Package
     the binding is from.
     """
+    __slots__ = ['json_binding', 'pkg_name', 'file_name']
+
     def __init__(self, json_binding_obj: dict, pkg_name: str, file_name: str):
         self.json_binding = json_binding_obj
         self.pkg_name     = pkg_name
@@ -295,15 +315,28 @@ class KeyBinding():
 
 class KeyBindingData:
 
-    def __init__(self, view):
-        self.view = view
+    __slots__ = [
+        'mdictByMainKey',
+        'mdictByKeySquence',
+        '_view',
+        '_context',
+        '_debugging_removing_arg_overlap',
+        '_debugging_filtering_stage_i',
+        '_debugging_filtering_stage_ii',
+        '_debugging_building_main_key_dict',
+        '_debugging_building_key_seq_dict'
+    ]
+
+    def __init__(self):
         self.mdictByMainKey = {}
         self.mdictByKeySquence = {}
+
+        self._view = None
+        self._context = None
 
         self._debugging_removing_arg_overlap   = is_debugging(DebugBits.REMOVING_ARG_OVERLAP)
         self._debugging_filtering_stage_i      = is_debugging(DebugBits.FILTERING_STAGE_I)
         self._debugging_filtering_stage_ii     = is_debugging(DebugBits.FILTERING_STAGE_II)
-        self._debugging_scope                  = is_debugging(DebugBits.FILTERING_ON_CONTEXT)
         self._debugging_building_main_key_dict = is_debugging(DebugBits.BUILDING_MAIN_KEY_DICT)
         self._debugging_building_key_seq_dict  = is_debugging(DebugBits.BUILDING_KEY_SEQ_DICT)
 
@@ -312,7 +345,7 @@ class KeyBindingData:
             key_names       : Optional[Iterable[str]] = None,
             keys_list       : Optional[Iterable[Iterable[str]]] = None,
             packages        : Optional[Iterable[str]] = None,
-            limit_to_context: Optional[bool] = False,
+            limit_to_context: bool = False,
             ):
         r"""
         Generate Key-Binding data, based on argument values provided, if any.
@@ -337,7 +370,7 @@ class KeyBindingData:
                             specifies including all possible key-modifier
                             combinations with this key.  Each key only has
                             an impact on data gathered if it is found in
-                            ``core.all_key_names``.
+                            ``all_key_names``.
                             ``None`` or ``[]`` when not applicable.
 
         :param keys_list:   List of "keys" (same format as "keys" elements
@@ -372,8 +405,7 @@ class KeyBindingData:
         packages         = ["Default"]
         limit_to_context = False
 
-        view = sublime.active_window().active_view()
-        key_data = KeyBindingData(view)
+        key_data = KeyBindingData()
         key_data.generate(key_groups, key_names, keys_list, packages, limit_to_context)
 
         class KeyGroup(IntEnum):
@@ -517,13 +549,6 @@ class KeyBindingData:
                 msg = core.arg_type_error_message(packages, 'packages', req_type, after_msg)
                 raise TypeError(msg)
 
-        live_sel_rgn_list = self.view.sel()
-        if len(live_sel_rgn_list) == 0 and limit_to_context:
-            msg = (f'{core.package_name} Exception:\n'
-                   '  There were no selections in View when the `key_data.generate()`\n'
-                   '  command was called and `limit_to_context` == True.')
-            raise Exception(msg)
-
         # ---------------------------------------------------------------------
         # Remove duplicates from limiting args, pursuant to:
         #
@@ -585,11 +610,11 @@ class KeyBindingData:
             if key_groups:
                 # Load it with key names from the specified groups.
                 if KeyGroup.ALL in key_groups:
-                    include_key_name_set.update(core.all_key_names)
+                    include_key_name_set.update(all_key_names)
                 else:
                     for key_grp_idx in key_groups:
                         if key_grp_idx >= 0:
-                            key_grp_list = core.key_name_groups[key_grp_idx]
+                            key_grp_list = key_name_groups[key_grp_idx]
                             include_key_name_set.update(key_grp_list)
 
             # Now ``include_key_name_set`` contains keys in ``key_groups``
@@ -638,7 +663,7 @@ class KeyBindingData:
             for keypress_tuple in keys_list_copy:
                 if len(keypress_tuple) == 1:
                     keypress = keypress_tuple[0]
-                    key_name, _ = core.main_key_and_modifier_code(keypress)
+                    key_name, _ = main_key_and_modifier_code(keypress)
                     if key_name in include_key_name_set:
                         # Overlap
                         if debugging:
@@ -798,6 +823,23 @@ class KeyBindingData:
         # Loop through list of .sublime-keymap files in keymap-load order.
         keymap_paths = sublime.find_resources('*.sublime-keymap')
 
+        # Set `_context` and `_view` before the outer loop starts.
+        # Preserve context if was created previously.  It will get
+        # the fresh View when `_context.query()` is called.
+        if limit_to_context:
+            if self._context:
+                if debugging:
+                    print('  Creation of Context not needed:  already present.')
+            else:
+                self._context = Context()
+                if debugging:
+                    print('  Context created.')
+
+            self._view = sublime.active_window().active_view()
+        else:
+            self._view = None
+
+        # For each `.sublime-keymap` file...
         for path in keymap_paths:
             match = pkg_name_from_resource_path_re.search(path)
             if not match:
@@ -871,7 +913,7 @@ class KeyBindingData:
 
         self.mdictByMainKey = {}
 
-        for key_name in core.all_key_names:
+        for key_name in all_key_names:
             empty_list = [None] * 8
             self.mdictByMainKey[key_name] = empty_list
 
@@ -906,7 +948,7 @@ class KeyBindingData:
             include_key_name_set   : Optional[Set[str]],
             keys_set               : Optional[Set[Tuple[str]]],
             incl_all_multi_key_seqs: bool,
-            limit_to_scope         : bool
+            limit_to_context       : bool
             ):
         """
         Add key bindings from ``path``, limited by:
@@ -933,13 +975,13 @@ class KeyBindingData:
                                 included in the input data. ``None`` == no
                                 specific keypress/keypress sequences are added.
 
-        :param limit_to_scope:  Exclude key bindings that don't apply to current
-                                scope?
-
         :param incl_all_multi_key_seqs:
                                 Whether to accept all keypress sequences
                                 (i.e. JSON key-binding "keys" list values that
                                 have more than one keypress string in them).
+
+        :param limit_to_context:  Optional:  ``view is not None`` means "exclude key
+                                bindings that don't apply to current context".
         """
         debugging = self._debugging_filtering_stage_ii
         if debugging:
@@ -948,7 +990,7 @@ class KeyBindingData:
             print(f'  {include_key_name_set=}')
             print(f'  {keys_set=}')
             print(f'  {incl_all_multi_key_seqs=}')
-            print(f'  {limit_to_scope=}')
+            print(f'  {limit_to_context=}')
 
         keymap_resource_str = sublime.load_resource(path)
         json_key_bindings = sublime.decode_value(keymap_resource_str)
@@ -1030,13 +1072,9 @@ class KeyBindingData:
 
             # Exclude if caller requested a limiting scope, and the
             # scope doesn't apply to the current scope.
-            if limit_to_scope and 'context' in json_binding:
-                # Do context conditions ALL fit limiting scope?
-                if not context.matches(
-                        self.view,
-                        keypress_tuple_bep,
-                        json_binding['context']
-                        ):
+            if limit_to_context and ('context' in json_binding):
+                # Do we have a context match?
+                if not self._context.query(self._view, json_binding, path):
                     continue
 
             # When execution arrives here, none of the reasons to

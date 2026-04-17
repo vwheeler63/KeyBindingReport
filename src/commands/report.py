@@ -193,19 +193,26 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
 
         t0 = datetime.now()
 
-        view = sublime.active_window().active_view()
-        key_data = KeyBindingData(view)
-        key_data.generate(key_groups, key_names, keys_list, packages, limit_to_context)
+        # Preserve self.key_data in case it is used again.
+        if hasattr(self, 'key_data') and self.key_data is not None:
+            if debugging:
+                print('  Creation of KeyBindingData not needed:  already present.')
+        else:
+            self.key_data = KeyBindingData()
+            if debugging:
+                print('  KeyBindingData created.')
+
+        self.key_data.generate(key_groups, key_names, keys_list, packages, limit_to_context)
         t1 = datetime.now()
 
         tgt_file = r'r:\by_main_key.txt'
         with open(tgt_file, 'w', encoding='utf-8') as f:
             # print(f'Writing to [{tgt_file}]...')
-            f.write(pprint.pformat(key_data.mdictByMainKey))
+            f.write(pprint.pformat(self.key_data.mdictByMainKey))
         tgt_file = r'r:\by_key_seq.txt'
         with open(tgt_file, 'w', encoding='utf-8') as f:
             # print(f'Writing to [{tgt_file}]...')
-            f.write(pprint.pformat(key_data.mdictByKeySquence))
+            f.write(pprint.pformat(self.key_data.mdictByKeySquence))
         t2 = datetime.now()
 
         print('Time to generate data structures: ', str(t1 - t0))

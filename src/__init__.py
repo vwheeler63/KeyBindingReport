@@ -9,6 +9,7 @@ reload(__package__, ('core', 'data'))
 reload(__package__ + '.commands')  # Recurse into .commands/ subpackage.
 
 from . import core
+from . import data
 from .commands import *
 
 __all__ = [
