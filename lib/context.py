@@ -269,10 +269,10 @@ class Context():
             'selector'                 : self._test_unimplemented,
             'following_text'           : self._test_following_text,
             'has_snippet'              : self._test_unimplemented,
-            'indented_block'           : self._test_unimplemented,
-            'preceding_text'           : self._test_unimplemented,
+            'indented_block'           : self._test_indented_block,
+            'preceding_text'           : self._test_preceding_text,
             'read_only'                : self._test_unimplemented,
-            'text'                     : self._test_unimplemented,
+            'text'                     : self._test_text,
             # SNIPPET       == 1
             'has_snippet'              : self._test_unimplemented,
             # WINDOW        == 2
@@ -302,6 +302,53 @@ class Context():
 
         # Get `on_query_context()` collection.
         # Get Snippet collection.
+
+    def _test_num_selections(self, view, operator, operand, match_all):
+        value = len(view.sel())
+        return self._check_value(value, operator, operand)
+
+    def _test_selection_empty(self, view, operator, operand, match_all):
+        test_func = lambda view, sel: sel.a == sel.b
+        return self._test_selections(test_func, view, operator, operand, match_all)
+
+    def _test_one_following_text(self, view, sel):
+        left_edge_pt = sel.begin()
+        line_rgn = view.line(left_edge_pt)
+        following_text_rgn = Region(left_edge_pt, line_rgn.b)
+        return view.substr(following_text_rgn)
+
+    def _test_following_text(self, view, operator, operand, match_all):
+        test_func = self._test_one_following_text
+        return self._test_selections(test_func, view, operator, operand, match_all)
+
+    def _test_one_preceding_text(self, view, sel):
+        left_edge_pt = sel.begin()
+        line_rgn = view.line(left_edge_pt)
+        preceding_text_rgn = Region(line_rgn.a, left_edge_pt)
+        return view.substr(preceding_text_rgn)
+
+    def _test_preceding_text(self, view, operator, operand, match_all):
+        test_func = self._test_one_preceding_text
+        return self._test_selections(test_func, view, operator, operand, match_all)
+
+    def _test_text(self, view, operator, operand, match_all):
+        test_func = lambda view, sel: view.substr(sel)
+        return self._test_selections(test_func, view, operator, operand, match_all)
+
+    def _test_indented_block(self, view, operator, operand, match_all):
+        test_func = lambda view, sel: ((view.line(sel).size() > 0) and (view.substr(view.line(sel))[0] in ' \t'))
+        return self._test_selections(test_func, view, operator, operand, match_all)
+
+    def _test_setting(self, view, operator, operand, match_all):
+        test_func = lambda view, sel: sel.a == sel.b
+        return self._test_selections(test_func, view, operator, operand, match_all)
+
+    def _test_unimplemented(self, view, operator, operand, match_all):
+        debugging = self._debugging_context
+        if debugging:
+            # print('    >>>> In context._test_unimplemented()...')
+            print('    >>>> UNIMPLEMENTED.')
+        return False
 
     def _check_value(self, value, operator, operand):
         try:
@@ -372,31 +419,6 @@ class Context():
 
         return result
 
-    def _test_num_selections(self, view, operator, operand, match_all):
-        value = len(view.sel())
-        return self._check_value(value, operator, operand)
-
-    def _test_selection_empty(self, view, operator, operand, match_all):
-        test_func = lambda view, sel: sel.a == sel.b
-        return self._test_selections(test_func, view, operator, operand, match_all)
-
-    def _test_one_following_text(self, view, sel):
-        left_edge_pt = sel.begin()
-        line_rgn = view.line(left_edge_pt)
-        following_text_rgn = Region(left_edge_pt, left_edge_pt)
-        return view.substr(following_text_rgn)
-
-    def _test_following_text(self, view, operator, operand, match_all):
-        test_func = self._test_one_following_text
-        return self._test_selections(test_func, view, operator, operand, match_all)
-
-    def _test_setting(self, view, operator, operand, match_all):
-        test_func = lambda view, sel: sel.a == sel.b
-        return self._test_selections(test_func, view, operator, operand, match_all)
-
-    def _test_unimplemented(self, view, operator, operand, match_all):
-        return False
-
     def _condition_test(self, view, condition: dict, keypress_list: tuple, path: str):
         """
         :param view:            Current View (used to test if key context is applicable)
@@ -437,7 +459,7 @@ class Context():
 
         if not result:
             if debugging:
-                print(f'    Excluding {keypress_list} because context query failed:\n    {condition}')
+                print(f'    Excluding {keypress_list} because context query failed:\n      {condition_repr(condition, 0, 0)}')
 
         return result
 
