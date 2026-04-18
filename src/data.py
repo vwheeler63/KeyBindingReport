@@ -483,7 +483,9 @@ class KeyBindingData:
             for ``keys_list`` if present is converting its elements to
             tuples so they can more efficiently have duplicates removed
             since tuples can use operators like `==`, `!=`, `in` and be
-            keys in dictionaries.
+            keys in dictionaries.  In doing so create:
+
+                ``keys_tuples_set``
 
         2.  If both ``key_names`` and ``key_groups`` are provided and are
             not empty, the result is additive in a logical way:
@@ -498,21 +500,21 @@ class KeyBindingData:
             restrictions on which keys are reported on.  Namely:
             ``include_key_name_set``.
 
-        3.  If (include_key_name_set is not None and keys_list is not None),
-            this indicates the user has specified a ``keys_list`` which *may*
+        3.  If (include_key_name_set is not None and ``keys_tuples_set`` is not None),
+            this indicates the user has specified a ``keys_tuples_set`` which *may*
             have overlap with ``include_key_name_set``.  Since the latter
             means "report on all possible key combinations for these keys",
-            any keypress/keypress sequence present in ``keys_list`` which
+            any keypress/keypress sequence present in ``keys_tuples_set`` which
             has one of those key names as the main key would be redundant and
-            is removed from ``keys_list``.
+            is removed from ``keys_tuples_set``.
 
         4.  Finally, "overlap" may occur if:
 
-            - ``keys_list`` and ``key_groups`` were both provided and not empty,
+            - ``keys_tuples_set`` and ``key_groups`` were both provided and not empty,
             - it contains any multiple keypress sequences, and
             - KEY_SEQUENCES was included in ``key_groups``,
 
-            then all such entries in ``keys_list`` would be redundant since
+            then all such entries in ``keys_tuples_set`` would be redundant since
             their occurrence would already be covered by the KEY_SEQUENCES
             key group.
 
@@ -525,16 +527,16 @@ class KeyBindingData:
             include_key_name_set = Unique list of accepted key
             names based on ``key_groups``.
 
-        If ``keys_list`` was provided:
+        If ``keys_list`` was provided, ``keys_tuples_set`` is created from it.
             The above conflict/overlap resolution removed anything already
             covered by other arguments.  If there is nothing left, then
-            ``keys_list`` is set to ``None``.
+            ``keys_tuples_set`` is set to ``None``.
 
         Finally, all 3 of:
 
         - packages,
         - include_key_name_set, and
-        - keys_list are passed to
+        - keys_tuples_set are passed to
 
         ``self._build_report_data()``.
 
@@ -1034,7 +1036,7 @@ class KeyBindingData:
                 # ---------------------------------------------------------
                 # 1 keypress:  the most common execution branch.
                 #
-                # Exclude if not in either of these:
+                # Exclude if not in either of:
                 # - ``include_key_name_set`` or
                 # - ``keys_tuples_set``.
                 #
