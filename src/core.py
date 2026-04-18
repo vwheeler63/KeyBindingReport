@@ -88,13 +88,13 @@ JSON key-binding object
             ]
         },
 
-KeyBinding object
-    an instance of the ``KeyBinding`` class, containing the JSON key-binding
+ReportKeyBinding object
+    an instance of the ``ReportKeyBinding`` class, containing the JSON key-binding
     object from a ``.sublime-keymap`` file (defining the binding of an individual
     keypress/keypress sequence), plus some additional data:  the name of the
     Package and ``.sublime-keymap`` file it came from.
 
-    Note that during instantiation of a new ``KeyBinding`` object, the
+    Note that during instantiation of a new ``ReportKeyBinding`` object, the
     JSON key-binding object's "keys" value is converted from a list to
     a tuple for ease of use as dictionary keys and in sets.
 
@@ -204,7 +204,7 @@ which is "ctrl", "alt", then "shift", in that order.  Note that this is a
 provide keymap overrides that use a different order (so long as the main
 key is last).  The `ModifierKeyBits` class helps compute this index.
 
-Each such list item then contains ``None`` or a list of ``KeyBinding``
+Each such list item then contains ``None`` or a list of ``ReportKeyBinding``
 objects for that particular keypress.  The order of that list is in
 ``.sublime-keymap`` file-loading order, and thus is similar to what
 Sublime Text uses internally to select key bindings by doing a

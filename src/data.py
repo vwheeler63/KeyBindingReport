@@ -198,7 +198,7 @@ class KeyGroup(IntEnum):
     KEYPAD_KEYS    =  5  # /
 
 
-class KeyBinding():
+class ReportKeyBinding():
     """
     Representation of a Key-Binding JSON object from a ``.sublime-keymap``
     file, plus some additional data needed for reporting, e.g. what Package
@@ -227,7 +227,7 @@ class KeyBinding():
 
         Produces:
         ---------
-        <KeyBinding pkg=Default { ['"'], move(({'by': 'characters', 'forward': True}))
+        <ReportKeyBinding pkg=Default { ['"'], move(({'by': 'characters', 'forward': True}))
           "context": [
             { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": True }
             { "key": "selection_empty"           , "operator": "equal"         , "operand": True, "match_all": True }
@@ -239,11 +239,11 @@ class KeyBinding():
 
         or if there is no "context" entry:
 
-        <KeyBinding pkg=Default { ['right'], move({'by': 'characters', 'forward': True}) }>
+        <ReportKeyBinding pkg=Default { ['right'], move({'by': 'characters', 'forward': True}) }>
 
         """
-        binding_repr = binding_repr(self.json_binding)
-        result = f'<{self.__class__.__name__} pkg={self.pkg_name} {binding_repr}>'
+        binding_str = binding_repr(self.json_binding)
+        result = f'<{self.__class__.__name__} pkg={self.pkg_name} {binding_str}>'
         return result
 
     def keypress_count(self) -> int:
@@ -1118,13 +1118,13 @@ class KeyBindingData:
             # -------------------------------------------------------------
             # When execution arrives here, it's okay to add.
             # -------------------------------------------------------------
-            binding = KeyBinding(json_binding, pkg_name, file_name)
+            binding = ReportKeyBinding(json_binding, pkg_name, file_name)
             if keypress_count_bep > 1:
                 self._add_binding_to_key_seq_dict(binding)
             else:
                 self._add_binding_to_main_key_dict(binding, key_name, mod_code)
 
-    def _add_binding_to_key_seq_dict(self, binding: KeyBinding):
+    def _add_binding_to_key_seq_dict(self, binding: ReportKeyBinding):
         """
         by_key_seq_dict
             ("ctrl+k", "ctrl+up"):
@@ -1151,7 +1151,7 @@ class KeyBindingData:
         if debugging:
             print(f'  Added binding for {keys_tuple}.')
 
-    def _add_binding_to_main_key_dict(self, binding: KeyBinding, key_name: str, key_mod_code: int):
+    def _add_binding_to_main_key_dict(self, binding: ReportKeyBinding, key_name: str, key_mod_code: int):
         """
         by_main_key_dict
             "a": [
