@@ -477,7 +477,7 @@ class Context():
         debugging = self._debugging_context
         if debugging:
             print('In context.query()...')
-            print(f'  {binding_repr(json_binding, 4)}')
+            print(f'{binding_repr(json_binding, 1)}')
             print(f'  {path=}')
         all_tests_passed = True
         keypress_list    = json_binding['keys']

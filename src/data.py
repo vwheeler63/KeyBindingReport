@@ -23,6 +23,7 @@ from . import core
 from ..lib import context
 from ..lib.debug import DebugBits, is_debugging
 from ..lib.context import Context
+from ..lib.json_key_binding import *
 
 
 # =========================================================================
@@ -209,35 +210,40 @@ class KeyBinding():
         self.json_binding = json_binding_obj
         self.pkg_name     = pkg_name
         self.file_name    = file_name
-        # Ensure keys is a tuple to simplify comparisons and use in
-        # dictionary keys and set.
-        keys_list = self.json_binding['keys']
-        keys_tuple = tuple(keys_list)
-        self.json_binding['keys'] = keys_tuple
 
     def __repr__(self):
-        pkg = self.pkg_name
-        keys = repr(self.json_binding['keys'])
-        cmd = self.json_binding['command']
-        args_dict = {}
-        context = []
+        """
+        JSON Key Binding from Default Package:
+        --------------------------------------
+        { "keys": ["\""], "command": "move", "args": {"by": "characters", "forward": true}, "context":
+            [
+                { "key": "setting.auto_match_enabled", "operator": "equal", "operand": true },
+                { "key": "selection_empty", "operator": "equal", "operand": true, "match_all": true },
+                { "key": "following_text", "operator": "regex_contains", "operand": "^\"", "match_all": true },
+                { "key": "selector", "operator": "not_equal", "operand": "punctuation.definition.string.begin", "match_all": true },
+                { "key": "eol_selector", "operator": "not_equal", "operand": "string.quoted.double - punctuation.definition.string.end", "match_all": true },
+            ]
+        },
 
-        if 'args' in self.json_binding:
-            args_dict = repr(self.json_binding['args'])
-        if 'context' in self.json_binding:
-            context = repr(self.json_binding['context'])
+        Produces:
+        ---------
+        <KeyBinding: pkg=Default { ['"'], move(({'by': 'characters', 'forward': True}))
+          "context": [
+            { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": True }
+            { "key": "selection_empty"           , "operator": "equal"         , "operand": True, "match_all": True }
+            { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": True }
+            { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": True }
+            { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": True }
+          ]
+        }>
 
-        result = f'<pkg={pkg} {keys}: {cmd}'
+        or if there is no "context" entry:
 
-        if args_dict:
-            result += f'({args_dict})'
-        else:
-            result += '()'
+        <KeyBinding: pkg=Default { ['right'], move({'by': 'characters', 'forward': True}) }>
 
-        if context:
-            result += f', {context=}'
-
-        result += '>'
+        """
+        binding_repr = binding_repr(self.json_binding)
+        result = f'<{self.__class__.__name__}: pkg={self.pkg_name} {binding_repr}>'
         return result
 
     def keypress_count(self) -> int:
@@ -251,6 +257,17 @@ class KeyBinding():
 
     def command(self) -> str:
         return self.json_binding['command']
+
+    def args(self) -> Optional[dict]:
+        result = None
+
+        if 'args' in self.json_binding:
+            result = self.json_binding['args']
+
+        return result
+
+    def command_as_function_repr(self) -> str:
+        return command_as_function_repr(self.json_binding)
 
     def args(self) -> Optional[dict]:
         result = None
@@ -568,6 +585,8 @@ class KeyBindingData:
             # Lists cannot be used in sets or as dictionary keys.  So we need
             # to convert its items to tuples regardless of how many there are.
             # And we need to later assume ``keys_list`` is a set.
+            # VITAL:  it's vital that `keys_set` contains TUPLES since tuples
+            # can use operators like `==`, `!=` and `in`!
             temp_set = set()
             for keypresses in keys_list:
                 keypress_tuple = tuple(keypresses)
@@ -775,8 +794,10 @@ class KeyBindingData:
         :param keys_set:    Optional:  Set of keypress tuples against which to
                             compare individual JSON key binding objects.  If the
                             keypress tuple is a match, then it is included in the
-                            input data. ``None`` == no specific keypress/keypress
-                            sequences are added.
+                            input data.  VITAL:  it's vital that `keys_set`
+                            contains TUPLES since tuples can use operators like
+                            `==`, `!=` and `in`!  ``None`` == no specific
+                            keypress/keypress sequences are added.
 
         :param limit_to_context:
                             Exclude key bindings that don't apply to current context?
@@ -831,6 +852,7 @@ class KeyBindingData:
                 if debugging:
                     print('  Creation of Context not needed:  already present.')
             else:
+                # This can be time consuming so we try to do it only once.
                 self._context = Context()
                 if debugging:
                     print('  Context created.')
@@ -996,16 +1018,20 @@ class KeyBindingData:
         json_key_bindings = sublime.decode_value(keymap_resource_str)
 
         for json_binding in json_key_bindings:
+            # -------------------------------------------------------------
             # First, look for reasons to exclude key binding.
+            # -------------------------------------------------------------
             keypress_tuple_bep = tuple(json_binding['keys'])
             keypress_count_bep = len(keypress_tuple_bep)
 
             if keypress_count_bep == 1:
-                # -------------------------------------------------------------
+                # ---------------------------------------------------------
                 # 1 keypress:  the most common execution branch.
                 #
                 # Exclude if neither in ``include_key_name_set`` nor ``keys_set``.
-                # -------------------------------------------------------------
+                # VITAL: it's vital that `keys_set` contains TUPLES since
+                # tuples can use operators like `==`, `!=` and `in`!
+                # ---------------------------------------------------------
                 keypress_str = keypress_tuple_bep[0]
                 key_name, mod_code = main_key_and_modifier_code(keypress_str)
 
@@ -1036,12 +1062,13 @@ class KeyBindingData:
                                     f'    - that keypress was not in `keys_list`.'
                                     )
                         continue
+
             elif keypress_count_bep > 1:
-                # -------------------------------------------------------------
+                # ---------------------------------------------------------
                 # 2+ keypresses
                 #
                 # Exclude if not incl_all_multi_key_seqs and not in ``keys_set``.
-                # -------------------------------------------------------------
+                # ---------------------------------------------------------
                 if not incl_all_multi_key_seqs:
                     if keys_set:
                         # Exclude if not in ``keys_set``.
@@ -1060,25 +1087,28 @@ class KeyBindingData:
                                     f'    - that keypress sequence was not in `keys_list`.'
                                     )
                         continue
+
             else:
-                # -------------------------------------------------------------
+                # ---------------------------------------------------------
                 # 0 keypresses (error condition).
                 # This is an error the user needs to fix, so report it.
-                # -------------------------------------------------------------
+                # ---------------------------------------------------------
                 print(f'{core.package_name} Error:  Cannot include JSON key binding with empty "keys" entry!\n'
                         f'  {keypress_tuple_bep}'
                         )
                 continue
 
-            # Exclude if caller requested a limiting scope, and the
-            # scope doesn't apply to the current scope.
+            # -------------------------------------------------------------
+            # Exclude if caller requested `limit_to_context`, and
+            # key-binding context doesn't match current context.
+            # -------------------------------------------------------------
             if limit_to_context and ('context' in json_binding):
-                # Do we have a context match?
                 if not self._context.query(self._view, json_binding, path):
                     continue
 
-            # When execution arrives here, none of the reasons to
-            # exclude the key binding applied:  it's okay to add.
+            # -------------------------------------------------------------
+            # When execution arrives here, it's okay to add.
+            # -------------------------------------------------------------
             binding = KeyBinding(json_binding, pkg_name, file_name)
             if keypress_count_bep > 1:
                 self._add_binding_to_key_seq_dict(binding)
@@ -1149,4 +1179,3 @@ class KeyBindingData:
         key_binding_list.append(binding)
         # if debugging:
         #     print(f'  Added [{keypress_str}] binding to item [{key_mod_code}].')
-

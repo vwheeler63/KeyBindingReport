@@ -2,8 +2,7 @@
 JSON Key Binding Utilities, using data structures specific to
 Sublime Text ``.sublime-keymap`` files.
 """
-
-__all__ = ['condition_repr', 'binding_repr']
+__all__ = ['condition_repr', 'command_as_function_repr', 'binding_repr']
 
 
 def condition_repr(condition: dict, longest_key_len: int = 0, longest_op_len: int = 0, indent_level: int = 0) -> str:
@@ -23,7 +22,7 @@ def condition_repr(condition: dict, longest_key_len: int = 0, longest_op_len: in
     """
     cond_name = condition['key']
     field = f'"{cond_name}"'
-    indent = ' ' * indent_level
+    indent = '  ' * indent_level
     result = f'{indent}{{ "key": {field:{longest_key_len + 2}}'
 
     if 'operator' in condition:
@@ -41,6 +40,14 @@ def condition_repr(condition: dict, longest_key_len: int = 0, longest_op_len: in
     return result
 
 
+def command_as_function_repr(json_binding: dict) -> str:
+    command = json_binding['command']
+    args_repr = ''
+    if 'args' in json_binding:
+        args_repr = repr(json_binding['args'])
+    return f'{command}({args_repr})'
+
+
 def binding_repr(json_binding: dict, indent_level: int = 0) -> str:
     """
     Python representation of ``json_binding`` (same structure as in
@@ -48,28 +55,28 @@ def binding_repr(json_binding: dict, indent_level: int = 0) -> str:
 
     Representation:
     ---------------
-    json_binding={ "keys": ['('], "command": "insert_snippet"
-      "args": {'contents': '(${0:$SELECTION})'}
+    { ['"'], move(({'by': 'characters', 'forward': True}))
       "context": [
-        { "key": "setting.auto_match_enabled", "operator": "equal", "operand": True }
-        { "key": "selection_empty"           , "operator": "equal", "operand": False, "match_all": True }
+        { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": True }
+        { "key": "selection_empty"           , "operator": "equal"         , "operand": True, "match_all": True }
+        { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": True }
+        { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": True }
+        { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": True }
       ]
     }
     """
-    indent = ' ' * indent_level
-    result = f'json_binding={{ "keys": {repr(json_binding["keys"])}, "command": "{json_binding["command"]}"\n'
-
-    if 'args' in json_binding:
-        args_str = repr(json_binding['args'])
-        result += f'    "args": {args_str}\n'
+    indent = '  ' * indent_level
+    cmd_as_func = command_as_function_repr(json_binding)
+    result = f'{indent}{{ {repr(json_binding["keys"])}, {cmd_as_func}'
 
     if 'context' in json_binding:
-        result += '    "context": [\n'
-        ctx = json_binding['context']  # list of condition dictionaries
+        result += f'\n{indent}  "context": [\n'
+        ctxt = json_binding['context']  # list of condition dictionaries
         longest_key_len = 0
         longest_op_len = 5   # Length of 'equal'
 
-        for condition in ctx:
+        # Compute length of widest `key` and `operator` fields.
+        for condition in ctxt:
             key_len = len(condition['key'])
             if key_len > longest_key_len:
                 longest_key_len = key_len
@@ -78,7 +85,8 @@ def binding_repr(json_binding: dict, indent_level: int = 0) -> str:
                 if op_len > longest_op_len:
                     longest_op_len = op_len
 
-        for condition in ctx:
+        # Now produce formatted string.
+        for condition in ctxt:
             result += condition_repr(
                     condition,
                     longest_key_len,
@@ -86,8 +94,9 @@ def binding_repr(json_binding: dict, indent_level: int = 0) -> str:
                     indent_level + 2
                     ) + '\n'
 
-        result += '    ]\n'
-
-    result += '  }'
+        result += f'{indent}  ]\n'
+        result += f'{indent}}}'
+    else:
+        result += ' }'
 
     return result
