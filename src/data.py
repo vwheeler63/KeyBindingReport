@@ -227,7 +227,7 @@ class KeyBinding():
 
         Produces:
         ---------
-        <KeyBinding: pkg=Default { ['"'], move(({'by': 'characters', 'forward': True}))
+        <KeyBinding pkg=Default { ['"'], move(({'by': 'characters', 'forward': True}))
           "context": [
             { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": True }
             { "key": "selection_empty"           , "operator": "equal"         , "operand": True, "match_all": True }
@@ -239,11 +239,11 @@ class KeyBinding():
 
         or if there is no "context" entry:
 
-        <KeyBinding: pkg=Default { ['right'], move({'by': 'characters', 'forward': True}) }>
+        <KeyBinding pkg=Default { ['right'], move({'by': 'characters', 'forward': True}) }>
 
         """
         binding_repr = binding_repr(self.json_binding)
-        result = f'<{self.__class__.__name__}: pkg={self.pkg_name} {binding_repr}>'
+        result = f'<{self.__class__.__name__} pkg={self.pkg_name} {binding_repr}>'
         return result
 
     def keypress_count(self) -> int:
