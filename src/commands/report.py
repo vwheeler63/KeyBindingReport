@@ -198,6 +198,13 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
             if debugging:
                 print('  Creation of KeyBindingData not needed:  already present.')
         else:
+            # This `KeyBindingData` object is preserved ONLY because it may
+            # have a lazy-created `context.Context` object which is costly
+            # to instantiate, because it gathers a lot of data from the
+            # current run-time environment (namely, the whole set of
+            # `on_query_context()` functions and the whole set of Snippets).
+            #
+            # So we try to only do this ONCE.
             self.key_data = KeyBindingData()
             if debugging:
                 print('  KeyBindingData created.')
