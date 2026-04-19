@@ -6,3 +6,7 @@
 # ============
 *.mp4    binary export-ignore
 *.gif    binary export-ignore
+
+# Do not export to .sublime-package
+# =================================
+*.gitattributes export-ignore
