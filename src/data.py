@@ -208,7 +208,7 @@ class ReportKeyBinding(key_binding.KeyBinding):
 
     def __init__(self, decoded_key_binding: dict, pkg_name: str, file_name: str):
         # Incorporate contents of `decoded_key_binding` into `self`.
-        super().__init__(decoded_key_binding)
+        super().__init__(decoded_key_binding, pkg_name, file_name)
         # Store extra data for report.
         self.pkg_name     = pkg_name
         self.file_name    = file_name
@@ -244,7 +244,7 @@ class ReportKeyBinding(key_binding.KeyBinding):
         <ReportKeyBinding pkg=Default { ['right'], move({'by': 'characters', 'forward': True}) }>
 
         """
-        binding_str = self.binding_repr()
+        binding_str = self.format_binding()
         return f'<{self.__class__.__name__} pkg={self.pkg_name} {binding_str}>'
 
     def package_name(self) -> str:
@@ -259,8 +259,7 @@ class KeyBindingData:
     __slots__ = [
         'mdictByMainKey',
         'mdictByKeySquence',
-        '_view',
-        '_context',
+        'view',
         '_debugging_removing_arg_overlap',
         '_debugging_filtering_stage_i',
         '_debugging_filtering_stage_ii',
@@ -272,8 +271,7 @@ class KeyBindingData:
         self.mdictByMainKey = {}
         self.mdictByKeySquence = {}
 
-        self._view = None
-        self._context = None
+        self.view = None
 
         self._debugging_removing_arg_overlap   = is_debugging(DebugBits.REMOVING_ARG_OVERLAP)
         self._debugging_filtering_stage_i      = is_debugging(DebugBits.FILTERING_STAGE_I)
@@ -776,22 +774,11 @@ class KeyBindingData:
         # Loop through list of .sublime-keymap files in keymap-load order.
         keymap_paths = sublime.find_resources('*.sublime-keymap')
 
-        # Set `_context` and `_view` before the outer loop starts.
-        # Preserve context if was created previously.  It will get
-        # the fresh View when `_context.query()` is called.
+        # Refresh `self.view` before the outer loop starts.
         if limit_to_context:
-            if self._context:
-                if debugging:
-                    print('  Creation of Context not needed:  already present.')
-            else:
-                # This can be time consuming so we try to do it only once.
-                self._context = context.Context()
-                if debugging:
-                    print('  Context created.')
-
-            self._view = sublime.active_window().active_view()
+            self.view = sublime.active_window().active_view()
         else:
-            self._view = None
+            self.view = None
 
         # For each `.sublime-keymap` file...
         for path in keymap_paths:
@@ -1035,13 +1022,17 @@ class KeyBindingData:
                 continue
 
             # -------------------------------------------------------------
+            # Instantiate binding.  This "hooks it up" with context query
+            # apparatus in case it is needed below.
+            # -------------------------------------------------------------
+            binding = ReportKeyBinding(decoded_binding, pkg_name, file_name)
+
+            # -------------------------------------------------------------
             # Exclude if caller requested `limit_to_context`, and
             # key-binding context doesn't match current context.
             # -------------------------------------------------------------
-            binding = ReportKeyBinding(decoded_binding, pkg_name, file_name)
-            if limit_to_context and ('context' in decoded_binding):
-                # TODO:  key_binding.context().query(self._view, path)
-                if not self._context.query(self._view, binding, path):
+            if limit_to_context and binding.context:
+                if not binding.context.query(self.view):
                     continue
 
             # -------------------------------------------------------------
@@ -1067,7 +1058,7 @@ class KeyBindingData:
         debugging = self._debugging_building_key_seq_dict
         if debugging:
             print('In _add_binding_to_key_seq_dict()...')
-            print(f'  rpt_binding={rpt_binding.binding_repr(1)}')
+            print(f'  rpt_binding={rpt_binding.format_binding(1)}')
 
         keys_tuple = rpt_binding.keys_as_tuple()
 
@@ -1099,7 +1090,7 @@ class KeyBindingData:
             print('In _add_binding_to_main_key_dict()...')
             print(f'  {key_name=}')
             print(f'  {key_mod_code=}')
-            print(f'  rpt_binding={rpt_binding.binding_repr(1)}')
+            print(f'  rpt_binding={rpt_binding.format_binding(1)}')
 
         if rpt_binding.keypress_count() != 1:
             raise AssertionError(f'Number of elements in `keys` expected 1, got {rpt_binding.keypress_count()}!')

@@ -1,13 +1,13 @@
 from enum import IntEnum, IntFlag
 from typing import Iterable, Optional
-import pprint  # For human-readable data dumps when debugging.
+import pprint
 from datetime import datetime
 import sublime_plugin
 import sublime
 from ...lib.ascii_table import Format, Generator
 from ...lib.debug import DebugBits, is_debugging
 from .. import core
-from ..data import KeyGroup, KeyBindingData
+from .. import data
 
 
 class FlagBits(IntFlag):
@@ -27,7 +27,7 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
 
     def run(
             self            : sublime_plugin.ApplicationCommand,
-            key_groups      : Optional[Iterable[KeyGroup]] = None,
+            key_groups      : Optional[Iterable[data.KeyGroup]] = None,
             key_names       : Optional[Iterable[str]] = None,
             keys_list       : Optional[Iterable[Iterable[str]]] = None,
             packages        : Optional[Iterable[str]] = None,
@@ -180,7 +180,12 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
         """
 
+        any_debugging = is_debugging(DebugBits.ANY)
         debugging = is_debugging(DebugBits.KEY_BINDING_REPORT)
+
+        if any_debugging:
+            print('>\n>\n>\n>')
+
         if debugging:
             print('In KeyBindingReportCommand.run()...')
             print(f'  {key_groups=}')
@@ -192,34 +197,18 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
             print(f'  flags=0b{flags:08b}')
 
         t0 = datetime.now()
-
-        # Preserve self.key_data in case it is used again.
-        if hasattr(self, 'key_data') and self.key_data is not None:
-            if debugging:
-                print('  Creation of KeyBindingData not needed:  already present.')
-        else:
-            # This `KeyBindingData` object is preserved ONLY because it may
-            # have a lazy-created `context.Context` object which is costly
-            # to instantiate, because it gathers a lot of data from the
-            # current run-time environment (namely, the whole set of
-            # `on_query_context()` functions and the whole set of Snippets).
-            #
-            # So we try to only do this ONCE.
-            self.key_data = KeyBindingData()
-            if debugging:
-                print('  KeyBindingData created.')
-
-        self.key_data.generate(key_groups, key_names, keys_list, packages, limit_to_context)
+        key_data = KeyBindingData()
+        key_data.generate(key_groups, key_names, keys_list, packages, limit_to_context)
         t1 = datetime.now()
 
         tgt_file = r'r:\by_main_key.txt'
         with open(tgt_file, 'w', encoding='utf-8') as f:
             # print(f'Writing to [{tgt_file}]...')
-            f.write(pprint.pformat(self.key_data.mdictByMainKey))
+            f.write(pprint.pformat(key_data.mdictByMainKey))
         tgt_file = r'r:\by_key_seq.txt'
         with open(tgt_file, 'w', encoding='utf-8') as f:
             # print(f'Writing to [{tgt_file}]...')
-            f.write(pprint.pformat(self.key_data.mdictByKeySquence))
+            f.write(pprint.pformat(key_data.mdictByKeySquence))
         t2 = datetime.now()
 
         print('Time to generate data structures: ', str(t1 - t0))

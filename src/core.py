@@ -343,7 +343,6 @@ import sublime
 from enum import IntFlag
 from ..lib.ascii_table import Format, Generator
 from ..lib.debug import DebugBits, is_debugging, set_debugging_bits
-from ..lib import utils
 from ..keybindingreport import package_name
 
 

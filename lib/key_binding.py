@@ -1,4 +1,5 @@
 from typing import List, Tuple, Optional
+from . import context
 
 
 class KeyBinding(dict):
@@ -16,11 +17,29 @@ class KeyBinding(dict):
         ]
     }
     """
-    def __init__(self, decoded_key_binding: dict):
+    # __slots__ = [
+    #     'context',
+    #     'pkg_name',
+    #     'file_name',
+    # ]
+
+    def __init__(self, decoded_key_binding: dict, pkg_name: str, file_name: str):
+        """
+        :param decoded_key_binding:  key binding decoded from JSON in .sublime-keymap
+        :param path:                 for improved debug output
+        """
         self.update(decoded_key_binding)
 
+        if 'context' in decoded_key_binding:
+            self.context = context.Context(self)
+        else:
+            self.context = None
+
+        self.pkg_name = pkg_name
+        self.file_name = file_name
+
     def __str__(self):
-        return f'<{self.__class__.__name__} {self.binding_repr()}>'
+        return self.format_binding()
 
     def __repr__(self):
         """
@@ -39,7 +58,49 @@ class KeyBinding(dict):
         }>
 
         """
-        return f'<{self.__class__.__name__} {self.binding_repr()}>'
+        return f'<{self.__class__.__name__} {self.format_binding()}>'
+
+    def format_binding(self, indent_level: int = 0, include_extra: bool = False) -> str:
+        """
+        Python representation of ``self`` (same structure as in
+        .sublime-keymap files) such that the keys and values are in logical order.
+
+        Representation:
+        ---------------
+        { ['right'], move({'by': 'characters', 'forward': True}) }
+
+        or if there is a "context" entry:
+
+        { ['"'], move({'by': 'characters', 'forward': True})
+          "context": [
+            { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": True }
+            { "key": "selection_empty"           , "operator": "equal"         , "operand": True, "match_all": True }
+            { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": True }
+            { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": True }
+            { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": True }
+          ]
+        }
+        """
+        indent = '  ' * indent_level
+        if include_extra:
+            print(f'{indent}{self.pkg_name}/{self.file_name}')
+        cmd_as_func = self.command_as_function_repr()
+        result = f'{indent}{{ {repr(self["keys"])}, {cmd_as_func}'
+
+        if self.context:
+            result += '\n' + self.context.format_context(indent_level + 1)
+            result += f'\n{indent}}}'
+        else:
+            result += ' }'
+
+        return result
+
+    def command_as_function_repr(self) -> str:
+        command = self['command']
+        args_repr = ''
+        if 'args' in self:
+            args_repr = repr(self['args'])
+        return f'{command}({args_repr})'
 
     def keypress_count(self) -> int:
         """
@@ -110,100 +171,3 @@ class KeyBinding(dict):
 
         return keys, cmd, args, ctxt
 
-    def binding_repr(self, indent_level: int = 0) -> str:
-        """
-        Python representation of ``self`` (same structure as in
-        .sublime-keymap files) such that the keys and values are in logical order.
-
-        Representation:
-        ---------------
-        { ['right'], move({'by': 'characters', 'forward': True}) }
-
-        or if there is a "context" entry:
-
-        { ['"'], move({'by': 'characters', 'forward': True})
-          "context": [
-            { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": True }
-            { "key": "selection_empty"           , "operator": "equal"         , "operand": True, "match_all": True }
-            { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": True }
-            { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": True }
-            { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": True }
-          ]
-        }
-        """
-        indent = '  ' * indent_level
-        cmd_as_func = self.command_as_function_repr()
-        result = f'{indent}{{ {repr(self["keys"])}, {cmd_as_func}'
-
-        if 'context' in self:
-            result += f'\n{indent}  "context": [\n'
-            ctxt = self['context']  # list of condition dictionaries
-            longest_key_len = 0
-            longest_op_len = 5   # Length of 'equal'
-
-            # Compute length of widest `key` and `operator` fields.
-            for condition in ctxt:
-                key_len = len(condition['key'])
-                if key_len > longest_key_len:
-                    longest_key_len = key_len
-                if 'operator' in condition:
-                    op_len  = len(condition['operator'])
-                    if op_len > longest_op_len:
-                        longest_op_len = op_len
-
-            # Now produce formatted string.
-            for condition in ctxt:
-                result += self.condition_repr(
-                        condition,
-                        longest_key_len,
-                        longest_op_len,
-                        indent_level + 2
-                        ) + '\n'
-
-            result += f'{indent}  ]\n'
-            result += f'{indent}}}'
-        else:
-            result += ' }'
-
-        return result
-
-    def command_as_function_repr(self) -> str:
-        command = self['command']
-        args_repr = ''
-        if 'args' in self:
-            args_repr = repr(self['args'])
-        return f'{command}({args_repr})'
-
-    def condition_repr(self, condition: dict, longest_key_len: int = 0, longest_op_len: int = 0, indent_level: int = 0) -> str:
-        """
-        Python representation of ``json_binding`` context conditions (same structure as
-        in .sublime-keymap files) such that the keys and values are in logical order.
-
-        Each condition presented on 1 line.
-
-        Representation (just one of these, but 2 shown to show meaning of args:
-        -----------------------------------------------------------------------
-            { "key": "selection_empty"           , "operator": "equal", "operand": False, "match_all": True }
-            { "key": "setting.auto_match_enabled", "operator": "equal", "operand": True }
-                      ^^^^^^^^^^^^^^^^^^^^^^^^^^                ^^^^^
-                          +-- longest_key_len                     +-- longest_op_len
-        }
-        """
-        cond_name = condition['key']
-        field = f'"{cond_name}"'
-        indent = '  ' * indent_level
-        result = f'{indent}{{ "key": {field:{longest_key_len + 2}}'
-
-        if 'operator' in condition:
-            op_name = condition["operator"]
-            field = f'"{op_name}"'
-            result += f', "operator": {field:{longest_op_len + 2}}'
-        if 'operand' in condition:
-            # This value can be str, bool or int, so we use `repr()`.
-            result += f', "operand": {repr(condition["operand"])}'
-        if 'match_all' in condition:
-            result += f', "match_all": {repr(condition["match_all"])}'
-
-        result += ' }'
-
-        return result
