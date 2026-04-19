@@ -197,16 +197,19 @@ class KeyGroup(IntEnum):
     KEYPAD_KEYS    =  5  # /
 
 
-class ReportKeyBinding():
+class ReportKeyBinding(key_binding.KeyBinding):
     """
-    Representation of a Key-Binding JSON object from a ``.sublime-keymap``
-    file, plus some additional data needed for reporting, e.g. what Package
-    the binding is from.
+    Representation of a KeyBinding plus some additional data needed for reporting:
+
+    - package name
+    - ``.sublime-keymap`` file name
     """
     __slots__ = ['json_binding', 'pkg_name', 'file_name']
 
-    def __init__(self, json_binding_obj: dict, pkg_name: str, file_name: str):
-        self.json_binding = json_binding_obj
+    def __init__(self, decoded_key_binding: dict, pkg_name: str, file_name: str):
+        # Incorporate contents of `decoded_key_binding` into `self`.
+        super().__init__(decoded_key_binding)
+        # Store extra data for report.
         self.pkg_name     = pkg_name
         self.file_name    = file_name
 
@@ -241,86 +244,8 @@ class ReportKeyBinding():
         <ReportKeyBinding pkg=Default { ['right'], move({'by': 'characters', 'forward': True}) }>
 
         """
-        binding_str = binding_repr(self.json_binding)
-        result = f'<{self.__class__.__name__} pkg={self.pkg_name} {binding_str}>'
-        return result
-
-    def keypress_count(self) -> int:
-        """
-        Number of keypresses in binding.
-        """
-        return len(self.json_binding['keys'])
-
-    def keys(self) -> tuple:
-        return self.json_binding['keys']
-
-    def command(self) -> str:
-        return self.json_binding['command']
-
-    def args(self) -> Optional[dict]:
-        result = None
-
-        if 'args' in self.json_binding:
-            result = self.json_binding['args']
-
-        return result
-
-    def command_as_function_repr(self) -> str:
-        return command_as_function_repr(self.json_binding)
-
-    def args(self) -> Optional[dict]:
-        result = None
-
-        if 'args' in self.json_binding:
-            result = self.json_binding['args']
-
-        return result
-
-    def context(self) -> Optional[list]:
-        result = None
-
-        if 'context' in self.json_binding:
-            result = self.json_binding['context']
-
-        return result
-
-    def extracted_json_parts(self) -> Tuple[Tuple[str], str, dict, List[dict]]:
-        """
-        Parts of JSON Key-Binding object, extracted as:
-
-        - keys   :  Tuple[str]   (e.g. ("alt+up"))
-        - command:  str          (e.g. 'box_drawing_draw_one_character')
-        - args   :  dict or None (e.g. {'direction': 0, 'line_count': 1})
-        - context:  List[dict]   (e.g. [{'key': 'box_drawing.ok_to_draw', 'match_all': True}])
-
-        Examples above use this JSON binding as input:
-        {
-            "keys": ["alt+up"],
-            "command": "box_drawing_draw_one_character",
-            "args": {
-                "line_count": 1,
-                "direction": 0,
-            },
-            "context": [
-                { "key": "box_drawing.ok_to_draw", "match_all": true },
-            ]
-        },
-        """
-        json_binding = self.json_binding
-        keys = tuple(json_binding['keys'])
-        cmd  = json_binding['command']
-
-        if 'args' in json_binding:
-            args = json_binding['args']
-        else:
-            args = None
-
-        if 'context' in json_binding:
-            ctxt = json_binding['context']
-        else:
-            ctxt = None
-
-        return keys, cmd, args, ctxt
+        binding_str = self.binding_repr()
+        return f'<{self.__class__.__name__} pkg={self.pkg_name} {binding_str}>'
 
     def package_name(self) -> str:
         return self.pkg_name
@@ -860,7 +785,7 @@ class KeyBindingData:
                     print('  Creation of Context not needed:  already present.')
             else:
                 # This can be time consuming so we try to do it only once.
-                self._context = Context()
+                self._context = context.Context()
                 if debugging:
                     print('  Context created.')
 
@@ -1022,13 +947,16 @@ class KeyBindingData:
             print(f'  {limit_to_context=}')
 
         keymap_resource_str = sublime.load_resource(path)
-        json_key_bindings = sublime.decode_value(keymap_resource_str)
+        decoded_key_bindings = sublime.decode_value(keymap_resource_str)
 
-        for json_binding in json_key_bindings:
+        for decoded_binding in decoded_key_bindings:
             # -------------------------------------------------------------
             # First, look for reasons to exclude key binding.
+            #
+            # VITAL:  it's vital that `keypress_tuple_bep` is a TUPLE and
+            # not a list.  Reason:  to be used in membership tests below.
             # -------------------------------------------------------------
-            keypress_tuple_bep = tuple(json_binding['keys'])
+            keypress_tuple_bep = tuple(decoded_binding['keys'])
             keypress_count_bep = len(keypress_tuple_bep)
 
             if keypress_count_bep == 1:
@@ -1039,7 +967,7 @@ class KeyBindingData:
                 # - ``include_key_name_set`` or
                 # - ``keys_tuples_set``.
                 #
-                # VITAL: it's vital that `keys_tuples_set` contains TUPLES
+                # VITAL:  it's vital that `keys_tuples_set` contains TUPLES
                 # since tuples can use operators like `==`, `!=` and `in`!
                 # ---------------------------------------------------------
                 keypress_str = keypress_tuple_bep[0]
@@ -1110,20 +1038,21 @@ class KeyBindingData:
             # Exclude if caller requested `limit_to_context`, and
             # key-binding context doesn't match current context.
             # -------------------------------------------------------------
-            if limit_to_context and ('context' in json_binding):
-                if not self._context.query(self._view, json_binding, path):
+            binding = ReportKeyBinding(decoded_binding, pkg_name, file_name)
+            if limit_to_context and ('context' in decoded_binding):
+                # TODO:  key_binding.context().query(self._view, path)
+                if not self._context.query(self._view, binding, path):
                     continue
 
             # -------------------------------------------------------------
             # When execution arrives here, it's okay to add.
             # -------------------------------------------------------------
-            binding = ReportKeyBinding(json_binding, pkg_name, file_name)
             if keypress_count_bep > 1:
                 self._add_binding_to_key_seq_dict(binding)
             else:
                 self._add_binding_to_main_key_dict(binding, key_name, mod_code)
 
-    def _add_binding_to_key_seq_dict(self, binding: ReportKeyBinding):
+    def _add_binding_to_key_seq_dict(self, rpt_binding: ReportKeyBinding):
         """
         by_key_seq_dict
             ("ctrl+k", "ctrl+up"):
@@ -1134,23 +1063,24 @@ class KeyBindingData:
                     ...
                 ]
         """
-        assert binding.keypress_count() > 1, f'Number of elements in `keys` expected > 1, got {binding.keypress_count()}!'
+        assert rpt_binding.keypress_count() > 1, f'Number of elements in `keys` expected > 1, got {rpt_binding.keypress_count()}!'
         debugging = self._debugging_building_key_seq_dict
         if debugging:
             print('In _add_binding_to_key_seq_dict()...')
+            print(f'  rpt_binding={rpt_binding.binding_repr(1)}')
 
-        keys_tuple = binding.keys()
+        keys_tuple = rpt_binding.keys_as_tuple()
 
         if keys_tuple not in self.mdictByKeySquence:
             # Lazy creation.
             self.mdictByKeySquence[keys_tuple] = []
 
         binding_list = self.mdictByKeySquence[keys_tuple]
-        binding_list.append(binding)
+        binding_list.append(rpt_binding)
         if debugging:
-            print(f'  Added binding for {keys_tuple}.')
+            print(f'  Added rpt_binding for {keys_tuple}.')
 
-    def _add_binding_to_main_key_dict(self, binding: ReportKeyBinding, key_name: str, key_mod_code: int):
+    def _add_binding_to_main_key_dict(self, rpt_binding: ReportKeyBinding, key_name: str, key_mod_code: int):
         """
         by_main_key_dict
             "a": [
@@ -1167,11 +1097,12 @@ class KeyBindingData:
         debugging = self._debugging_building_main_key_dict
         if debugging:
             print('In _add_binding_to_main_key_dict()...')
-            print(f'{key_name=}')
-            print(f'{key_mod_code=}')
+            print(f'  {key_name=}')
+            print(f'  {key_mod_code=}')
+            print(f'  rpt_binding={rpt_binding.binding_repr(1)}')
 
-        if binding.keypress_count() != 1:
-            raise AssertionError(f'Number of elements in `keys` expected 1, got {binding.keypress_count()}!')
+        if rpt_binding.keypress_count() != 1:
+            raise AssertionError(f'Number of elements in `keys` expected 1, got {rpt_binding.keypress_count()}!')
         if key_name not in self.mdictByMainKey:
             raise AssertionError(f'  ERROR!  Found key name [{key_name}] not in mdictByMainKey.')
 
@@ -1181,9 +1112,10 @@ class KeyBindingData:
 
         if key_binding_list is None:
             # Lazy list creation
-            by_main_key_item[key_mod_code] = []
-            key_binding_list = by_main_key_item[key_mod_code]
+            key_binding_list = []
+            by_main_key_item[key_mod_code] = key_binding_list
 
-        key_binding_list.append(binding)
-        # if debugging:
-        #     print(f'  Added [{keypress_str}] binding to item [{key_mod_code}].')
+        key_binding_list.append(rpt_binding)
+        if debugging:
+            keypress_str = rpt_binding.keys()[0]
+            print(f'  Added [{keypress_str}] rpt_binding to item [{key_mod_code}].')

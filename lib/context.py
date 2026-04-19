@@ -419,18 +419,21 @@ class Context():
 
         return result
 
-    def _condition_test(self, view, condition: dict, keypress_list: tuple, path: str):
+    def _condition_test(self, view, condition: dict, binding: key_binding.KeyBinding, path: str):
         """
         :param view:            Current View (used to test if key context is applicable)
         :param keypress_list:  Tuple containing keypress/keypress sequence
         :param condition:       Single condition dictionary from key-binding context.
         """
+        keypress_list    = binding['keys']
+
         debugging = self._debugging_context
         if debugging:
-            print('  In context._condition_test()...')
+            print(f'  In context._condition_test( {condition["key"]} )...')
             print(f'    {path=}')
             print(f'    {keypress_list=}')
-            print(f'    condition={condition_repr(condition, 0, 0)}')
+            print(f'    condition={binding.condition_repr(condition)}')
+
         result    = False
         key       = condition['key']
         operator  = condition['operator']  if 'operator'  in condition else 'equal'
@@ -449,7 +452,7 @@ class Context():
                 if debugging:
                     print(f'    Setting name {setting_name}:')
                     print(f'      {value=}, {operator=}, {operand=}')
-                    print(f'      {result=}')
+                    print(f'    {result=}')
         else:
             msg = (
                     f'{self.__class__.__name__}:  context key [{key}] not recognized.\n'
@@ -459,37 +462,44 @@ class Context():
 
         if not result:
             if debugging:
-                print(f'    Excluding {keypress_list} because context query failed:\n      {condition_repr(condition, 0, 0)}')
+                print(f'    Excluding {keypress_list} because context query failed:\n      {binding.condition_repr(condition)}')
 
         return result
 
-    def query(self, view, json_binding: dict, path: str):
+    def query(self, view, binding: key_binding.KeyBinding, path: str):
         """
-        Do all conditions in ``json_binding's`` "context" entry match current
+        Do all conditions in ``binding's`` "context" entry match current
         circumstances with ``view``, etc.?
 
-        Precondition:  json_binding must have a "context" entry.
+        Precondition:  binding must have a "context" entry.
 
         :param view:          Active View (used to test if key context is applicable)
-        :param json_binding:  Info for error messages
+        :param binding:  Info for error messages
         :param path:          Path to .sublime-keymap file for error messages.
         """
+        if 'context' not in binding:
+            raise AssertionError('`binding` must have "context" entry')
+
         debugging = self._debugging_context
         if debugging:
             print('In context.query()...')
-            print(f'{binding_repr(json_binding, 1)}')
+            print(f'{binding.binding_repr(1)}')
             print(f'  {path=}')
+
+        keypress_list    = binding['keys']
+        conditions       = binding['context']
         all_tests_passed = True
-        keypress_list    = json_binding['keys']
-        conditions       = json_binding['context']
 
         # Do all conditions pass?
         for condition in conditions:
-            if not self._condition_test(view, condition, keypress_list, path):
+            if not self._condition_test(view, condition, binding, path):
                 all_tests_passed = False
                 if debugging:
                     print(f'  Excluding {keypress_list}:  context.query() == False.')
                 break
+
+        if debugging:
+            print(f'  {all_tests_passed=}')
 
         return all_tests_passed
 
