@@ -5,9 +5,8 @@ Which Binding Report
 This logic is launched via the ``KeyBindingReportWhichBindingCommand``
 command at the end of this file.  The details of the algorithm are in
 the docstring for that command.
-
-
 """
+from datetime import datetime
 from typing import List
 import sublime_plugin
 import sublime
@@ -42,7 +41,12 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
         :param format:      Which output format (ascii_table.Format)
         :return:  None
         """
+        print(f"It's me.... {__name__}")
+        from ...lib import context
+        context.update_view_event_listeners()
+        return
+
         debugging = is_debugging(DebugBits.WHICH_BINDING_REPORT)
         t0 = datetime.now()
-        core.build_report_data(package, key_group, key_name)
+        #core.build_report_data(package, key_group, key_name)
         t1 = datetime.now()

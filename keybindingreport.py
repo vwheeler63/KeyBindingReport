@@ -33,6 +33,8 @@ _reload_indent_level = -1
 # the import required to support it causes a circular import.
 debugging = True
 if debugging:
+    from datetime import datetime
+    t0 = datetime.now()
     print(f'{this_module_name}  >>> module execution')
 
 
@@ -110,6 +112,7 @@ from .lib import *
 from .src import *
 
 
+
 # =========================================================================
 # Events
 # =========================================================================
@@ -124,3 +127,5 @@ def plugin_unloaded():
 
 if debugging:
     print(f'{this_module_name}  <<<')
+    t1 = datetime.now()
+    print(f'Time to load/reload {this_module_name}: {t1 - t0}.')

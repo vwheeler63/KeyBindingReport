@@ -197,7 +197,7 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
             print(f'  flags=0b{flags:08b}')
 
         t0 = datetime.now()
-        key_data = KeyBindingData()
+        key_data = data.KeyBindingData()
         key_data.generate(key_groups, key_names, keys_list, packages, limit_to_context)
         t1 = datetime.now()
 

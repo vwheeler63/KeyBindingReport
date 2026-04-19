@@ -776,7 +776,11 @@ class KeyBindingData:
 
         # Refresh `self.view` before the outer loop starts.
         if limit_to_context:
-            self.view = sublime.active_window().active_view()
+            curr_view = sublime.active_window().active_view()
+            # Conditionally update any ViewEventListeners so they
+            # are using the right view if consulted.
+            context.update_view_event_listeners(curr_view)
+            self.view = curr_view
         else:
             self.view = None
 

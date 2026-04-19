@@ -118,10 +118,15 @@ inside a loop, as this would slow it down immensely.
 @version  1.0  16-Apr-2026 15:35  vw  - Created.
 ***************************************************************************"""
 
+import os
 import re
+import importlib
+import pprint
 from enum import IntFlag, IntEnum
 from typing import Tuple, List
-from sublime import Region
+import sublime
+from sublime import QueryOperator
+import sublime_plugin
 from ..lib.debug import IntFlag, DebugBits, is_debugging
 from ..lib import key_binding
 
@@ -132,7 +137,8 @@ from ..lib import key_binding
 
 # System-wide list of `on_query_context()` functions for when there
 # is a key-binding context not among the standard list.
-_on_query_context_list = []
+_on_query_context_listener_list = []
+_on_query_context_file_list = []
 
 # System-wide list of Snippets
 _snippet_list = []
@@ -140,85 +146,195 @@ _snippet_list = []
 # Regex to extract setting name from a "settings.xxxx" condition.
 _setting_name_from_condition = re.compile(r'^setting\.(.+)$')
 
-# Condition names grouped by ConditionGroup enumeration.
-_condition_name_groups = [
-    # VIEW          == 0
-    # Includes logic related to View, selections, scope and text.
-    [
-        'num_selections',
-        'selection_empty',
-        'eol_selector',
-        'is_javadoc',
-        'selector',
-        'following_text',
-        'has_snippet',
-        'indented_block',
-        'preceding_text',
-        'read_only',
-        'text',
-        'has_snippet',
-            # Implemented similar to 'preceding_text' consulting the
-            # collection of snippets to determine trigger strings.
-    ],
-    # SNIPPET       == 1
-    # This sub-list is at this writing unsupported because there appears to
-    # be no way to determine the state of the Snippet State Machine.
-    [
-    ],
-    # WINDOW        == 2
-    [
-        'auto_complete_visible',
-        'group_has_multiselect',
-        'group_has_transient_sheet',
-        'overlay_has_focus',
-        'overlay_name',
-        'overlay_visible',
-        'panel',
-        'panel_has_focus',
-        'panel_visible',
-        'panel_type',
-        'popup_visible',
-    ],
-    # APPLICATION   == 3
-    [
-    ],
-    # SETTINGS      == 4
-    [
-        'setting.',
-    ],
-    # UNIMPLEMENTED == 5
-    [
-        'has_next_field',          # Snippet
-        'has_prev_field',          # Snippet
-        'is_recording_macro',      # Application
-        'last_command',            # Application
-        'last_modifying_command',  # Application
-    ],
-]
+# on_query_context() operator code look-up dictionary.
+_operator_codes_by_name = {
+    "equal"             : QueryOperator.EQUAL,
+    "not_equal"         : QueryOperator.NOT_EQUAL,
+    "regex_match"       : QueryOperator.REGEX_MATCH,
+    "not_regex_match"   : QueryOperator.NOT_REGEX_MATCH,
+    "regex_contains"    : QueryOperator.REGEX_CONTAINS,
+    "not_regex_contains": QueryOperator.NOT_REGEX_CONTAINS,
+}
 
 # -------------------------------------------------------------------------
-# Populate constants programmatically.
+# Populate these constants programmatically:
+# - _on_query_context_listener_list
+# - _on_query_context_file_list
+# - _snippet_data
+# - _snippet_trigger_dict
 # -------------------------------------------------------------------------
 
-# Generate ``_all_condition_names`` from ``_condition_name_groups``.
-count = 0
+# _on_query_context_listener_list
+def _on_qry_context_listeners():
+    skip_packages = ["Default.", "Package Control.", "SublimeLinter."]
+    st_modules = [".sublime", ".sublime_plugin", ".sublime_types"]
+    funcs = []
+    files = []
 
-for grp in _condition_name_groups:
-    count += len(grp)
+    debugging = is_debugging(DebugBits.LOADING_CONTEXT_ENV)
+    if debugging:
+        print('In context._on_qry_context_listeners()...:')
 
-# Pre-allocate array instead of 103 ``append()`` calls (inefficient).
-_all_condition_names = [None] * count
-i = 0
+    resources = sublime.find_resources("*.py")
+    pkgs_path = sublime.packages_path()
+    curr_view = sublime.active_window().active_view()
+    modules_iterated_count = 0
+    modules_skipped_due_to_package_count = 0
+    modules_skipped_due_to_being_st_modules_count = 0
+    modules_loaded_count = 0
+    modules_skipped_due_to_loading_exception_count = 0
+    attributes_examined_count = 0
+    attr_skipped_due_to_not_having_listeners_count = 0
+    listeners_instantiated_and_kept_count = 0
+    event_listener_count = 0
+    view_event_listener_count = 0
 
-for grp in _condition_name_groups:
-    for cond_name in grp:
-        _all_condition_names[i] = cond_name
-        i += 1
+    event_listener_class_name_dict = {}
 
-# Clean up.
-del i, count, grp, cond_name
+    # ---------------------------------------------------------------------
+    # For each *.py file within view of Sublime Text....
+    # ---------------------------------------------------------------------
+    for resource in resources:
+        modules_iterated_count += 1
+        full_path = os.path.join(pkgs_path, "..", resource)
+        full_path = os.path.normpath(full_path)
 
-# _on_query_context_list TODO
+        _, resource = resource.split("/", 1)  # remove Packages/ from path
+
+        resource, _ = os.path.splitext(resource)
+        resource = resource.replace("/", ".")
+
+        # -----------------------------------------------------------------
+        # Skip if Package in `skip_packages` list.
+        # -----------------------------------------------------------------
+        skip = False
+        for skip_pkg in skip_packages:
+            if resource.startswith(skip_pkg):
+                # if debugging:
+                #     print(f'  Skipping    :  {resource=}')
+                modules_skipped_due_to_package_count += 1
+                skip = True
+                break
+
+        if skip:
+            continue
+
+        # -----------------------------------------------------------------
+        # Skip if module is a Sublime Text module.
+        # -----------------------------------------------------------------
+        skip = False
+        for st_mod in st_modules:
+            if resource.endswith(st_mod):
+                modules_skipped_due_to_being_st_modules_count += 1
+                skip = True
+                break
+
+        if skip:
+            continue
+
+        # -----------------------------------------------------------------
+        # Skip module if:
+        # - there is an exception loading it;
+        # - if it does not contain any subclasses of:
+        #   - sublime_plugin.EventListener,
+        #   - sublime_plugin.ViewEventListener;
+        # - if class encountered is a duplicate.
+        #
+        # Note:  multi-module Packages with event listeners in a module
+        # below the top level have to "pass listener references up" so that
+        # they reach 1 of the Package's top-level modules so that Sublime
+        # Text will find and use it.  This fact causes more than one module
+        # to contain references to the same class.  We detect this through
+        # placing the class names in `event_listener_class_name_dict` and
+        # checking for this before instantiating the listener object.
+        # -----------------------------------------------------------------
+        try:
+            module = importlib.import_module(resource)
+            modules_loaded_count += 1
+            # if debugging:
+            #     print(f'  Examining   :  {module.__name__}')
+        except:
+            # if debugging:
+            #     print(f'  Exception   :  {resource}')
+            modules_skipped_due_to_loading_exception_count += 1
+            continue
+
+        for attribute_name in dir(module):
+            attributes_examined_count += 1
+            attribute = getattr(module, attribute_name)
+
+            is_event_listener = False
+            is_event_listener_subclass = False
+            is_view_event_listener_subclass = False
+
+            is_class_w_on_query_context = ((
+                        isinstance(attribute, type)  # class
+                    and hasattr(attribute, "on_query_context")
+                    ))
+
+            if is_class_w_on_query_context:
+                is_view_event_listener_subclass = \
+                        issubclass(attribute, sublime_plugin.ViewEventListener)
+
+                is_event_listener = ((
+                           issubclass(attribute, sublime_plugin.EventListener)
+                        or is_view_event_listener_subclass
+                        ))
+
+            if not is_event_listener:
+                # if debugging:
+                #     print(f'  Not Listener:  {resource=}')
+                attr_skipped_due_to_not_having_listeners_count += 1
+                continue
+
+            # Eliminate duplicate classes.  Multi-module Packages can have
+            # a reference to an event listener in multiple modules, since these
+            # have to be propagated upwards to at least 1 top-level module in
+            # the package.  But we can detect duplicates observing their class
+            # names, and only accepting the first one.
+            if attribute.__name__ in event_listener_class_name_dict:
+                # Is a duplicate.  Skip.
+                continue
+            else:
+                # Not a duplicate.  Keep.
+                event_listener_class_name_dict[attribute.__name__] = None
+
+            # -------------------------------------------------------------
+            # Finally, duplicates removed, it's okay to instantiate these
+            # listeners for later use.
+            # -------------------------------------------------------------
+            listeners_instantiated_and_kept_count += 1
+            if debugging:
+                print(f'  Keeping >>>>:  {resource}')
+            if is_view_event_listener_subclass:
+                # These have to be re-instantiated with the current view
+                # before each Key-Binding Report so that they are looking
+                # at the correct context.
+                view_event_listener_count += 1
+                listener = attribute(curr_view)
+            else:
+                event_listener_count += 1
+                listener = attribute()
+
+            funcs.append(listener)  # Append instantiated EventListener class.
+            files.append(full_path)
+
+    if debugging:
+        print('_on_qry_context_listeners() stats:')
+        print(f'  modules_considered                      :  {modules_iterated_count:5}')
+        print(f'  modules_skipped_due_to_package          :  {modules_skipped_due_to_package_count:5}')
+        print(f'  modules_skipped_due_to_loading_exception:  {modules_skipped_due_to_loading_exception_count:5}')
+        print(f'  modules_skipped_due_to_being_st_modules :  {modules_skipped_due_to_being_st_modules_count:5}')
+        print(f'  modules_loaded                          :  {modules_loaded_count:5}')
+        print(f'  attributes_examined                     :  {attributes_examined_count:5}')
+        print(f'  attr_skipped_due_to_not_having_listeners:  {attr_skipped_due_to_not_having_listeners_count:5}')
+        print(f'  listeners_instantiated_and_kept         :  {listeners_instantiated_and_kept_count:5}')
+        print(f'  event_listeners                         :  {event_listener_count:5}')
+        print(f'  view_event_listeners                    :  {view_event_listener_count:5}')
+
+    return funcs, files
+
+_on_query_context_listener_list, _on_query_context_file_list = _on_qry_context_listeners()
 
 # _snippet_list TODO
 
@@ -238,6 +354,30 @@ del i, count, grp, cond_name
 # =========================================================================
 # Function Definitions
 # =========================================================================
+
+def update_view_event_listeners(curr_view: sublime.View):
+    """
+    Conditionally update any ViewEventListeners so they are using the
+    current view if consulted to evaluate a context.
+    """
+    debugging = is_debugging(DebugBits.LOADING_CONTEXT_ENV)
+    if debugging:
+        print('In context.update_view_event_listeners()...:')
+
+    for i, listener in enumerate(_on_query_context_listener_list):
+        class_obj = type(listener)
+        if issubclass(class_obj, sublime_plugin.ViewEventListener):
+            view_event_listener = _on_query_context_listener_list[i]
+            if view_event_listener.view != curr_view:
+                if debugging:
+                    print(f'  {view_event_listener.view} != {curr_view}.')
+                    print('  Replacing.')
+                view_event_listener.view = curr_view
+            else:
+                if debugging:
+                    print(f'  {view_event_listener.view} == {curr_view}.')
+                    print('  Is already current.')
+
 
 def _check_value(value, operator, operand):
     try:
@@ -327,7 +467,7 @@ def _test_selection_empty(view, operator, operand, match_all):
 def _test_one_following_text(view, sel):
     left_edge_pt = sel.begin()
     line_rgn = view.line(left_edge_pt)
-    following_text_rgn = Region(left_edge_pt, line_rgn.b)
+    following_text_rgn = sublime.Region(left_edge_pt, line_rgn.b)
     return view.substr(following_text_rgn)
 
 
@@ -339,7 +479,7 @@ def _test_following_text(view, operator, operand, match_all):
 def _test_one_preceding_text(view, sel):
     left_edge_pt = sel.begin()
     line_rgn = view.line(left_edge_pt)
-    preceding_text_rgn = Region(line_rgn.a, left_edge_pt)
+    preceding_text_rgn = sublime.Region(line_rgn.a, left_edge_pt)
     return view.substr(preceding_text_rgn)
 
 
@@ -623,9 +763,9 @@ class Context(list):
 
         result    = False
         key       = condition['key']
-        operator  = condition['operator']  if 'operator'  in condition else 'equal'
-        operand   = condition['operand']   if 'operand'   in condition else True
-        match_all = condition['match_all'] if 'match_all' in condition else False
+        operator  = condition.get('operator', 'equal')
+        operand   = condition.get('operand', True)
+        match_all = match_all.get('match_all', False)
 
         if key.startswith('setting.'):
             setting_name = key[8:]
@@ -641,7 +781,7 @@ class Context(list):
             test_func = _context_tests[key]
             result = test_func(view, operator, operand, match_all)
         else:
-            # TODO  This is where `_on_query_context_list` comes into play.
+            # TODO  This is where `_on_query_context_listener_list` comes into play.
             msg = (
                     f'{self._class__.__name__}:  context key [{key}] not recognized.\n'
                     f'  {self.keypress_list=}'
