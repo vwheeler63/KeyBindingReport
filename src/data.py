@@ -20,10 +20,9 @@ from typing import List, Tuple, Set, Optional, Iterable
 from enum import IntEnum, IntFlag
 import sublime
 from . import core
-from ..lib import context
 from ..lib.debug import DebugBits, is_debugging
-from ..lib.context import Context
-from ..lib.json_key_binding import *
+from ..lib import context
+from ..lib import key_binding
 
 
 # =========================================================================

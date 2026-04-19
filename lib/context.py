@@ -123,7 +123,7 @@ from enum import IntFlag, IntEnum
 from typing import Tuple, List
 from sublime import Region
 from ..lib.debug import IntFlag, DebugBits, is_debugging
-from .json_key_binding import *
+from ..lib import key_binding
 
 
 # =========================================================================
