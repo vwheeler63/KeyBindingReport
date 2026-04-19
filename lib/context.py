@@ -371,12 +371,12 @@ def update_view_event_listeners(curr_view: sublime.View):
             if view_event_listener.view != curr_view:
                 if debugging:
                     print(f'  {view_event_listener.view} != {curr_view}.')
-                    print('  Replacing.')
+                    print('  Updating.')
                 view_event_listener.view = curr_view
             else:
                 if debugging:
                     print(f'  {view_event_listener.view} == {curr_view}.')
-                    print('  Is already current.')
+                    print('  Already current.')
 
 
 def _check_value(value, operator, operand):
@@ -753,7 +753,6 @@ class Context(list):
     def _condition_test(self, view, condition: ContextCondition, debugging: bool):
         """
         :param view:            Current View (used to test if key context is applicable)
-        :param keypress_list:  Tuple containing keypress/keypress sequence
         :param condition:      Single condition dictionary from key-binding context.
         :param debugging:      Produce debugging output?
         """
@@ -765,9 +764,10 @@ class Context(list):
         key       = condition['key']
         operator  = condition.get('operator', 'equal')
         operand   = condition.get('operand', True)
-        match_all = match_all.get('match_all', False)
+        match_all = condition.get('match_all', False)
 
         if key.startswith('setting.'):
+            # Query on setting.
             setting_name = key[8:]
             view_stgs = view.settings()
             if setting_name in view_stgs:
@@ -778,15 +778,53 @@ class Context(list):
                     print(f'      {value=}, {operator=}, {operand=}')
                     print(f'    {result=}')
         elif key in _context_tests:
+            # Is one of the standard standard context tests.
             test_func = _context_tests[key]
             result = test_func(view, operator, operand, match_all)
         else:
-            # TODO  This is where `_on_query_context_listener_list` comes into play.
-            msg = (
-                    f'{self._class__.__name__}:  context key [{key}] not recognized.\n'
-                    f'  {self.keypress_list=}'
-                  )
-            raise AssertionError(msg)
+            # Is NOT one of the standard standard context tests.
+            # Consult event listeners with `on_query_context()` functions.
+            if debugging:
+                print(f'  Non-standard test [{key}]; consulting event listeners...')
+
+            found = False
+            operator_code = _operator_codes_by_name[operator]
+
+            for listener in _on_query_context_listener_list:
+                if issubclass(type(listener), sublime_plugin.ViewEventListener):
+                    # EventListener takes 5 arguments because it already has
+                    # the current view.  (It was updated to the current view
+                    # just moments ago if it was out of date.)
+                    query_result = listener.on_query_context(
+                            key, operator_code, operand, match_all
+                            )
+                else:
+                    # EventListener takes 6 arguments with current view view.
+                    query_result = listener.on_query_context(
+                            view, key, operator_code, operand, match_all
+                            )
+
+                if query_result == None:
+                    if debugging:
+                        print(f'  No knowledge of {key} by {listener}.')
+                    continue
+                else:
+                    # on_query_context() listener just consulted knows about
+                    # this context test and reported, so we can break out
+                    # of the loop.
+                    if debugging:
+                        print(f'  {query_result} reported by {listener}.')
+                    found = True
+                    result = query_result
+                    break
+
+            if not found:
+                msg = (
+                        f'{self.__class__.__name__}:  context key [{key}] not recognized.\n'
+                        f'  keymap={self.binding.pkg_name}/{self.binding.file_name}\n'
+                        f'{self.binding.format_binding(1, include_extra = True)}'
+                      )
+                raise AssertionError(msg)
 
         return result
 

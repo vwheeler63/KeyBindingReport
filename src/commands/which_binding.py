@@ -43,7 +43,7 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
         """
         print(f"It's me.... {__name__}")
         from ...lib import context
-        context.update_view_event_listeners()
+        context.update_view_event_listeners(sublime.active_window().active_view())
         return
 
         debugging = is_debugging(DebugBits.WHICH_BINDING_REPORT)
