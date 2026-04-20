@@ -882,22 +882,40 @@ def _test_has_snippet(view, operator, operand, match_all):
 # Window Logic
 # -------------------------------------------------------------------------
 
-def _test_group_has_multiselect(view, operator, operand, match_all):
-    result = False
+def _group_for_view(view) -> int:
+    """ Group number for view.
+
+    :return:  None if view not in group.
+    """
+    result = None
     sheet = view.sheet()
 
-    if not sheet:
-        # Views without sheets do not belong in this test.
-        pass
-    else:
-        group_id = sheet.group()
-        if group_id is not None:
-            win = view.window()
-            test_val = len(win.selected_sheets_in_group(group_id)) > 1
-            result = _evaluate_test(test_val, operator, operand)
-        else:
-            # Sheets without groups do not belong in this test.
-            pass
+    if sheet:
+        result = sheet.group()
+
+    return result
+
+
+def _test_group_has_multiselect(view, operator, operand, match_all):
+    result = False
+    group_id = _group_for_view(view)
+
+    if group_id is not None:
+        win = view.window()
+        test_val = len( win.selected_sheets_in_group(group_id) ) > 1
+        result = _evaluate_test(test_val, operator, operand)
+
+    return result
+
+
+def _test_group_has_transient_sheet(view, operator, operand, match_all):
+    result = False
+    group_id = _group_for_view(view)
+
+    if group_id is not None:
+        win = view.window()
+        test_val = (( win.transient_sheet_in_group(group_id) is not None ))
+        result = _evaluate_test(test_val, operator, operand)
 
     return result
 
@@ -947,7 +965,7 @@ _context_tests_by_key = {
 
     # Window
     'group_has_multiselect'    : _test_group_has_multiselect,
-    'group_has_transient_sheet': _test_unimplemented,
+    'group_has_transient_sheet': _test_group_has_transient_sheet,
     'overlay_has_focus'        : _test_unimplemented,
     'overlay_name'             : _test_unimplemented,
     'overlay_visible'          : _test_unimplemented,
