@@ -1,12 +1,21 @@
 """************************************************************************
-Sublime Text Context Match Checker
-==================================
+Sublime Text Key-Binding Contexts
+=================================
+
+About to:
+
+- represent contexts as a part of KeyBinding objects, and
+
+- do system-wide context queries to determine if a particular
+  key binding applies to the current context (circumstances).
+
 
 How Context Works:
 ==================
 
 See http://crystal-clear-research.com/docs/quickrefs/sublime_text/key_bindings.html#context
 for terminology and understandings required to use this module.
+
 
 Summary
 =======
@@ -15,7 +24,7 @@ In the below, from a high level, a `context` is a list of conditions
 that all must be true for a key binding to be selected by Sublime Text.
 
 From a lower level, a `context` is a list of dictionary objects with
-a specific format.  Keys:
+a specific format:
 
 .. code-block:: json
 
@@ -38,79 +47,83 @@ a specific format.  Keys:
 Design
 ======
 
-A.  There is a concept of a context object.
+A.  Context module.
 
     1.  It has:
-        +   a full live collection of `on_query_context()` functions
-            +   Called when one of the "key" (condition) names is not among the
-                recognized set.  This list is called until a value not ``None``
-                is returned and then that particular condition "passes" or
-                tests TRUE or FALSE based on the Boolean return value.
+        +   a full live collection of `on_query_context()` listeners
+            +   Called when one of the "key" values (condition names) is not
+                among the recognized set.  This list is called until a
+                ``True`` or ``False`` is returned (value not ``None``)
+                and that result is the valid test result.
 
-                These are loaded when the Context class is instantiated.
+                These are loaded when this module is loaded.  Avg time:  0.09 sec.
 
-        +   a full live collection of Snippets within current view of Sublime Text.
-            +   There are 3 "key" (condition) names that have to do with Snippets
-                and 2 of them require parsing the actual snippet files to determine
-                whether the condition tests TRUE or not.  This collection is used
-                when those condition names show up.
+        +   a full live collection of Snippets triggers in a dictionary
+            +   There are 3 "key" (condition) names that have to do with
+                Snippets and 1 of them (has_snippet) requires parsing the
+                actual snippet files and collecting triggers to determine
+                whether the condition tests TRUE or not.  This collection
+                is used when that context key (condition name) shows up.
 
-                These are loaded when the Context class is instantiated.
-        +   ...
-        +   ...
-        +   ...
+                These are loaded when this module is loaded.  Avg time:  0.15 sec.
+
     2.  It can be asked:
-        +   query(self, view, json_binding: dict, path: str)
-            +   ...
-            +   ...
-        +   ...
-            +   ...
-            +   ...
-        +   ...
-            +   ...
-            +   ...
+        +   Are we debugging?                (bool)
+        +   _on_query_context_listener_list  (list)
+        +   _on_query_context_file_list      (list)
+        +   _snippets_by_trigger             (dict)
+        +   _context_tests_by_key            (dict)
+        +   _operator_codes_by_name          (dict)
+
+B.  ContextCondition Object.
+
+    1.  It has:
+        +   condition-definition dictionary directly from key binding
+
+    2.  It can be asked:
+        +   str(self)
+            +   String representation
+        +   repr(self)
+            +   Debug representation
+
+C.  Context Object.
+
+    1.  It has:
+        +   list of ContextCondition objects
+    2.  It can be asked:
+        +   query(self, view)
+            +   Does context match current circumstances with `view`, window, etc.?
+        +   str(self)
+            +   String representation
+        +   repr(self)
+            +   Debug representation
     3.  It can be requested to change context objects as follows:
-        +   ...
-            +   ...
-            +   ...
-        +   ...
-            +   ...
-            +   ...
-        +   ...
-            +   ...
-            +   ...
+        +   Change only happens at instantiation when the newly-created
+            Context object extracts its condition list from the
+            passed-in binding.
 
 
 Data Flow
 =========
 
-When Context is instantiated, it loads up the required reference data
-from the Sublime Text environment.
+When this module is loaded, it loads up the required reference data
+from the Sublime Text environment (on_query_context() listeners and
+Snippet triggers and scopes).
 
-context.matches() function answers this question with a returned Boolean:
+Various parts of this package (e.g. reporting) build data structures of key
+bindings used to do their job.  As these are built, ``Context`` objects are
+created from the content of the key bindings, and can later be asked
+whether they are a match for the current circumstances with the current
+View, window, application, etc..  This is done by:
 
-    is the passed ``context`` object a match for the current conditions
-    with ``view`` and/or its window and/or Sublime Text application?
+    binding.context.query(current_view):
 
-Each time context.matches(view, keypress_list, context) is called, each
-supported condition in the context is tested.
-
-If a condition name is not among the standard names, the collection of live
-`on_query_context()` functions is called to determine the answer.  If no
-`on_query_context()` returns a value that is not ``None``, then the
-returned value is ``False``.  Otherwise, the returned value is the Boolean
-value returned from the first `on_query_context()` to return a Boolean value.
-
-
-Efficiency Note
-===============
-
-Because of the data that must be gathered about the current Sublime Text
-environment includes all `on_query_context()` functions of all loaded
-Packages, as well as all Snippet files known to Sublime Text, and these
-resources are loaded when the object is instantiated, it is wise to be
-careful the Context lifetime.  It certainly should never be instantiated
-inside a loop, as this would slow it down immensely.
+If a condition name is not among the standard key (test) names, the
+collection of live `on_query_context()` listeners is consulted to determine
+the answer.  If no `on_query_context()` returns a value that is not
+``None``, then the returned value is ``False``.  Otherwise, the returned
+value is the Boolean value returned from the first `on_query_context()` to
+return a Boolean value.
 
 
 
@@ -122,8 +135,10 @@ import os
 import re
 import importlib
 import pprint
+from datetime import datetime
 from enum import IntFlag, IntEnum
 from typing import Tuple, List
+from xml.etree import ElementTree as ET
 import sublime
 from sublime import QueryOperator
 import sublime_plugin
@@ -135,13 +150,30 @@ from ..lib import key_binding
 # Constants
 # =========================================================================
 
+class Snippet:
+    """
+    Carriers of snippet data
+    """
+    __slots__ = ['path', 'tabTrigger', 'content', 'scope', 'description']
+
+    def __init__(self, path: str, content: str, tabTrigger: str, scope: str, desc: str):
+        self.path        = path
+        self.content     = content
+        self.tabTrigger  = tabTrigger
+        self.scope       = scope
+        self.description = desc
+
 # System-wide list of `on_query_context()` functions for when there
-# is a key-binding context not among the standard list.
+# is a key-binding context not among the standard list.  Populated
+# by a call to `_on_qry_context_listeners()` below.
 _on_query_context_listener_list = []
 _on_query_context_file_list = []
 
 # System-wide list of Snippets
-_snippet_list = []
+_snippets_by_trigger = []
+
+# Context test functions by key; populated after test functions below.
+_context_tests_by_key = {}
 
 # Regex to extract setting name from a "settings.xxxx" condition.
 _setting_name_from_condition = re.compile(r'^setting\.(.+)$')
@@ -156,6 +188,10 @@ _operator_codes_by_name = {
     "not_regex_contains": QueryOperator.NOT_REGEX_CONTAINS,
 }
 
+# Debugging?  This is one of the rare situations where debugging
+# and validation/verification is done at module load time.
+debugging = is_debugging(DebugBits.LOADING_CONTEXT_ENV)
+
 # -------------------------------------------------------------------------
 # Populate these constants programmatically:
 # - _on_query_context_listener_list
@@ -164,21 +200,24 @@ _operator_codes_by_name = {
 # - _snippet_trigger_dict
 # -------------------------------------------------------------------------
 
-# _on_query_context_listener_list
+
 def _on_qry_context_listeners():
+    """
+    Generate and return a list of instantiated event-listener objects
+    that have ``on_query_context()`` functions.
+    """
+    debugging = is_debugging(DebugBits.LOADING_CONTEXT_ENV)
+    if debugging:
+        print('In context._on_qry_context_listeners()...:')
+
     skip_packages = ["Default.", "Package Control.", "SublimeLinter."]
     st_modules = [".sublime", ".sublime_plugin", ".sublime_types"]
     funcs = []
     files = []
 
-    debugging = is_debugging(DebugBits.LOADING_CONTEXT_ENV)
-    if debugging:
-        print('In context._on_qry_context_listeners()...:')
-
     resources = sublime.find_resources("*.py")
     pkgs_path = sublime.packages_path()
     curr_view = sublime.active_window().active_view()
-    modules_iterated_count = 0
     modules_skipped_due_to_package_count = 0
     modules_skipped_due_to_being_st_modules_count = 0
     modules_loaded_count = 0
@@ -192,10 +231,9 @@ def _on_qry_context_listeners():
     event_listener_class_name_dict = {}
 
     # ---------------------------------------------------------------------
-    # For each *.py file within view of Sublime Text....
+    # For each *.py file within perception of Sublime Text....
     # ---------------------------------------------------------------------
     for resource in resources:
-        modules_iterated_count += 1
         full_path = os.path.join(pkgs_path, "..", resource)
         full_path = os.path.normpath(full_path)
 
@@ -293,6 +331,8 @@ def _on_qry_context_listeners():
             # the package.  But we can detect duplicates observing their class
             # names, and only accepting the first one.
             if attribute.__name__ in event_listener_class_name_dict:
+                if debugging:
+                    print(f'  Skipping duplicate class: [{attribute.__name__}]')
                 # Is a duplicate.  Skip.
                 continue
             else:
@@ -321,7 +361,7 @@ def _on_qry_context_listeners():
 
     if debugging:
         print('_on_qry_context_listeners() stats:')
-        print(f'  modules_considered                      :  {modules_iterated_count:5}')
+        print(f'  modules_considered                      :  {len(resources):5}')
         print(f'  modules_skipped_due_to_package          :  {modules_skipped_due_to_package_count:5}')
         print(f'  modules_skipped_due_to_loading_exception:  {modules_skipped_due_to_loading_exception_count:5}')
         print(f'  modules_skipped_due_to_being_st_modules :  {modules_skipped_due_to_being_st_modules_count:5}')
@@ -334,25 +374,101 @@ def _on_qry_context_listeners():
 
     return funcs, files
 
+
+def _snippet_triggers_dictionary():
+    """
+    Generate and return a dictionary of snippet triggers to be used
+    by the ``has_snippet`` context query logic.
+    """
+    if debugging:
+        print('In context._snippet_triggers_dictionary()...:')
+
+    result_dict = {}
+    skip_packages = ["Default.", "Package Control.", "SublimeLinter."]
+    st_modules = [".sublime", ".sublime_plugin", ".sublime_types"]
+
+    resources = sublime.find_resources("*.sublime-snippet")
+    pkgs_path = sublime.packages_path()
+    curr_view = sublime.active_window().active_view()
+    has_content_count = 0
+    has_trigger_count = 0
+    has_scope_count = 0
+    has_desc_count = 0
+    duplicate_trigger_count = 0
+    unique_trigger_count = 0
+    skipped_due_to_exception_parsing = 0
+    dup_trigger_list = []
+
+    # ---------------------------------------------------------------------
+    # For each *.sublime-snippet file within perception of Sublime Text....
+    # ---------------------------------------------------------------------
+    for path in resources:
+        # print(f'  {path}')
+        snippet_xml_str = sublime.load_resource(path)
+
+        try:
+            snippet_tree = ET.fromstring(snippet_xml_str)
+            # content = snippet_tree.find('content')
+            content = None
+            trigger = snippet_tree.find('tabTrigger')
+            scope   = snippet_tree.find('scope')
+            # desc    = snippet_tree.find('description')
+            desc    = None
+            # No need to keep `content` and `desc`, but `trigger` and
+            # `scope` are important to the `has_snippet` test.
+            snippet = Snippet(path, content, trigger, scope, desc)
+
+            if content is not None:  has_content_count += 1
+            if trigger is not None:  has_trigger_count += 1
+            if scope   is not None:  has_scope_count   += 1
+            if desc    is not None:  has_desc_count    += 1
+
+            if trigger in result_dict:
+                # Append to list.
+                duplicate_trigger_count += 1
+                result_dict[trigger].append(snippet)
+                dup_trigger_list.append(trigger)
+            else:
+                unique_trigger_count += 1
+                result_dict[trigger] = [snippet]
+        except:
+            skipped_due_to_exception_parsing += 1
+            if debugging:
+                print(f'  >>>>>>>>>>>> Exception parsing [{path}].')
+
+    if debugging:
+        print('_on_qry_context_listeners() stats:')
+        print(f'  snippet_files_examined      :  {len(resources):4}')
+        print(f'  number that have content    :  {has_content_count:4}')
+        print(f'  number that have triggers   :  {has_trigger_count:4}')
+        print(f'  number that have scope      :  {has_scope_count:4}')
+        print(f'  number that have description:  {has_desc_count:4}')
+        print(f'  number of unique triggers   :  {unique_trigger_count:4}')
+        print(f'  number of duplicate triggers:  {duplicate_trigger_count:4}')
+        print(f'  number of exceptions parsing:  {skipped_due_to_exception_parsing:4}')
+        print(f'  duplicate triggers          :  {dup_trigger_list}')
+
+    return result_dict
+
+if debugging:
+    t0 = datetime.now()
+
 _on_query_context_listener_list, _on_query_context_file_list = _on_qry_context_listeners()
 
-# _snippet_list TODO
+if debugging:
+    t1 = datetime.now()
 
+_snippets_by_trigger = _snippet_triggers_dictionary()
 
-# =========================================================================
-# Data
-# =========================================================================
-
+if debugging:
+    t2 = datetime.now()
+    print(f'Time to load `on_query_context()` listeners: {t1 - t0}.')
+    print(f'Time to load Snippet triggers and scopes   : {t2 - t1}.')
+    print(f'Total                                      : {t2 - t0}.')
 
 
 # =========================================================================
 # Utilities
-# =========================================================================
-
-
-
-# =========================================================================
-# Function Definitions
 # =========================================================================
 
 def update_view_event_listeners(curr_view: sublime.View):
@@ -360,7 +476,6 @@ def update_view_event_listeners(curr_view: sublime.View):
     Conditionally update any ViewEventListeners so they are using the
     current view if consulted to evaluate a context.
     """
-    debugging = is_debugging(DebugBits.LOADING_CONTEXT_ENV)
     if debugging:
         print('In context.update_view_event_listeners()...:')
 
@@ -378,6 +493,10 @@ def update_view_event_listeners(curr_view: sublime.View):
                     print(f'  {view_event_listener.view} == {curr_view}.')
                     print('  Already current.')
 
+
+# =========================================================================
+# Standard Context Test Functions
+# =========================================================================
 
 def _check_value(value, operator, operand):
     try:
@@ -514,7 +633,12 @@ def _test_unimplemented(view, operator, operand, match_all):
     return False
 
 
-_context_tests = {
+# -------------------------------------------------------------------------
+# Populate ``_context_tests_by_key``.  This is done here because at module
+# load time, the function definitions are first available at this point.
+# This is somewhat more efficient than 28 assignments.
+# -------------------------------------------------------------------------
+_context_tests_by_key = {
     # VIEW          == 0
     # Includes logic related to View, selections, scope and text.
     'num_selections'           : _test_num_selections,
@@ -557,18 +681,8 @@ _context_tests = {
 
 
 # =========================================================================
-# Classes
+# Context Classes
 # =========================================================================
-
-class ConditionGroup(IntEnum):
-    """ These values index into ``condition_name_groups``. """
-    VIEW          = 0
-    SNIPPET       = 1
-    WINDOW        = 2
-    APPLICATION   = 3
-    SETTING       = 4
-    UNIMPLEMENTED = 5
-
 
 class ContextCondition(dict):
     """
@@ -640,7 +754,7 @@ class Context(list):
         +   query(self, view, path: str)
         +   str(self)
         +   repr(self)
-    3.  It can be requested to change context objects as follows:
+    t can be requested to change context objects as follows:
         +   ...
             +   ...
             +   ...
@@ -777,9 +891,9 @@ class Context(list):
                     print(f'    Setting name {setting_name}:')
                     print(f'      {value=}, {operator=}, {operand=}')
                     print(f'    {result=}')
-        elif key in _context_tests:
+        elif key in _context_tests_by_key:
             # Is one of the standard standard context tests.
-            test_func = _context_tests[key]
+            test_func = _context_tests_by_key[key]
             result = test_func(view, operator, operand, match_all)
         else:
             # Is NOT one of the standard standard context tests.
