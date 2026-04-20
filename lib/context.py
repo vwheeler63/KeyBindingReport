@@ -493,6 +493,94 @@ def update_view_event_listeners(curr_view: sublime.View):
                     print('  Already current.')
 
 
+def _curr_word_for_snippet(view, rgn):
+    r"""
+    Current word in Snippet context.  What is special about Snippet context
+    is that Snippet triggers can use symbols, so it is not limited by regex
+    '\w+' nor is it limited by "word-separator" characters.  Specifically,
+    these characters are also used in snippets, and these may not be the
+    limit.
+
+        $ / \ | _ - ( ^ ~ ! # = { : , . ?
+
+    Symbols not used in Snippets on test system:
+
+        ` @ % ) } ; ' " < >
+
+    "Current word" is defined as:
+
+    - characters to the left of carat until first space or BOL, concatenated
+    - with characters to the right of caret until first space or EOL.
+
+    Returns:  "current word" or ``None`` if there isn't one.
+
+    """
+    result = None
+    blank_chars = ' \t'
+
+    # No text is selected.  Gather characters surrounding caret.
+    line_rgn = view.line(rgn.a)
+    line = view.substr(line_rgn)
+    idx_of_caret_in_line = rgn.b - line_rgn.a
+
+    # BOL disqualifies.
+    if idx_of_caret_in_line > 0:
+        line_len = len(line)
+        # if debugging:
+        #     print(f'  {line_len=}')
+        #     print(f'  {idx_of_caret_in_line=}')
+
+        c = line[idx_of_caret_in_line - 1]
+
+        # Blank char left of caret disqualifies.
+        if c in blank_chars:
+            pass
+        else:
+            # Walk backwards until BOL or blank char.
+            # (range(idx_of_caret_in_line - 1, -1, -1) is a reversed sequence
+            # of integers that ends after 0, like [5,4,3,2,1,0]
+            for i in range(idx_of_caret_in_line - 1, -1, -1):
+                c = line[i]
+                if c in blank_chars:
+                    break
+
+            if c in blank_chars:
+                begin_i = i + 1
+            else:
+                begin_i = i
+
+            # if debugging:
+            #     print(f'  {begin_i=}')
+            #     print(f'  BEGIN: {begin_i} [{line[begin_i]}]')
+
+            # Now walk forwards until EOL or blank char.
+            # Note:  `end_i` should contain index AFTER last char.
+            if idx_of_caret_in_line < line_len:
+                for i in range(idx_of_caret_in_line, line_len):
+                    c = line[i]
+                    if c in blank_chars:
+                        break
+
+                if c in blank_chars:
+                    end_i = i
+                else:
+                    end_i = i + 1
+            else:
+                # Caret at EOL.  No chars to the right.
+                end_i = idx_of_caret_in_line
+
+            # if debugging:
+            #     print(f'  {end_i=}')
+            #     print(f'  END  : {end_i} [{line[end_i - 1]}]')
+
+            # Extract word.
+            result = line[begin_i:end_i]
+            if debugging:
+                print(f'  Current word: [{result}]')
+
+    return result
+
+
 # =========================================================================
 # Standard Context Test Functions
 # =========================================================================
@@ -649,99 +737,13 @@ def _test_last_modifying_command(view, operator, operand, match_all):
 
 def _test_one_has_snippet(view, rgn):
     r"""
-    Does current word match a Snippet trigger, or provide a unique prefix
-    of a Snippet trigger?
-
-    Only applies if:
+    Does current word match a Snippet trigger?  Only applies if:
 
     - no text is selected, and
     - there is at least one non-blank character to the left of caret.
-
-    Trigger strings usually match regex [A-Za-z0-9_]+ but they also contain
-    these characters:
-
-        $ / \ | _ - ( ^ ~ ! # = { : , . ?
-
-    Symbols not used:
-
-        ` @ % ) } ; ' " < >
-
-    So this is not a place that the 'word_separators' setting is going to
-    help.  It appears "current word" is defined as:
-
-    - characters to the left of carat until first space or BOL, concatenated
-    - with characters to the right of caret until first space or EOL.
-
     """
-    result = False
-    blank_chars = ' \t'
-
-    if rgn.a == rgn.b:
-        # No text is selected.  Gather characters surrounding caret.
-        line_rgn = view.line(rgn.a)
-        line = view.substr(line_rgn)
-        line_idx_of_caret = rgn.b - line_rgn.a
-
-        # BOL disqualifies.
-        if line_idx_of_caret > 0:
-            line_len = len(line)
-            if debugging:
-                print(f'  {line_len=}')
-                print(f'  {line_idx_of_caret=}')
-
-            c = line[line_idx_of_caret - 1]
-
-            # Blank char left of caret disqualifies.
-            if c in blank_chars:
-                pass
-            else:
-                # Walk backwards until BOL or blank char.
-                # (range(line_idx_of_caret - 1, -1, -1) is a reversed sequence
-                # of integers that ends after 0, like [5,4,3,2,1,0]
-                for i in range(line_idx_of_caret - 1, -1, -1):
-                    c = line[i]
-                    if c in blank_chars:
-                        break
-
-                if c in blank_chars:
-                    begin_i = i + 1
-                else:
-                    begin_i = i
-
-                if debugging:
-                    print(f'  {begin_i=}')
-                    print(f'  BEGIN: {begin_i} [{line[begin_i]}]')
-
-                # Now walk forwards until EOL or blank char.
-                # Note:  `end_i` should contain index AFTER last char.
-                if line_idx_of_caret < line_len:
-                    for i in range(line_idx_of_caret, line_len):
-                        c = line[i]
-                        if c in blank_chars:
-                            break
-
-                    if c in blank_chars:
-                        end_i = i
-                    else:
-                        end_i = i + 1
-                else:
-                    # Caret at EOL.  No chars to the right.
-                    end_i = line_idx_of_caret
-
-                if debugging:
-                    print(f'  {end_i=}')
-                    print(f'  END  : {end_i} [{line[end_i - 1]}]')
-
-                # Assemble word.
-                curr_word = line[begin_i:end_i]
-                if debugging:
-                    print(f'  {curr_word=}')
-
-                # Now we have current word.  Does it appear in
-                # keys of `_snippets_by_trigger`?
-                result = (( curr_word in _snippets_by_trigger ))
-
-    return result
+    curr_word = _curr_word_for_snippet(view, rgn)
+    return (( curr_word and curr_word in _snippets_by_trigger ))
 
 
 def _test_has_snippet(view, operator, operand, match_all):
