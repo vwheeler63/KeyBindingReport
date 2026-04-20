@@ -925,6 +925,28 @@ def _test_group_has_transient_sheet(view, operator, operand, match_all):
     return result
 
 
+def _test_panel(view, operator, operand, match_all):
+    result = False
+    operand_type = type(operand)
+
+    if operand_type != str:
+        print(f'_test_panel:  expected operand to be a string, got {operand_type} instead.')
+    else:
+        win = view.window()
+        panel_name = win.active_panel()
+        if panel_name:
+            result = _evaluate_test(panel_name, operator, operand)
+        else:
+            # This branch handles things when no panel is visible, so tests like:
+            # - { "key": "panel", "operator": "not_equal", "operand": 'console' }
+            #   correctly tests TRUE , and
+            # - { "key": "panel", "operator": "equal", "operand": 'console' }
+            #   correctly tests FALSE.
+            result = _evaluate_test('non-existent_panel', operator, operand)
+
+    return result
+
+
 # -------------------------------------------------------------------------
 # Unimplemented / Infeasible
 # -------------------------------------------------------------------------
@@ -975,7 +997,7 @@ _context_tests_by_key = {
     'overlay_has_focus'        : _test_unimplemented,
     'overlay_name'             : _test_unimplemented,
     'overlay_visible'          : _test_unimplemented,
-    'panel'                    : _test_unimplemented,
+    'panel'                    : _test_panel,
     'panel_has_focus'          : _test_unimplemented,
     'panel_visible'            : _test_unimplemented,
     'panel_type'               : _test_unimplemented,
