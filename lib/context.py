@@ -586,24 +586,34 @@ def _curr_word_for_snippet(view, rgn):
 # =========================================================================
 
 def _evaluate_test(value, operator, operand):
+    if debugging:
+        print(f'        Evaluating:  {value=}, {operator=}, {operand=}')
+
+    result = False
+
     try:
         if operator == "equal":
-            return value == operand
+            result = value == operand
         elif operator == "not_equal":
-            return value != operand
+            result = value != operand
         elif operator == "regex_match":
-            return value != None and re.match(operand, value) != None
+            result = value != None and re.match(operand, value)  != None
         elif operator == "not_regex_match":
-            return value == None or re.match(operand, value) == None
+            result = value == None or  re.match(operand, value)  == None
         elif operator == "regex_contains":
-            return value != None and re.search(operand, value) != None
+            result = value != None and re.search(operand, value) != None
         elif operator == "not_regex_contains":
-            return value == None or re.search(operand, value) == None
+            result = value == None or  re.search(operand, value) == None
         else:
             raise AssertionError(f'Operator not recognized:  {operator}.')
-    except Exception as error:
-        print("Failed to check context", operand, value, error)
-        return False
+    except Exception as e:
+        print("        Failed to evaluate context", operand, value, e)
+        result = False
+
+    if debugging:
+        print(f'        Result    :  {result}')
+
+    return result
 
 
 def _test_selections(test_func, view, operator, operand, match_all):
@@ -629,8 +639,6 @@ def _test_selections(test_func, view, operator, operand, match_all):
                 if debugging:
                     print(f'      {rgn=}')
                 value = test_func(view, rgn)
-                if debugging:
-                    print(f'      Result: {value=}, {operator=}, {operand=}')
                 result = _evaluate_test(value, operator, operand)
                 if not result:
                     if debugging:
@@ -640,10 +648,8 @@ def _test_selections(test_func, view, operator, operand, match_all):
             # Exit loop on first True result.
             for rgn in live_sel_list:
                 if debugging:
-                    print(f'  {rgn=}')
+                    print(f'      {rgn=}')
                 value = test_func(view, rgn)
-                if debugging:
-                    print(f'      Result: {value=}, {operator=}, {operand=}')
                 result = _evaluate_test(value, operator, operand)
                 if result:
                     if debugging:
@@ -722,17 +728,22 @@ def _test_text(view, operator, operand, match_all):
 # -------------------------------------------------------------------------
 
 def _test_last_command(view, operator, operand, match_all):
-    cmd_name = view.command_history(0)[0]
+    value = view.command_history(0)[0]
     if debugging:
         print(f'    last_command = [{cmd_name}]')
-    return _evaluate_test(cmd_name, operator, operand)
+    return _evaluate_test(value, operator, operand)
 
 
 def _test_last_modifying_command(view, operator, operand, match_all):
-    cmd_name = view.command_history(0, modifying_only = True)[0]
+    value = view.command_history(0, modifying_only = True)[0]
     if debugging:
         print(f'    last_modifying_command = [{cmd_name}]')
-    return _evaluate_test(cmd_name, operator, operand)
+    return _evaluate_test(value, operator, operand)
+
+
+def _test_read_only(view, operator, operand, match_all):
+    value = view.is_read_only()
+    return _evaluate_test(value, operator, operand)
 
 
 # -------------------------------------------------------------------------
@@ -792,7 +803,7 @@ _context_tests_by_key = {
     # View
     'last_command'             : _test_last_command,
     'last_modifying_command'   : _test_last_modifying_command,
-    'read_only'                : _test_unimplemented,
+    'read_only'                : _test_read_only,
 
     # Snippet (examines text around caret)
     'has_snippet'              : _test_has_snippet,
@@ -948,13 +959,13 @@ class Context(list):
 
     def __repr__(self):
         """
-        "context": [
+        <Context "context": [
           { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": True }
           { "key": "selection_empty"           , "operator": "equal"         , "operand": True, "match_all": True }
           { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": True }
           { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": True }
           { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": True }
-        ]
+        ]>
         """
         return f'<{self.__class__.__name__} {self.format_context()}>'
 
@@ -1026,11 +1037,9 @@ class Context(list):
             # Query on setting.
             setting_name = key[8:]
             value = view.settings().get(setting_name, None)
-            result = _evaluate_test(value, operator, operand)
             if debugging:
                 print(f'    Setting name {setting_name}:')
-                print(f'      {value=}, {operator=}, {operand=}')
-                print(f'    {result=}')
+            result = _evaluate_test(value, operator, operand)
         elif key in _context_tests_by_key:
             # Is one of the standard standard context tests.
             test_func = _context_tests_by_key[key]
