@@ -65,7 +65,7 @@ A.  Context module.
                 whether the condition tests TRUE or not.  This collection
                 is used when that context key (condition name) shows up.
 
-                These are loaded when this module is loaded.  Avg time:  0.15 sec.
+                These are loaded when this module is loaded.  Avg time:  0.11 sec.
 
     2.  It can be asked:
         +   Are we debugging?                (bool)
@@ -331,9 +331,9 @@ def _on_qry_context_listeners():
             # the package.  But we can detect duplicates observing their class
             # names, and only accepting the first one.
             if attribute.__name__ in event_listener_class_name_dict:
-                if debugging:
-                    print(f'  Skipping duplicate class: [{attribute.__name__}]')
                 # Is a duplicate.  Skip.
+                # if debugging:
+                #     print(f'  Skipping duplicate class: [{attribute.__name__}]')
                 continue
             else:
                 # Not a duplicate.  Keep.
@@ -408,11 +408,15 @@ def _snippet_triggers_dictionary():
 
         try:
             snippet_tree = ET.fromstring(snippet_xml_str)
-            # content = snippet_tree.find('content')
+            # content_elem = snippet_tree.find('content')
+            # content = content_elem.text if hasattr(content_elem, 'text') else None
             content = None
-            trigger = snippet_tree.find('tabTrigger')
-            scope   = snippet_tree.find('scope')
-            # desc    = snippet_tree.find('description')
+            trigger_elem = snippet_tree.find('tabTrigger')
+            trigger = trigger_elem.text if hasattr(trigger_elem, 'text') else None
+            scope_elem = snippet_tree.find('scope')
+            scope = scope_elem.text if hasattr(scope_elem, 'text') else None
+            # desc_elem = snippet_tree.find('description')
+            # desc = desc_elem.text if hasattr(desc_elem, 'text') else None
             desc    = None
             # No need to keep `content` and `desc`, but `trigger` and
             # `scope` are important to the `has_snippet` test.
@@ -431,13 +435,13 @@ def _snippet_triggers_dictionary():
             else:
                 unique_trigger_count += 1
                 result_dict[trigger] = [snippet]
-        except:
+        except Exception as e:
             skipped_due_to_exception_parsing += 1
             if debugging:
-                print(f'  >>>>>>>>>>>> Exception parsing [{path}].')
+                print(f'  >>>>>>>>>>>> Exception parsing [{path}]\n  [{e}].')
 
     if debugging:
-        print('_on_qry_context_listeners() stats:')
+        print('_snippet_triggers_dictionary() stats:')
         print(f'  snippet_files_examined      :  {len(resources):4}')
         print(f'  number that have content    :  {has_content_count:4}')
         print(f'  number that have triggers   :  {has_trigger_count:4}')
@@ -446,18 +450,13 @@ def _snippet_triggers_dictionary():
         print(f'  number of unique triggers   :  {unique_trigger_count:4}')
         print(f'  number of duplicate triggers:  {duplicate_trigger_count:4}')
         print(f'  number of exceptions parsing:  {skipped_due_to_exception_parsing:4}')
-        print(f'  duplicate triggers          :  {dup_trigger_list}')
+        # print(f'  duplicate triggers          :  {dup_trigger_list}')
 
     return result_dict
 
-if debugging:
-    t0 = datetime.now()
-
+if debugging:  t0 = datetime.now()
 _on_query_context_listener_list, _on_query_context_file_list = _on_qry_context_listeners()
-
-if debugging:
-    t1 = datetime.now()
-
+if debugging:  t1 = datetime.now()
 _snippets_by_trigger = _snippet_triggers_dictionary()
 
 if debugging:
@@ -498,7 +497,7 @@ def update_view_event_listeners(curr_view: sublime.View):
 # Standard Context Test Functions
 # =========================================================================
 
-def _check_value(value, operator, operand):
+def _evaluate_test(value, operator, operand):
     try:
         if operator == "equal":
             return value == operand
@@ -516,7 +515,7 @@ def _check_value(value, operator, operand):
             raise AssertionError(f'Operator not recognized:  {operator}.')
     except Exception as error:
         print("Failed to check context", operand, value, error)
-        raise error
+        return False
 
 
 def _test_selections(test_func, view, operator, operand, match_all):
@@ -538,26 +537,26 @@ def _test_selections(test_func, view, operator, operand, match_all):
     if live_sel_list:
         if match_all:
             # Exit loop on first False result.
-            for sel in live_sel_list:
+            for rgn in live_sel_list:
                 if debugging:
-                    print(f'      {sel=}')
-                value = test_func(view, sel)
+                    print(f'      {rgn=}')
+                value = test_func(view, rgn)
                 if debugging:
                     print(f'      Result: {value=}, {operator=}, {operand=}')
-                result = _check_value(value, operator, operand)
+                result = _evaluate_test(value, operator, operand)
                 if not result:
                     if debugging:
                         print(f'      Exiting selection loop:  match_all=True, test failed.')
                     break;
         else:
             # Exit loop on first True result.
-            for sel in live_sel_list:
+            for rgn in live_sel_list:
                 if debugging:
-                    print(f'  {sel=}')
-                value = test_func(view, sel)
+                    print(f'  {rgn=}')
+                value = test_func(view, rgn)
                 if debugging:
                     print(f'      Result: {value=}, {operator=}, {operand=}')
-                result = _check_value(value, operator, operand)
+                result = _evaluate_test(value, operator, operand)
                 if result:
                     if debugging:
                         print(f'      Exiting selection loop:  match_all=False, test passed.')
@@ -571,11 +570,11 @@ def _test_selections(test_func, view, operator, operand, match_all):
 
 def _test_num_selections(view, operator, operand, match_all):
     value = len(view.sel())
-    return _check_value(value, operator, operand)
+    return _evaluate_test(value, operator, operand)
 
 
-def _test_one_selection_empty(view, sel):
-    return (( sel.a == sel.b ))
+def _test_one_selection_empty(view, rgn):
+    return (( rgn.a == rgn.b ))
 
 
 def _test_selection_empty(view, operator, operand, match_all):
@@ -583,8 +582,8 @@ def _test_selection_empty(view, operator, operand, match_all):
     return _test_selections(test_func, view, operator, operand, match_all)
 
 
-def _test_one_following_text(view, sel):
-    left_edge_pt = sel.begin()
+def _test_one_following_text(view, rgn):
+    left_edge_pt = rgn.begin()
     line_rgn = view.line(left_edge_pt)
     following_text_rgn = sublime.Region(left_edge_pt, line_rgn.b)
     return view.substr(following_text_rgn)
@@ -595,8 +594,8 @@ def _test_following_text(view, operator, operand, match_all):
     return _test_selections(test_func, view, operator, operand, match_all)
 
 
-def _test_one_preceding_text(view, sel):
-    left_edge_pt = sel.begin()
+def _test_one_preceding_text(view, rgn):
+    left_edge_pt = rgn.begin()
     line_rgn = view.line(left_edge_pt)
     preceding_text_rgn = sublime.Region(line_rgn.a, left_edge_pt)
     return view.substr(preceding_text_rgn)
@@ -607,8 +606,8 @@ def _test_preceding_text(view, operator, operand, match_all):
     return _test_selections(test_func, view, operator, operand, match_all)
 
 
-def _test_one_text(view, sel):
-    return view.substr(sel)
+def _test_one_text(view, rgn):
+    return view.substr(rgn)
 
 
 def _test_text(view, operator, operand, match_all):
@@ -616,13 +615,129 @@ def _test_text(view, operator, operand, match_all):
     return _test_selections(test_func, view, operator, operand, match_all)
 
 
-def _test_one_indented_block(view, sel):
-    line_rgn = view.line(sel)
+def _test_one_indented_block(view, rgn):
+    line_rgn = view.line(rgn)
     return (( line_rgn.size() > 0) and (view.substr(line_rgn)[0] in ' \t' ))
 
 
 def _test_indented_block(view, operator, operand, match_all):
     test_func = _test_one_indented_block
+    return _test_selections(test_func, view, operator, operand, match_all)
+
+
+def _test_last_command(view, operator, operand, match_all):
+    cmd_name = view.command_history(0)[0]
+    if debugging:
+        print(f'    last_command = [{cmd_name}]')
+    return _evaluate_test(cmd_name, operator, operand)
+
+
+def _test_last_modifying_command(view, operator, operand, match_all):
+    cmd_name = view.command_history(0, modifying_only = True)[0]
+    if debugging:
+        print(f'    last_modifying_command = [{cmd_name}]')
+    return _evaluate_test(cmd_name, operator, operand)
+
+
+def _test_one_has_snippet(view, rgn):
+    r"""
+    Does current word match a Snippet trigger, or provide a unique prefix
+    of a Snippet trigger?
+
+    Only applies if:
+
+    - no text is selected, and
+    - there is at least one non-blank character to the left of caret.
+
+    Trigger strings usually match regex [A-Za-z0-9_]+ but they also contain
+    these characters:
+
+        $ / \ | _ - ( ^ ~ ! # = { : , . ?
+
+    Symbols not used:
+
+        ` @ % ) } ; ' " < >
+
+    So this is not a place that the 'word_separators' setting is going to
+    help.  It appears "current word" is defined as:
+
+    - characters to the left of carat until first space or BOL, concatenated
+    - with characters to the right of caret until first space or EOL.
+
+    """
+    result = False
+    blank_chars = ' \t'
+
+    if rgn.a == rgn.b:
+        # No text is selected.  Gather characters surrounding caret.
+        line_rgn = view.line(rgn.a)
+        line = view.substr(line_rgn)
+        line_idx_of_caret = rgn.b - line_rgn.a
+
+        # BOL disqualifies.
+        if line_idx_of_caret > 0:
+            line_len = len(line)
+            if debugging:
+                print(f'  {line_len=}')
+                print(f'  {line_idx_of_caret=}')
+
+            c = line[line_idx_of_caret - 1]
+
+            # Blank char left of caret disqualifies.
+            if c in blank_chars:
+                pass
+            else:
+                # Walk backwards until BOL or blank char.
+                # (range(line_idx_of_caret - 1, -1, -1) is a reversed sequence
+                # of integers that ends after 0, like [5,4,3,2,1,0]
+                for i in range(line_idx_of_caret - 1, -1, -1):
+                    c = line[i]
+                    if c in blank_chars:
+                        break
+
+                if c in blank_chars:
+                    begin_i = i + 1
+                else:
+                    begin_i = i
+
+                if debugging:
+                    print(f'  {begin_i=}')
+                    print(f'  BEGIN: {begin_i} [{line[begin_i]}]')
+
+                # Now walk forwards until EOL or blank char.
+                # Note:  `end_i` should contain index AFTER last char.
+                if line_idx_of_caret < line_len:
+                    for i in range(line_idx_of_caret, line_len):
+                        c = line[i]
+                        if c in blank_chars:
+                            break
+
+                    if c in blank_chars:
+                        end_i = i
+                    else:
+                        end_i = i + 1
+                else:
+                    # Caret at EOL.  No chars to the right.
+                    end_i = line_idx_of_caret
+
+                if debugging:
+                    print(f'  {end_i=}')
+                    print(f'  END  : {end_i} [{line[end_i - 1]}]')
+
+                # Assemble word.
+                curr_word = line[begin_i:end_i]
+                if debugging:
+                    print(f'  {curr_word=}')
+
+                # Now we have current word.  Does it appear in
+                # keys of `_snippets_by_trigger`?
+                result = (( curr_word in _snippets_by_trigger ))
+
+    return result
+
+
+def _test_has_snippet(view, operator, operand, match_all):
+    test_func = _test_one_has_snippet
     return _test_selections(test_func, view, operator, operand, match_all)
 
 
@@ -636,25 +751,25 @@ def _test_unimplemented(view, operator, operand, match_all):
 # -------------------------------------------------------------------------
 # Populate ``_context_tests_by_key``.  This is done here because at module
 # load time, the function definitions are first available at this point.
-# This is somewhat more efficient than 28 assignments.
+# This is somewhat more efficient than 27 assignments.
 # -------------------------------------------------------------------------
 _context_tests_by_key = {
-    # VIEW          == 0
-    # Includes logic related to View, selections, scope and text.
+    # View, selections, scope and text.
     'num_selections'           : _test_num_selections,
     'selection_empty'          : _test_selection_empty,
     'eol_selector'             : _test_unimplemented,
     'is_javadoc'               : _test_unimplemented,
     'selector'                 : _test_unimplemented,
     'following_text'           : _test_following_text,
-    'has_snippet'              : _test_unimplemented,
     'indented_block'           : _test_indented_block,
     'preceding_text'           : _test_preceding_text,
     'read_only'                : _test_unimplemented,
     'text'                     : _test_text,
-    # SNIPPET       == 1
-    'has_snippet'              : _test_unimplemented,
-    # WINDOW        == 2
+    'last_command'             : _test_last_command,
+    'last_modifying_command'   : _test_last_modifying_command,
+    # Snippet (examines text around caret)
+    'has_snippet'              : _test_has_snippet,
+    # Window
     'auto_complete_visible'    : _test_unimplemented,
     'group_has_multiselect'    : _test_unimplemented,
     'group_has_transient_sheet': _test_unimplemented,
@@ -666,9 +781,6 @@ _context_tests_by_key = {
     'panel_visible'            : _test_unimplemented,
     'panel_type'               : _test_unimplemented,
     'popup_visible'            : _test_unimplemented,
-    # APPLICATION   == 3
-    'last_command'             : _test_unimplemented,
-    'last_modifying_command'   : _test_unimplemented,
     # SETTINGS      == 4
     # Implemented in `_condition_test()` due to exact string match not possible.
     # Setting queries all start with "setting.", but their ending supplies
@@ -883,14 +995,12 @@ class Context(list):
         if key.startswith('setting.'):
             # Query on setting.
             setting_name = key[8:]
-            view_stgs = view.settings()
-            if setting_name in view_stgs:
-                value = view_stgs.get(setting_name)
-                result = _check_value(value, operator, operand)
-                if debugging:
-                    print(f'    Setting name {setting_name}:')
-                    print(f'      {value=}, {operator=}, {operand=}')
-                    print(f'    {result=}')
+            value = view.settings().get(setting_name, None)
+            result = _evaluate_test(value, operator, operand)
+            if debugging:
+                print(f'    Setting name {setting_name}:')
+                print(f'      {value=}, {operator=}, {operand=}')
+                print(f'    {result=}')
         elif key in _context_tests_by_key:
             # Is one of the standard standard context tests.
             test_func = _context_tests_by_key[key]
@@ -920,7 +1030,7 @@ class Context(list):
 
                 if query_result == None:
                     if debugging:
-                        print(f'  No knowledge of {key} by {listener}.')
+                        print(f'  No knowledge of [{key}] by {listener}.')
                     continue
                 else:
                     # on_query_context() listener just consulted knows about
@@ -934,11 +1044,11 @@ class Context(list):
 
             if not found:
                 msg = (
-                        f'{self.__class__.__name__}:  context key [{key}] not recognized.\n'
+                        f'  {self.__class__.__name__}:  key [{key}] not recognized.\n'
                         f'  keymap={self.binding.pkg_name}/{self.binding.file_name}\n'
                         f'{self.binding.format_binding(1, include_extra = True)}'
                       )
-                raise AssertionError(msg)
+                print(msg)
 
         return result
 
@@ -960,12 +1070,14 @@ class Context(list):
         for condition in self.conditions:
             if not self._condition_test(view, condition, debugging):
                 all_tests_passed = False
-                if debugging:
-                    print(f'  Excluding this binding:', end='')
                 break
 
         if debugging:
-            print(f'  {all_tests_passed=}')
+            indent = ' '
+            msg = f'{self.__class__.__name__}.query() result:  {all_tests_passed}'
+            underline = '-' * len(msg)
+            print(indent, msg)
+            print(indent, underline)
 
         return all_tests_passed
 
