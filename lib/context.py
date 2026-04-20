@@ -657,7 +657,7 @@ def _test_selections(test_func, view, operator, operand, match_all):
 
 
 # -------------------------------------------------------------------------
-# View, selections, scope and text.
+# Selections, scope and text.
 # -------------------------------------------------------------------------
 
 def _test_num_selections(view, operator, operand, match_all):
@@ -686,6 +686,16 @@ def _test_following_text(view, operator, operand, match_all):
     return _test_selections(test_func, view, operator, operand, match_all)
 
 
+def _test_one_indented_block(view, rgn):
+    line_rgn = view.line(rgn)
+    return (( line_rgn.size() > 0) and (view.substr(line_rgn)[0] in ' \t' ))
+
+
+def _test_indented_block(view, operator, operand, match_all):
+    test_func = _test_one_indented_block
+    return _test_selections(test_func, view, operator, operand, match_all)
+
+
 def _test_one_preceding_text(view, rgn):
     left_edge_pt = rgn.begin()
     line_rgn = view.line(left_edge_pt)
@@ -707,15 +717,9 @@ def _test_text(view, operator, operand, match_all):
     return _test_selections(test_func, view, operator, operand, match_all)
 
 
-def _test_one_indented_block(view, rgn):
-    line_rgn = view.line(rgn)
-    return (( line_rgn.size() > 0) and (view.substr(line_rgn)[0] in ' \t' ))
-
-
-def _test_indented_block(view, operator, operand, match_all):
-    test_func = _test_one_indented_block
-    return _test_selections(test_func, view, operator, operand, match_all)
-
+# -------------------------------------------------------------------------
+# View
+# -------------------------------------------------------------------------
 
 def _test_last_command(view, operator, operand, match_all):
     cmd_name = view.command_history(0)[0]
@@ -772,21 +776,27 @@ def _test_unimplemented(view, operator, operand, match_all):
 # This is somewhat more efficient than 27 assignments.
 # -------------------------------------------------------------------------
 _context_tests_by_key = {
-    # View, selections, scope and text.
+    # Selections, scope and text.
     'num_selections'           : _test_num_selections,
     'selection_empty'          : _test_selection_empty,
+
     'eol_selector'             : _test_unimplemented,
     'is_javadoc'               : _test_unimplemented,
     'selector'                 : _test_unimplemented,
+
     'following_text'           : _test_following_text,
     'indented_block'           : _test_indented_block,
     'preceding_text'           : _test_preceding_text,
-    'read_only'                : _test_unimplemented,
     'text'                     : _test_text,
+
+    # View
     'last_command'             : _test_last_command,
     'last_modifying_command'   : _test_last_modifying_command,
+    'read_only'                : _test_unimplemented,
+
     # Snippet (examines text around caret)
     'has_snippet'              : _test_has_snippet,
+
     # Window
     'auto_complete_visible'    : _test_unimplemented,
     'group_has_multiselect'    : _test_unimplemented,
@@ -799,11 +809,13 @@ _context_tests_by_key = {
     'panel_visible'            : _test_unimplemented,
     'panel_type'               : _test_unimplemented,
     'popup_visible'            : _test_unimplemented,
-    # SETTINGS      == 4
+
+    # Settings
     # Implemented in `_condition_test()` due to exact string match not possible.
     # Setting queries all start with "setting.", but their ending supplies
     # the setting name to test, so no listing for "setting.xxxx" here.
-    # UNIMPLEMENTED == 5
+
+    # Unimplemented
     'has_next_field'           : _test_unimplemented,
     'has_prev_field'           : _test_unimplemented,
     'is_recording_macro'       : _test_unimplemented,
