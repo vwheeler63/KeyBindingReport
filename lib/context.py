@@ -853,6 +853,11 @@ def _test_last_modifying_command(view, operator, operand, match_all):
     return _evaluate_test(test_val, operator, operand)
 
 
+def _test_popup_visible(view, operator, operand, match_all):
+    test_val = view.is_popup_visible()
+    return _evaluate_test(test_val, operator, operand)
+
+
 def _test_read_only(view, operator, operand, match_all):
     test_val = view.is_read_only()
     return _evaluate_test(test_val, operator, operand)
@@ -956,6 +961,7 @@ _context_tests_by_key = {
     'auto_complete_visible'    : _test_auto_complete_visible,
     'last_command'             : _test_last_command,
     'last_modifying_command'   : _test_last_modifying_command,
+    'popup_visible'            : _test_popup_visible,
     'read_only'                : _test_read_only,
     # setting.xxxx  is implemented in `_condition_test()` since its test
     # pattern is different from all the other tests.
@@ -973,7 +979,6 @@ _context_tests_by_key = {
     'panel_has_focus'          : _test_unimplemented,
     'panel_visible'            : _test_unimplemented,
     'panel_type'               : _test_unimplemented,
-    'popup_visible'            : _test_unimplemented,
 
     # Unimplemented
     'has_next_field'           : _test_unimplemented,
