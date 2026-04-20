@@ -568,6 +568,10 @@ def _test_selections(test_func, view, operator, operand, match_all):
     return result
 
 
+# -------------------------------------------------------------------------
+# View, selections, scope and text.
+# -------------------------------------------------------------------------
+
 def _test_num_selections(view, operator, operand, match_all):
     value = len(view.sel())
     return _evaluate_test(value, operator, operand)
@@ -638,6 +642,10 @@ def _test_last_modifying_command(view, operator, operand, match_all):
         print(f'    last_modifying_command = [{cmd_name}]')
     return _evaluate_test(cmd_name, operator, operand)
 
+
+# -------------------------------------------------------------------------
+# Snippet (examines text around caret)
+# -------------------------------------------------------------------------
 
 def _test_one_has_snippet(view, rgn):
     r"""
@@ -740,6 +748,14 @@ def _test_has_snippet(view, operator, operand, match_all):
     test_func = _test_one_has_snippet
     return _test_selections(test_func, view, operator, operand, match_all)
 
+
+# -------------------------------------------------------------------------
+# Window Logic
+# -------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------
+# Unimplemented / Infeasible
+# -------------------------------------------------------------------------
 
 def _test_unimplemented(view, operator, operand, match_all):
     debugging = is_debugging(DebugBits.FILTERING_ON_CONTEXT)
