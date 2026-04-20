@@ -630,30 +630,27 @@ def _test_selections(test_func, view, operator, operand, match_all):
         # print(f'      {operand=}')
         # print(f'      {match_all=}')
     result = False
-    live_sel_list = view.sel()
+    sel_list = view.sel()
 
-    if live_sel_list:
-        if match_all:
-            # Exit loop on first False result.
-            for rgn in live_sel_list:
-                if debugging:
-                    print(f'      {rgn=}')
-                value = test_func(view, rgn)
-                result = _evaluate_test(value, operator, operand)
-                if not result:
+    if sel_list:
+        # Exit loop on first False result.
+        for rgn in sel_list:
+            if debugging:
+                print(f'      {rgn=}')
+
+            value = test_func(view, rgn)
+            result = _evaluate_test(value, operator, operand)
+
+            # Exit loop early?
+            if result:
+                if not match_all:
                     if debugging:
-                        print(f'      Exiting selection loop:  match_all=True, test failed.')
+                        print('      Exiting sel loop early:  test passed and match_all == False.')
                     break;
-        else:
-            # Exit loop on first True result.
-            for rgn in live_sel_list:
-                if debugging:
-                    print(f'      {rgn=}')
-                value = test_func(view, rgn)
-                result = _evaluate_test(value, operator, operand)
-                if result:
+            else:
+                if match_all:
                     if debugging:
-                        print(f'      Exiting selection loop:  match_all=False, test passed.')
+                        print('      Exiting sel loop early:  test failed and match_all == True.')
                     break;
 
     if debugging:
@@ -663,7 +660,7 @@ def _test_selections(test_func, view, operator, operand, match_all):
 
 
 # -------------------------------------------------------------------------
-# Selections, scope and text.
+# Selections
 # -------------------------------------------------------------------------
 
 def _test_num_selections(view, operator, operand, match_all):
@@ -679,6 +676,29 @@ def _test_selection_empty(view, operator, operand, match_all):
     test_func = _test_one_selection_empty
     return _test_selections(test_func, view, operator, operand, match_all)
 
+
+# -------------------------------------------------------------------------
+# Scope
+# -------------------------------------------------------------------------
+
+def _test_one_eol_selector(view, rgn):
+    # Get scope at EOL.
+    line_rgn = view.line(rgn.end())
+    eol_scope = view.scope_name(line_rgn.b)
+    left_edge_pt = rgn.begin()
+    line_rgn = view.line(left_edge_pt)
+    following_text_rgn = sublime.Region(left_edge_pt, line_rgn.b)
+    return view.substr(following_text_rgn)
+
+
+def _test_eol_selector(view, operator, operand, match_all):
+    test_func = _test_one_eol_selector
+    return _test_selections(test_func, view, operator, operand, match_all)
+
+
+# -------------------------------------------------------------------------
+# Text
+# -------------------------------------------------------------------------
 
 def _test_one_following_text(view, rgn):
     left_edge_pt = rgn.begin()
@@ -787,14 +807,16 @@ def _test_unimplemented(view, operator, operand, match_all):
 # This is somewhat more efficient than 27 assignments.
 # -------------------------------------------------------------------------
 _context_tests_by_key = {
-    # Selections, scope and text.
+    # Selections
     'num_selections'           : _test_num_selections,
     'selection_empty'          : _test_selection_empty,
 
+    # Scope
     'eol_selector'             : _test_unimplemented,
     'is_javadoc'               : _test_unimplemented,
     'selector'                 : _test_unimplemented,
 
+    # Text
     'following_text'           : _test_following_text,
     'indented_block'           : _test_indented_block,
     'preceding_text'           : _test_preceding_text,
