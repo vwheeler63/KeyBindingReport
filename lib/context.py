@@ -619,21 +619,27 @@ def _evaluate_test(value, operator, operand):
 def _test_selections(test_func, view, operator, operand, match_all):
     """
     Run ``test_func()`` on all of ``view``'s selections.
-    ``match_all`` = do all selections have to
+
+    :param val_func:    Function used to fetch test value
+    :param view:        Current view being used in testing
+    :param operator:    String operator from context condition:
+                          - "equal",
+                          - "not_equal",
+                          - "regex_match",
+                          - "not_regex_match",
+                          - "regex_contains",
+                          - "not_regex_contains".
+    :param operand:     (str | int | bool) value to compare with.
+    :param match_all:   Do all selections have to evaluate TRUE?
     """
     debugging = is_debugging(DebugBits.FILTERING_ON_CONTEXT)
     if debugging:
         print(f'    In _test_selections()...')
         print(f'      test_func={test_func.__name__}')
-        # print(f'      {view=}')
-        # print(f'      {operator=}')
-        # print(f'      {operand=}')
-        # print(f'      {match_all=}')
     result = False
     sel_list = view.sel()
 
     if sel_list:
-        # Exit loop on first False result.
         for rgn in sel_list:
             if debugging:
                 print(f'      {rgn=}')
@@ -648,6 +654,60 @@ def _test_selections(test_func, view, operator, operand, match_all):
                         print('      Exiting sel loop early:  test passed and match_all == False.')
                     break;
             else:
+                if match_all:
+                    if debugging:
+                        print('      Exiting sel loop early:  test failed and match_all == True.')
+                    break;
+
+    if debugging:
+        print(f'    {result=}')
+
+    return result
+
+
+def _test_selections_scope(selector_pt_func, view, operator, selector, match_all):
+    """
+    Run ``selector_pt_func()`` on all of ``view``'s selections.
+
+    :param val_func:    Function used to fetch test scope_name
+    :param view:        Current view being used in testing
+    :param operator:    String operator from context condition:
+                          - "equal",
+                          - "not_equal".
+    :param selector:     (str | int | bool) scope_name to compare with.
+    :param match_all:   Do all selections have to evaluate TRUE?
+    """
+    debugging = is_debugging(DebugBits.FILTERING_ON_CONTEXT)
+    if debugging:
+        print(f'    In _test_selections_scope()...')
+        print(f'      selector_pt_func={selector_pt_func.__name__}')
+    result = False
+    sel_list = view.sel()
+
+    if sel_list:
+        for rgn in sel_list:
+            if debugging:
+                print(f'      {rgn=}')
+
+            pt_to_test = selector_pt_func(view, rgn)
+            is_selector_match = view.match_selector(pt_to_test, selector)
+
+            if operator == "equal":
+                result = is_selector_match
+            elif operator == "not_equal":
+                result = not is_selector_match
+            else:
+                print(f'      Selector operator [{operator}] not recognized!')
+                result = False
+
+            # Exit loop early?
+            if result:
+                if not match_all:
+                    if debugging:
+                        print('      Exiting sel loop early:  test passed and match_all == False.')
+                    break;
+            else:
+                # result == False
                 if match_all:
                     if debugging:
                         print('      Exiting sel loop early:  test failed and match_all == True.')
@@ -681,18 +741,45 @@ def _test_selection_empty(view, operator, operand, match_all):
 # Scope
 # -------------------------------------------------------------------------
 
-def _test_one_eol_selector(view, rgn):
-    # Get scope at EOL.
-    line_rgn = view.line(rgn.end())
-    eol_scope = view.scope_name(line_rgn.b)
-    left_edge_pt = rgn.begin()
-    line_rgn = view.line(left_edge_pt)
-    following_text_rgn = sublime.Region(left_edge_pt, line_rgn.b)
-    return view.substr(following_text_rgn)
+def _eol_pt(view, rgn):
+    # Return pt at EOL.
+    return view.line(rgn.end()).b
+
+
+def _curr_pt(view, rgn):
+    # Return pt at current position.
+    return rgn.b
 
 
 def _test_eol_selector(view, operator, operand, match_all):
-    test_func = _test_one_eol_selector
+    scope_pt_func = _eol_pt
+    return _test_selections_scope(scope_pt_func, view, operator, operand, match_all)
+
+
+def _test_one_selector(view, rgn, selector):
+    # Return scope at current position.
+    return view.scope_name(rgn.b)
+
+
+def _test_selector(view, operator, operand, match_all):
+    scope_pt_func = _curr_pt
+    return _test_selections_scope(scope_pt_func, view, operator, operand, match_all)
+
+
+def _test_one_is_javadoc(view, rgn):
+    """
+    Does selector 'source comment.block.documentation' match current position?
+    """
+    selector = 'source comment.block.documentation'
+    return view.match_selector(rgn.b, selector)
+
+
+def _test_is_javadoc(view, operator, operand, match_all):
+    """
+    Does selector 'source comment.block.documentation' match current position
+    for all selections?
+    """
+    test_func = _test_one_is_javadoc
     return _test_selections(test_func, view, operator, operand, match_all)
 
 
@@ -812,9 +899,9 @@ _context_tests_by_key = {
     'selection_empty'          : _test_selection_empty,
 
     # Scope
-    'eol_selector'             : _test_unimplemented,
-    'is_javadoc'               : _test_unimplemented,
-    'selector'                 : _test_unimplemented,
+    'eol_selector'             : _test_eol_selector,
+    'is_javadoc'               : _test_is_javadoc,
+    'selector'                 : _test_selector,
 
     # Text
     'following_text'           : _test_following_text,
