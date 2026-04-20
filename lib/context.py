@@ -834,6 +834,11 @@ def _test_text(view, operator, operand, match_all):
 # View
 # -------------------------------------------------------------------------
 
+def _test_auto_complete_visible(view, operator, operand, match_all):
+    test_val = view.is_auto_complete_visible()
+    return _evaluate_test(test_val, operator, operand)
+
+
 def _test_last_command(view, operator, operand, match_all):
     test_val = view.command_history(0)[0]
     if debugging:
@@ -877,6 +882,26 @@ def _test_has_snippet(view, operator, operand, match_all):
 # Window Logic
 # -------------------------------------------------------------------------
 
+def _test_group_has_multiselect(view, operator, operand, match_all):
+    result = False
+    sheet = view.sheet()
+
+    if not sheet:
+        # Views without sheets do not belong in this test.
+        pass
+    else:
+        group_id = sheet.group()
+        if group_id is not None:
+            win = view.window()
+            test_val = len(win.selected_sheets_in_group(group_id)) > 1
+            result = _evaluate_test(test_val, operator, operand)
+        else:
+            # Sheets without groups do not belong in this test.
+            pass
+
+    return result
+
+
 # -------------------------------------------------------------------------
 # Unimplemented / Infeasible
 # -------------------------------------------------------------------------
@@ -910,16 +935,18 @@ _context_tests_by_key = {
     'text'                     : _test_text,
 
     # View
+    'auto_complete_visible'    : _test_auto_complete_visible,
     'last_command'             : _test_last_command,
     'last_modifying_command'   : _test_last_modifying_command,
     'read_only'                : _test_read_only,
+    # setting.xxxx  is implemented in `_condition_test()` since its test
+    # pattern is different from all the other tests.
 
     # Snippet (examines text around caret)
     'has_snippet'              : _test_has_snippet,
 
     # Window
-    'auto_complete_visible'    : _test_unimplemented,
-    'group_has_multiselect'    : _test_unimplemented,
+    'group_has_multiselect'    : _test_group_has_multiselect,
     'group_has_transient_sheet': _test_unimplemented,
     'overlay_has_focus'        : _test_unimplemented,
     'overlay_name'             : _test_unimplemented,
@@ -929,11 +956,6 @@ _context_tests_by_key = {
     'panel_visible'            : _test_unimplemented,
     'panel_type'               : _test_unimplemented,
     'popup_visible'            : _test_unimplemented,
-
-    # Settings
-    # Implemented in `_condition_test()` due to exact string match not possible.
-    # Setting queries all start with "setting.", but their ending supplies
-    # the setting name to test, so no listing for "setting.xxxx" here.
 
     # Unimplemented
     'has_next_field'           : _test_unimplemented,
