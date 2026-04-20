@@ -585,29 +585,29 @@ def _curr_word_for_snippet(view, rgn):
 # Standard Context Test Functions
 # =========================================================================
 
-def _evaluate_test(value, operator, operand):
+def _evaluate_test(test_val, operator, operand):
     if debugging:
-        print(f'        Evaluating:  {value=}, {operator=}, {operand=}')
+        print(f'        Evaluating:  {test_val=}, {operator=}, {operand=}')
 
     result = False
 
     try:
         if operator == "equal":
-            result = value == operand
+            result = test_val == operand
         elif operator == "not_equal":
-            result = value != operand
+            result = test_val != operand
         elif operator == "regex_match":
-            result = value != None and re.match(operand, value)  != None
+            result = test_val != None and re.fullmatch(operand, test_val)  != None
         elif operator == "not_regex_match":
-            result = value == None or  re.match(operand, value)  == None
+            result = test_val == None or  re.fullmatch(operand, test_val)  == None
         elif operator == "regex_contains":
-            result = value != None and re.search(operand, value) != None
+            result = test_val != None and re.search(operand, test_val) != None
         elif operator == "not_regex_contains":
-            result = value == None or  re.search(operand, value) == None
+            result = test_val == None or  re.search(operand, test_val) == None
         else:
             raise AssertionError(f'Operator not recognized:  {operator}.')
     except Exception as e:
-        print("        Failed to evaluate context", operand, value, e)
+        print("        Failed to evaluate context", operand, test_val, e)
         result = False
 
     if debugging:
@@ -616,9 +616,9 @@ def _evaluate_test(value, operator, operand):
     return result
 
 
-def _test_selections(test_func, view, operator, operand, match_all):
+def _test_selections(test_val_func, view, operator, operand, match_all):
     """
-    Run ``test_func()`` on all of ``view``'s selections.
+    Run ``test_val_func()`` on all of ``view``'s selections.
 
     :param val_func:    Function used to fetch test value
     :param view:        Current view being used in testing
@@ -635,7 +635,7 @@ def _test_selections(test_func, view, operator, operand, match_all):
     debugging = is_debugging(DebugBits.FILTERING_ON_CONTEXT)
     if debugging:
         print(f'    In _test_selections()...')
-        print(f'      test_func={test_func.__name__}')
+        print(f'      test_val_func={test_val_func.__name__}')
     result = False
     sel_list = view.sel()
 
@@ -644,8 +644,8 @@ def _test_selections(test_func, view, operator, operand, match_all):
             if debugging:
                 print(f'      {rgn=}')
 
-            value = test_func(view, rgn)
-            result = _evaluate_test(value, operator, operand)
+            test_val = test_val_func(view, rgn)
+            result = _evaluate_test(test_val, operator, operand)
 
             # Exit loop early?
             if result:
@@ -724,8 +724,8 @@ def _test_selections_scope(selector_pt_func, view, operator, selector, match_all
 # -------------------------------------------------------------------------
 
 def _test_num_selections(view, operator, operand, match_all):
-    value = len(view.sel())
-    return _evaluate_test(value, operator, operand)
+    test_val = len(view.sel())
+    return _evaluate_test(test_val, operator, operand)
 
 
 def _test_one_selection_empty(view, rgn):
@@ -733,8 +733,8 @@ def _test_one_selection_empty(view, rgn):
 
 
 def _test_selection_empty(view, operator, operand, match_all):
-    test_func = _test_one_selection_empty
-    return _test_selections(test_func, view, operator, operand, match_all)
+    test_val_func = _test_one_selection_empty
+    return _test_selections(test_val_func, view, operator, operand, match_all)
 
 
 # -------------------------------------------------------------------------
@@ -779,8 +779,8 @@ def _test_is_javadoc(view, operator, operand, match_all):
     Does selector 'source comment.block.documentation' match current position
     for all selections?
     """
-    test_func = _test_one_is_javadoc
-    return _test_selections(test_func, view, operator, operand, match_all)
+    test_val_func = _test_one_is_javadoc
+    return _test_selections(test_val_func, view, operator, operand, match_all)
 
 
 # -------------------------------------------------------------------------
@@ -795,8 +795,8 @@ def _test_one_following_text(view, rgn):
 
 
 def _test_following_text(view, operator, operand, match_all):
-    test_func = _test_one_following_text
-    return _test_selections(test_func, view, operator, operand, match_all)
+    test_val_func = _test_one_following_text
+    return _test_selections(test_val_func, view, operator, operand, match_all)
 
 
 def _test_one_indented_block(view, rgn):
@@ -805,8 +805,8 @@ def _test_one_indented_block(view, rgn):
 
 
 def _test_indented_block(view, operator, operand, match_all):
-    test_func = _test_one_indented_block
-    return _test_selections(test_func, view, operator, operand, match_all)
+    test_val_func = _test_one_indented_block
+    return _test_selections(test_val_func, view, operator, operand, match_all)
 
 
 def _test_one_preceding_text(view, rgn):
@@ -817,8 +817,8 @@ def _test_one_preceding_text(view, rgn):
 
 
 def _test_preceding_text(view, operator, operand, match_all):
-    test_func = _test_one_preceding_text
-    return _test_selections(test_func, view, operator, operand, match_all)
+    test_val_func = _test_one_preceding_text
+    return _test_selections(test_val_func, view, operator, operand, match_all)
 
 
 def _test_one_text(view, rgn):
@@ -826,8 +826,8 @@ def _test_one_text(view, rgn):
 
 
 def _test_text(view, operator, operand, match_all):
-    test_func = _test_one_text
-    return _test_selections(test_func, view, operator, operand, match_all)
+    test_val_func = _test_one_text
+    return _test_selections(test_val_func, view, operator, operand, match_all)
 
 
 # -------------------------------------------------------------------------
@@ -835,22 +835,22 @@ def _test_text(view, operator, operand, match_all):
 # -------------------------------------------------------------------------
 
 def _test_last_command(view, operator, operand, match_all):
-    value = view.command_history(0)[0]
+    test_val = view.command_history(0)[0]
     if debugging:
         print(f'    last_command = [{cmd_name}]')
-    return _evaluate_test(value, operator, operand)
+    return _evaluate_test(test_val, operator, operand)
 
 
 def _test_last_modifying_command(view, operator, operand, match_all):
-    value = view.command_history(0, modifying_only = True)[0]
+    test_val = view.command_history(0, modifying_only = True)[0]
     if debugging:
         print(f'    last_modifying_command = [{cmd_name}]')
-    return _evaluate_test(value, operator, operand)
+    return _evaluate_test(test_val, operator, operand)
 
 
 def _test_read_only(view, operator, operand, match_all):
-    value = view.is_read_only()
-    return _evaluate_test(value, operator, operand)
+    test_val = view.is_read_only()
+    return _evaluate_test(test_val, operator, operand)
 
 
 # -------------------------------------------------------------------------
@@ -869,8 +869,8 @@ def _test_one_has_snippet(view, rgn):
 
 
 def _test_has_snippet(view, operator, operand, match_all):
-    test_func = _test_one_has_snippet
-    return _test_selections(test_func, view, operator, operand, match_all)
+    test_val_func = _test_one_has_snippet
+    return _test_selections(test_val_func, view, operator, operand, match_all)
 
 
 # -------------------------------------------------------------------------
