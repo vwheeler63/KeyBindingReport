@@ -22,11 +22,12 @@ class FlagBits(IntFlag):
     ANY                           = 0b11111111  # 255
 
 
-class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
+class KeyBindingReportCommand(sublime_plugin.TextCommand):
     """ Generate Key-Binding Report in specified format. """
 
     def run(
             self            : sublime_plugin.ApplicationCommand,
+            edit            : sublime.Edit,
             key_groups      : Optional[Iterable[data.KeyGroup]] = None,
             key_names       : Optional[Iterable[str]] = None,
             keys_list       : Optional[Iterable[Iterable[str]]] = None,
@@ -198,7 +199,13 @@ class KeyBindingReportCommand(sublime_plugin.ApplicationCommand):
 
         t0 = datetime.now()
         key_data = data.KeyBindingData()
-        key_data.generate(key_groups, key_names, keys_list, packages, limit_to_context)
+
+        if limit_to_context:
+            view = self.view
+        else:
+            view = None
+
+        key_data.generate(key_groups, key_names, keys_list, packages, view)
         t1 = datetime.now()
 
         tgt_file = r'r:\by_main_key.txt'

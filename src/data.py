@@ -1,4 +1,7 @@
 """
+Key-Binding Data
+================
+
 This module does all the data fetching of selected key bindings.
 
 Usage:
@@ -9,8 +12,13 @@ Usage:
     packages         = ["Default"]
     limit_to_context = False
 
+    if limit_to_context:
+        view = current_view
+    else:
+        view = None
+
     key_data = KeyBindingData()
-    key_data.generate(key_groups, key_names, keys_list, packages, limit_to_context)
+    key_data.generate(key_groups, key_names, keys_list, packages, view)
 
 Each time ``key_data.generate()`` is called produces a new data set.
 No memory of the previous call remains.
@@ -255,11 +263,18 @@ class ReportKeyBinding(key_binding.KeyBinding):
 
 
 class KeyBindingData:
+    """
+    Key-Binding Data
+    ================
+
+    By design, this class was originally designed to be instantiated once
+    for each report.   Reason:  the current view is important to each report
+    and it is received as an argument when it is instantiated.
+    """
 
     __slots__ = [
         'mdictByMainKey',
         'mdictByKeySquence',
-        'view',
         '_debugging_removing_arg_overlap',
         '_debugging_filtering_stage_i',
         '_debugging_filtering_stage_ii',
@@ -270,9 +285,6 @@ class KeyBindingData:
     def __init__(self):
         self.mdictByMainKey = {}
         self.mdictByKeySquence = {}
-
-        self.view = None
-
         self._debugging_removing_arg_overlap   = is_debugging(DebugBits.REMOVING_ARG_OVERLAP)
         self._debugging_filtering_stage_i      = is_debugging(DebugBits.FILTERING_STAGE_I)
         self._debugging_filtering_stage_ii     = is_debugging(DebugBits.FILTERING_STAGE_II)
@@ -284,7 +296,7 @@ class KeyBindingData:
             key_names       : Optional[Iterable[str]] = None,
             keys_list       : Optional[Iterable[Iterable[str]]] = None,
             packages        : Optional[Iterable[str]] = None,
-            limit_to_context: bool = False,
+            view            : sublime.View = None
             ):
         r"""
         Generate Key-Binding data, based on argument values provided, if any.
@@ -324,13 +336,21 @@ class KeyBindingData:
         :param packages:    List of package names data should be limited to;
                             ``None`` or ``[]`` when packages are not limited.
 
-        :param limit_to_context:
-                            Whether to NOT include key bindings with context
-                            entries that do not match current circumstances (i.e.
-                            selection locations, surrounding text, scope, etc.).
-                            When ``True``, this command excludes key bindings
-                            that do not match the context of the active View.
-                            (Takes longer.)
+        :param view:        ``None`` means NOT to limit report to only those
+                            bindings that match the current context (i.e.
+                            selection locations, surrounding text, scope, etc.)
+
+                            When not ``None`` it MUST be the current View, even
+                            when the View is part of the UI, such as the input
+                            View in the Find-in-Files Panel.  This requires the
+                            caller to be a ``sublime.TextCommand`` when this
+                            matters, since that appears to be the only way to
+                            get a reference to one of these views.  There are a
+                            handful of context keys (tests) that require it.
+
+                            When a View is supplied in this parameter, the
+                            report excludes key bindings that do not match
+                            the context of this View.  (Takes longer.)
 
         :return:  None
 
@@ -342,10 +362,15 @@ class KeyBindingData:
         key_names        = ["q", "w", "a", "s"]
         keys_list        = [["ctrl+p"], ["ctrl+shift+p"], ["ctrl+k", "ctrl+u"]]
         packages         = ["Default"]
-        limit_to_context = False
+        limit_to_context = True
+
+        if limit_to_context:
+            view = current_view
+        else:
+            view = None
 
         key_data = KeyBindingData()
-        key_data.generate(key_groups, key_names, keys_list, packages, limit_to_context)
+        key_data.generate(key_groups, key_names, keys_list, packages, view)
 
         class KeyGroup(IntEnum):
             # Non-negative values index into ``key_name_groups``.
@@ -683,8 +708,8 @@ class KeyBindingData:
                 packages,
                 include_key_name_set,
                 keys_tuples_set,
-                limit_to_context,
-                incl_all_multi_key_seqs
+                incl_all_multi_key_seqs,
+                view
                 )
 
     def _is_list_tuple_or_set(self, obj) -> bool:
@@ -696,8 +721,8 @@ class KeyBindingData:
             packages               : Optional[Set[str]],
             include_key_name_set   : Optional[Set[str]],
             keys_tuples_set        : Optional[Set[Tuple[str]]],
-            limit_to_context       : bool,
-            incl_all_multi_key_seqs: bool
+            incl_all_multi_key_seqs: bool,
+            view                   : sublime.View
             ):
         """
         Build report data required by the report dictated by the 3 arguments.
@@ -729,8 +754,21 @@ class KeyBindingData:
                             `==`, `!=` and `in`!  ``None`` == no specific
                             keypress/keypress sequences are added.
 
-        :param limit_to_context:
-                            Exclude key bindings that don't apply to current context?
+        :param view:        ``None`` means NOT to limit report to only those
+                            bindings that match the current context (i.e.
+                            selection locations, surrounding text, scope, etc.)
+
+                            When not ``None`` it MUST be the current View, even
+                            when the View is part of the UI, such as the input
+                            View in the Find-in-Files Panel.  This requires the
+                            caller to be a ``sublime.TextCommand`` when this
+                            matters, since that appears to be the only way to
+                            get a reference to one of these views.  There are a
+                            handful of context keys (tests) that require it.
+
+                            When a View is supplied in this parameter, the
+                            report excludes key bindings that do not match
+                            the context of this View.  (Takes longer.)
 
         :param incl_all_multi_key_seqs:
                             Whether to accept all keypress sequences (i.e. JSON
@@ -764,7 +802,7 @@ class KeyBindingData:
             print(f'  {packages=}')
             print(f'  {include_key_name_set=}')
             print(f'  {keys_tuples_set=}')
-            print(f'  {limit_to_context=}')
+            print(f'  {view=}')
             print(f'  {incl_all_multi_key_seqs=}')
 
         # Start fresh.
@@ -774,15 +812,14 @@ class KeyBindingData:
         # Loop through list of .sublime-keymap files in keymap-load order.
         keymap_paths = sublime.find_resources('*.sublime-keymap')
 
-        # Refresh `self.view` before the outer loop starts.
-        if limit_to_context:
-            curr_view = sublime.active_window().active_view()
-            # Conditionally update any ViewEventListeners so they
-            # are using the right view if consulted.
-            context.update_view_event_listeners(curr_view)
-            self.view = curr_view
-        else:
-            self.view = None
+        if view is not None:
+            # Conditionally update any ViewEventListeners so they are using
+            # the right view if consulted.  This is intentionally done ONCE
+            # per report here instead of in `context.query(view)` because
+            # the latter is inside an inner loop (which can in some reports
+            # iterate thousands of times), and this would be unacceptably
+            # inefficient.
+            context.update_view_event_listeners(view)
 
         # For each `.sublime-keymap` file...
         for path in keymap_paths:
@@ -832,7 +869,7 @@ class KeyBindingData:
                     include_key_name_set,
                     keys_tuples_set,
                     incl_all_multi_key_seqs,
-                    limit_to_context
+                    view
                     )
 
     def _build_empty_main_key_dict(self):
@@ -893,40 +930,55 @@ class KeyBindingData:
             include_key_name_set   : Optional[Set[str]],
             keys_tuples_set        : Optional[Set[Tuple[str]]],
             incl_all_multi_key_seqs: bool,
-            limit_to_context       : bool
+            view                   : sublime.View
             ):
         """
-        Add key bindings from ``path``, that are included in these args:
+        Add key bindings from ``path``, which key bindings are included in these args:
 
         - include_key_name_set   : Optional[Set[str]],
         - keys_tuples_set        : Optional[Set[Tuple[str]]],
         - incl_all_multi_key_seqs: bool,
-        - limit_to_scope         : bool
+        - view                   : sublime.View
 
 
-        :param path:            Packages path to .sublime-keymap file
-        :param pkg_name:        Name of package (extracted by caller and used here)
-        :param file_name:       .sublime-keymap file name without path.
+        :param path:        Packages path to .sublime-keymap file
+        :param pkg_name:    Name of package (extracted by caller and used here)
+        :param file_name:   .sublime-keymap file name without path.
 
         :param include_key_name_set:
-                                Optional:  Set against which to compare key
-                                names when keypress count == 1, to accept or
-                                reject key bindings being read; ``None`` == no
-                                limits on key bindings.
+                            Optional:  Set against which to compare key
+                            names when keypress count == 1, to accept or
+                            reject key bindings being read; ``None`` == no
+                            limits on key bindings.
 
-        :param keys_tuples_set: Optional:  Set of keypress tuples against which
-                                to compare individual JSON key binding objects.
-                                If the keypress tuple is a match, then it is
-                                included in the input data. ``None`` == no
-                                specific keypress/keypress sequences are added.
+        :param keys_tuples_set:
+                            Optional:  Set of keypress tuples against which
+                            to compare individual JSON key binding objects.
+                            If the keypress tuple is a match, then it is
+                            included in the input data. ``None`` == no
+                            specific keypress/keypress sequences are added.
 
         :param incl_all_multi_key_seqs:
-                                Whether to accept all keypress sequences
-                                (i.e. JSON key-binding "keys" list values that
-                                have more than one keypress string in them).
 
-        :param limit_to_context:  Optional:  ``view is not None`` means "exclude key
-                                bindings that don't apply to current context".
+                            Whether to accept all keypress sequences
+                            (i.e. JSON key-binding "keys" list values that
+                            have more than one keypress string in them).
+
+        :param view:        ``None`` means NOT to limit report to only those
+                            bindings that match the current context (i.e.
+                            selection locations, surrounding text, scope, etc.)
+
+                            When not ``None`` it MUST be the current View, even
+                            when the View is part of the UI, such as the input
+                            View in the Find-in-Files Panel.  This requires the
+                            caller to be a ``sublime.TextCommand`` when this
+                            matters, since that appears to be the only way to
+                            get a reference to one of these views.  There are a
+                            handful of context keys (tests) that require it.
+
+                            When a View is supplied in this parameter, the
+                            report excludes key bindings that do not match
+                            the context of this View.  (Takes longer.)
         """
         debugging = self._debugging_filtering_stage_ii
         if debugging:
@@ -935,7 +987,7 @@ class KeyBindingData:
             print(f'  {include_key_name_set=}')
             print(f'  {keys_tuples_set=}')
             print(f'  {incl_all_multi_key_seqs=}')
-            print(f'  {limit_to_context=}')
+            print(f'  {view=}')
 
         keymap_resource_str = sublime.load_resource(path)
         decoded_key_bindings = sublime.decode_value(keymap_resource_str)
@@ -1032,11 +1084,13 @@ class KeyBindingData:
             binding = ReportKeyBinding(decoded_binding, pkg_name, file_name)
 
             # -------------------------------------------------------------
-            # Exclude if caller requested `limit_to_context`, and
-            # key-binding context doesn't match current context.
+            # If caller requested limiting bindings to only those that match
+            # the current context by passing in the current View in in the
+            # ``view`` parameter, then exclude this key-binding if its
+            # "context" entry does not match current context.
             # -------------------------------------------------------------
-            if limit_to_context and binding.context:
-                if not binding.context.query(self.view):
+            if view is not None and binding.context:
+                if not binding.context.query(view):
                     continue
 
             # -------------------------------------------------------------
