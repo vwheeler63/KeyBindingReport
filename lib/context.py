@@ -271,6 +271,7 @@ def _on_qry_context_listeners():
     modules_skipped_due_to_loading_exception_count = 0
     attributes_examined_count = 0
     attr_skipped_due_to_not_having_listeners_count = 0
+    duplicate_listeners_skipped_count = 0
     listeners_instantiated_and_kept_count = 0
     event_listener_count = 0
     view_event_listener_count = 0
@@ -381,6 +382,7 @@ def _on_qry_context_listeners():
                 # Is a duplicate.  Skip.
                 # if debugging:
                 #     print(f'  Skipping duplicate class: [{attribute.__name__}]')
+                duplicate_listeners_skipped_count += 1
                 continue
             else:
                 # Not a duplicate.  Keep.
@@ -417,6 +419,7 @@ def _on_qry_context_listeners():
         print(f'  modules_loaded                          :  {modules_loaded_count:5}')
         print(f'  attributes_examined                     :  {attributes_examined_count:5}')
         print(f'  attr_skipped_due_to_not_having_listeners:  {attr_skipped_due_to_not_having_listeners_count:5}')
+        print(f'  duplicate_listeners_skipped             :  {duplicate_listeners_skipped_count:5}')
         print(f'  listeners_instantiated_and_kept         :  {listeners_instantiated_and_kept_count:5}')
         print(f'  event_listeners                         :  {event_listener_count:5}')
         print(f'  view_event_listeners                    :  {view_event_listener_count:5}')
@@ -1002,7 +1005,7 @@ def _test_group_has_transient_sheet(view, operator, operand, match_all):
 def _test_overlay_has_focus(view, operator, operand, match_all):
     """ Does any panel have focus?
 
-    This logic supports all of these possible context conditions:
+    Supports all of these possible context conditions:
     - {"key": "overlay_has_focus"}
     - {"key": "overlay_has_focus", "operator": "equal", "operand": true}
     - {"key": "overlay_has_focus", "operator": "equal", "operand": false}
@@ -1011,6 +1014,28 @@ def _test_overlay_has_focus(view, operator, operand, match_all):
     """
     test_val = _view_element_found_in_list(view, _overlay_view_element_detection_list)
     return _evaluate_test(test_val, operator, operand)
+
+
+def _test_overlay_name(view, operator, operand, match_all):
+    """
+    Does name of Overlay with focus match ``operator`` and ``operand``?
+
+    Supports context conditions like this:
+    - { "key": "overlay_name", "operator": "equal", "operand" : "goto" }
+    - { "key": "overlay_name", "operator": "not_equal", "operand" : "goto" }
+    """
+    result = False
+    element = view.element()
+
+    if element:
+        if 'goto_anything:' in element:
+            test_val = 'goto'
+        elif 'command_palette:' in element:
+            test_val = 'command_palette'
+
+        result = _evaluate_test(test_val, operator, operand)
+
+    return result
 
 
 def _test_panel(view, operator, operand, match_all):
@@ -1039,7 +1064,7 @@ def _test_panel(view, operator, operand, match_all):
 def _test_panel_has_focus(view, operator, operand, match_all):
     """ Does any panel have focus?
 
-    This logic supports all of these possible context conditions:
+    Supports all of these possible context conditions:
     - {"key": "panel_has_focus"}
     - {"key": "panel_has_focus", "operator": "equal", "operand": true}
     - {"key": "panel_has_focus", "operator": "equal", "operand": false}
@@ -1123,7 +1148,7 @@ def _test_panel_type_found_in_list(
     See ``_panel_view_element_detection_list`` and
     ``_overlay_view_element_detection_list`` to see why.
 
-    This logic supports all of these possible context conditions:
+    Supports all of these possible context conditions:
     - {"key": "panel_has_focus"}
     - {"key": "panel_has_focus", "operator": "equal", "operand": true}
     - {"key": "panel_has_focus", "operator": "equal", "operand": false}
@@ -1208,7 +1233,7 @@ _context_tests_by_key = {
     'group_has_multiselect'    : _test_group_has_multiselect,
     'group_has_transient_sheet': _test_group_has_transient_sheet,
     'overlay_has_focus'        : _test_overlay_has_focus,
-    'overlay_name'             : _test_unimplemented,
+    'overlay_name'             : _test_overlay_name,
     'overlay_visible'          : _test_unimplemented,
     'panel'                    : _test_panel,
     'panel_has_focus'          : _test_panel_has_focus,
