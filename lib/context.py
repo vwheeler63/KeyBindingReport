@@ -922,86 +922,6 @@ def _test_last_modifying_command(view, operator, operand, match_all):
     return _evaluate_test(test_val, operator, operand)
 
 
-def _test_popup_visible(view, operator, operand, match_all):
-    test_val = view.is_popup_visible()
-    return _evaluate_test(test_val, operator, operand)
-
-
-def _test_read_only(view, operator, operand, match_all):
-    test_val = view.is_read_only()
-    return _evaluate_test(test_val, operator, operand)
-
-
-# -------------------------------------------------------------------------
-# Snippet (examines text around caret)
-# -------------------------------------------------------------------------
-
-def _test_one_has_snippet(view, rgn):
-    r"""
-    Does current word match a Snippet trigger?  Only applies if:
-
-    - no text is selected, and
-    - there is at least one non-blank character to the left of caret.
-    """
-    curr_word = _curr_word_for_snippet(view, rgn)
-    return (( curr_word and curr_word in _snippets_by_trigger ))
-
-
-def _test_has_snippet(view, operator, operand, match_all):
-    test_val_func = _test_one_has_snippet
-    return _test_selections(test_val_func, view, operator, operand, match_all)
-
-
-# -------------------------------------------------------------------------
-# Window Logic
-#
-# 'overlay_has_focus'        : _test_unimplemented,
-# 'overlay_name'             : _test_unimplemented,
-# 'overlay_visible'          : _test_unimplemented,
-# 'panel'                    : _test_unimplemented,
-# 'panel_has_focus'          : _test_unimplemented,
-# 'panel_visible'            : _test_unimplemented,
-# 'panel_type'               : _test_unimplemented,
-# -------------------------------------------------------------------------
-
-def _group_for_view(view) -> int:
-    """ Group number for view.
-
-    :return:  None if view not in group.
-    """
-    result = None
-    sheet = view.sheet()
-
-    if sheet:
-        result = sheet.group()
-
-    return result
-
-
-def _test_group_has_multiselect(view, operator, operand, match_all):
-    result = False
-    group_id = _group_for_view(view)
-
-    if group_id is not None:
-        win = view.window()
-        test_val = len( win.selected_sheets_in_group(group_id) ) > 1
-        result = _evaluate_test(test_val, operator, operand)
-
-    return result
-
-
-def _test_group_has_transient_sheet(view, operator, operand, match_all):
-    result = False
-    group_id = _group_for_view(view)
-
-    if group_id is not None:
-        win = view.window()
-        test_val = (( win.transient_sheet_in_group(group_id) is not None ))
-        result = _evaluate_test(test_val, operator, operand)
-
-    return result
-
-
 def _test_overlay_has_focus(view, operator, operand, match_all):
     """ Does any panel have focus?
 
@@ -1038,29 +958,6 @@ def _test_overlay_name(view, operator, operand, match_all):
     return result
 
 
-def _test_panel(view, operator, operand, match_all):
-    """ Does name of active panel == `operand`? """
-    result = False
-    operand_type = type(operand)
-
-    if operand_type != str:
-        print(f'_test_panel:  expected operand to be a string, got {operand_type} instead.')
-    else:
-        win = view.window()
-        panel_name = win.active_panel()
-        if panel_name:
-            result = _evaluate_test(panel_name, operator, operand)
-        else:
-            # This branch handles things when no panel is visible, so tests like:
-            # - { "key": "panel", "operator": "not_equal", "operand": 'console' }
-            #   correctly tests TRUE , and
-            # - { "key": "panel", "operator": "equal", "operand": 'console' }
-            #   correctly tests FALSE.
-            result = _evaluate_test('non-existent_panel', operator, operand)
-
-    return result
-
-
 def _test_panel_has_focus(view, operator, operand, match_all):
     """ Does any panel have focus?
 
@@ -1074,18 +971,6 @@ def _test_panel_has_focus(view, operator, operand, match_all):
     test_val = _view_element_found_in_list(view, _panel_view_element_detection_list)
     return _evaluate_test(test_val, operator, operand)
 
-
-
-def _test_panel_visible(view, operator, operand, match_all):
-    """ Is any panel visible? """
-    result = False
-
-    win = view.window()
-    panel_name = win.active_panel()
-    test_val = (( panel_name is not None ))
-    result = _evaluate_test(test_val, operator, operand)
-
-    return result
 
 
 def _test_panel_type(view, operator, operand, match_all):
@@ -1135,54 +1020,111 @@ def _test_panel_type(view, operator, operand, match_all):
     return result
 
 
-def _test_panel_type_found_in_list(
-            test_list: List[str],
-            view     : sublime.View,
-            operator : str,
-            operand  : Union[str, int, bool],
-            match_all: bool
-            ):
-    """ Does any panel or any overlay have focus?
+def _test_popup_visible(view, operator, operand, match_all):
+    test_val = view.is_popup_visible()
+    return _evaluate_test(test_val, operator, operand)
 
-    Which (panel or overlay) is determined by ``test_list``.
-    See ``_panel_view_element_detection_list`` and
-    ``_overlay_view_element_detection_list`` to see why.
 
-    Supports all of these possible context conditions:
-    - {"key": "panel_has_focus"}
-    - {"key": "panel_has_focus", "operator": "equal", "operand": true}
-    - {"key": "panel_has_focus", "operator": "equal", "operand": false}
-    - {"key": "panel_has_focus", "operator": "not_equal", "operand": true}
-    - {"key": "panel_has_focus", "operator": "not_equal", "operand": false}
-    - {"key": "overlay_has_focus"}
-    - {"key": "overlay_has_focus", "operator": "equal", "operand": true}
-    - {"key": "overlay_has_focus", "operator": "equal", "operand": false}
-    - {"key": "overlay_has_focus", "operator": "not_equal", "operand": true}
-    - {"key": "overlay_has_focus", "operator": "not_equal", "operand": false}
+def _test_read_only(view, operator, operand, match_all):
+    test_val = view.is_read_only()
+    return _evaluate_test(test_val, operator, operand)
+
+
+# -------------------------------------------------------------------------
+# Snippet (examines text around caret)
+# -------------------------------------------------------------------------
+
+def _test_one_has_snippet(view, rgn):
+    r"""
+    Does current word match a Snippet trigger?  Only applies if:
+
+    - no text is selected, and
+    - there is at least one non-blank character to the left of caret.
     """
-    result   = False
-    test_val = False
-    element  = view.element()
-    if debugging:
-        print('In _view_element_found_in_list()....')
-        print(f'  {test_list=}')
-        print(f'  {view=}')
-        print(f'  {operator=}')
-        print(f'  {operand=}')
-        print(f'  {match_all=}')
-        print(f'  {element=}')
+    curr_word = _curr_word_for_snippet(view, rgn)
+    return (( curr_word and curr_word in _snippets_by_trigger ))
 
-    if element:
-        for pdstr in test_list:
-            if pdstr in element:
-                test_val = True
-                break
 
-    result = _evaluate_test(test_val, operator, operand)
+def _test_has_snippet(view, operator, operand, match_all):
+    test_val_func = _test_one_has_snippet
+    return _test_selections(test_val_func, view, operator, operand, match_all)
+
+
+# -------------------------------------------------------------------------
+# Window Logic
+# -------------------------------------------------------------------------
+
+def _group_for_view(view) -> int:
+    """ Group number for view.
+
+    :return:  None if view not in group.
+    """
+    result = None
+    sheet = view.sheet()
+
+    if sheet:
+        result = sheet.group()
 
     return result
 
 
+def _test_group_has_multiselect(view, operator, operand, match_all):
+    result = False
+    group_id = _group_for_view(view)
+
+    if group_id is not None:
+        win = view.window()
+        test_val = len( win.selected_sheets_in_group(group_id) ) > 1
+        result = _evaluate_test(test_val, operator, operand)
+
+    return result
+
+
+def _test_group_has_transient_sheet(view, operator, operand, match_all):
+    result = False
+    group_id = _group_for_view(view)
+
+    if group_id is not None:
+        win = view.window()
+        test_val = (( win.transient_sheet_in_group(group_id) is not None ))
+        result = _evaluate_test(test_val, operator, operand)
+
+    return result
+
+
+def _test_panel(view, operator, operand, match_all):
+    """ Does name of active panel == `operand`? """
+    result = False
+    operand_type = type(operand)
+
+    if operand_type != str:
+        print(f'_test_panel:  expected operand to be a string, got {operand_type} instead.')
+    else:
+        win = view.window()
+        panel_name = win.active_panel()
+        if panel_name:
+            result = _evaluate_test(panel_name, operator, operand)
+        else:
+            # This branch handles things when no panel is visible, so tests like:
+            # - { "key": "panel", "operator": "not_equal", "operand": 'console' }
+            #   correctly tests TRUE , and
+            # - { "key": "panel", "operator": "equal", "operand": 'console' }
+            #   correctly tests FALSE.
+            result = _evaluate_test('non-existent_panel', operator, operand)
+
+    return result
+
+
+def _test_panel_visible(view, operator, operand, match_all):
+    """ Is any panel visible? """
+    result = False
+
+    win = view.window()
+    panel_name = win.active_panel()
+    test_val = (( panel_name is not None ))
+    result = _evaluate_test(test_val, operator, operand)
+
+    return result
 
 
 # -------------------------------------------------------------------------
@@ -1221,28 +1163,28 @@ _context_tests_by_key = {
     'auto_complete_visible'    : _test_auto_complete_visible,
     'last_command'             : _test_last_command,
     'last_modifying_command'   : _test_last_modifying_command,
+    'overlay_has_focus'        : _test_overlay_has_focus,
+    'overlay_name'             : _test_overlay_name,
+    'overlay_visible'          : _test_overlay_has_focus,  # Kludge, but no other option appears possible.
+    'panel_has_focus'          : _test_panel_has_focus,
+    'panel_type'               : _test_panel_type,
     'popup_visible'            : _test_popup_visible,
     'read_only'                : _test_read_only,
     # setting.xxxx  is implemented in `_condition_test()` since its test
     # pattern is different from all the other tests.
 
     # Snippet (examines text around caret)
+    'has_next_field'           : _test_unimplemented,
+    'has_prev_field'           : _test_unimplemented,
     'has_snippet'              : _test_has_snippet,
 
     # Window
     'group_has_multiselect'    : _test_group_has_multiselect,
     'group_has_transient_sheet': _test_group_has_transient_sheet,
-    'overlay_has_focus'        : _test_overlay_has_focus,
-    'overlay_name'             : _test_overlay_name,
-    'overlay_visible'          : _test_unimplemented,
     'panel'                    : _test_panel,
-    'panel_has_focus'          : _test_panel_has_focus,
     'panel_visible'            : _test_panel_visible,
-    'panel_type'               : _test_panel_type,
 
-    # Unimplemented
-    'has_next_field'           : _test_unimplemented,
-    'has_prev_field'           : _test_unimplemented,
+    # Application
     'is_recording_macro'       : _test_unimplemented,
 }
 
