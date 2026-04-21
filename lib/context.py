@@ -137,7 +137,7 @@ import importlib
 import pprint
 from datetime import datetime
 from enum import IntFlag, IntEnum
-from typing import Tuple, List
+from typing import Tuple, List, Union
 from xml.etree import ElementTree as ET
 import sublime
 from sublime import QueryOperator
@@ -187,6 +187,46 @@ _operator_codes_by_name = {
     "regex_contains"    : QueryOperator.REGEX_CONTAINS,
     "not_regex_contains": QueryOperator.NOT_REGEX_CONTAINS,
 }
+
+# These lists of strings are used to compare against the current View's
+# ``view.element()`` string, which is returned when the View is a member of
+# a Panel or Overlay instead of a Sheet.  Specifically, it returns:
+#
+# ``None`` for normal views that are part of a `Sheet`.  For Views that
+# are part of the UI, a string is returned from the following list:
+#
+# - "console:input"                - Console input.
+# - "goto_anything:input"          - Input for the Goto Anything overlay.
+# - "command_palette:input"        - Input for the Command Palette overlay.
+# - "find:input"                   - Input for the Find panel.
+# - "incremental_find:input"       - Input for the Incremental Find panel.
+# - "replace:input:find"           - Find input for the Replace panel.
+# - "replace:input:replace"        - Replace input for the Replace panel.
+# - "find_in_files:input:find"     - Find input for the Find-in-Files panel.
+# - "find_in_files:input:location" - Where input for the Find-in-Files panel.
+# - "find_in_files:input:replace"  - Replace input for the Find-in-Files panel.
+# - "find_in_files:output"         - Output for Find-in-Files (buffer or output panel).
+# - "input:input"                  - Input for the Input panel.
+# - "exec:output"                  - Output for the exec command.
+# - "output:output"                - A general output panel.
+#
+# The console output, indexer status output and license input controls
+# are not accessible via the API.
+_panel_view_element_detection_list = [
+    'console:',
+    'find:',
+    'incremental_find:',
+    'replace:',
+    'find_in_files:',
+    'input:',
+    'exec:',
+    'output:',
+]
+
+_overlay_view_element_detection_list = [
+    'goto_anything:',
+    'command_palette:',
+]
 
 # Debugging?  This is one of the rare situations where debugging
 # and validation/verification is done at module load time.
@@ -347,9 +387,11 @@ def _on_qry_context_listeners():
             if debugging:
                 print(f'  Keeping >>>>:  {resource}')
             if is_view_event_listener_subclass:
-                # These have to be re-instantiated with the current view
-                # before each Key-Binding Report so that they are looking
-                # at the correct context.
+                # These have to be instantiated with the current View.
+                # However, these Views are replaced if the current View has
+                # changed before running each Report so they have the
+                # correct View when their `on_query_context()` functions
+                # are being called.
                 view_event_listener_count += 1
                 listener = attribute(curr_view)
             else:
@@ -388,8 +430,6 @@ def _snippet_triggers_dictionary():
     st_modules = [".sublime", ".sublime_plugin", ".sublime_types"]
 
     resources = sublime.find_resources("*.sublime-snippet")
-    pkgs_path = sublime.packages_path()
-    curr_view = sublime.active_window().active_view()
     has_content_count = 0
     has_trigger_count = 0
     has_scope_count = 0
@@ -885,6 +925,14 @@ def _test_has_snippet(view, operator, operand, match_all):
 
 # -------------------------------------------------------------------------
 # Window Logic
+#
+# 'overlay_has_focus'        : _test_unimplemented,
+# 'overlay_name'             : _test_unimplemented,
+# 'overlay_visible'          : _test_unimplemented,
+# 'panel'                    : _test_unimplemented,
+# 'panel_has_focus'          : _test_unimplemented,
+# 'panel_visible'            : _test_unimplemented,
+# 'panel_type'               : _test_unimplemented,
 # -------------------------------------------------------------------------
 
 def _group_for_view(view) -> int:
@@ -926,6 +974,7 @@ def _test_group_has_transient_sheet(view, operator, operand, match_all):
 
 
 def _test_panel(view, operator, operand, match_all):
+    """ Does name of active panel == `operand`? """
     result = False
     operand_type = type(operand)
 
@@ -943,6 +992,104 @@ def _test_panel(view, operator, operand, match_all):
             # - { "key": "panel", "operator": "equal", "operand": 'console' }
             #   correctly tests FALSE.
             result = _evaluate_test('non-existent_panel', operator, operand)
+
+    return result
+
+
+def _test_panel_or_overlay_has_focus(
+            test_list: List[str],
+            view     : sublime.View,
+            operator : str,
+            operand  : Union[str, int, bool],
+            match_all: bool
+            ):
+    """ Does any panel or any overlay have focus?
+
+    Which (panel or overlay) is determined by ``test_list``.
+    See ``_panel_view_element_detection_list`` and
+    ``_overlay_view_element_detection_list`` to see why.
+
+    This logic supports all of these possible context conditions:
+    - {"key": "panel_has_focus"}
+    - {"key": "panel_has_focus", "operator": "equal", "operand": true}
+    - {"key": "panel_has_focus", "operator": "equal", "operand": false}
+    - {"key": "panel_has_focus", "operator": "not_equal", "operand": true}
+    - {"key": "panel_has_focus", "operator": "not_equal", "operand": false}
+    - {"key": "overlay_has_focus"}
+    - {"key": "overlay_has_focus", "operator": "equal", "operand": true}
+    - {"key": "overlay_has_focus", "operator": "equal", "operand": false}
+    - {"key": "overlay_has_focus", "operator": "not_equal", "operand": true}
+    - {"key": "overlay_has_focus", "operator": "not_equal", "operand": false}
+    """
+    result   = False
+    test_val = False
+    element  = view.element()
+    if debugging:
+        print('In _test_panel_or_overlay_has_focus()....')
+        print(f'  {test_list=}')
+        print(f'  {view=}')
+        print(f'  {operator=}')
+        print(f'  {operand=}')
+        print(f'  {match_all=}')
+        print(f'  {element=}')
+
+    if element:
+        for pdstr in test_list:
+            if pdstr in element:
+                test_val = True
+                break
+
+    result = _evaluate_test(test_val, operator, operand)
+
+    return result
+
+
+def _test_panel_has_focus(view, operator, operand, match_all):
+    """ Does any panel have focus?
+
+    This logic supports all of these possible context conditions:
+    - {"key": "panel_has_focus"}
+    - {"key": "panel_has_focus", "operator": "equal", "operand": true}
+    - {"key": "panel_has_focus", "operator": "equal", "operand": false}
+    - {"key": "panel_has_focus", "operator": "not_equal", "operand": true}
+    - {"key": "panel_has_focus", "operator": "not_equal", "operand": false}
+    """
+    return _test_panel_or_overlay_has_focus(
+            _panel_view_element_detection_list,
+            view,
+            operator,
+            operand,
+            match_all
+            )
+
+
+def _test_overlay_has_focus(view, operator, operand, match_all):
+    """ Does any panel have focus?
+
+    This logic supports all of these possible context conditions:
+    - {"key": "overlay_has_focus"}
+    - {"key": "overlay_has_focus", "operator": "equal", "operand": true}
+    - {"key": "overlay_has_focus", "operator": "equal", "operand": false}
+    - {"key": "overlay_has_focus", "operator": "not_equal", "operand": true}
+    - {"key": "overlay_has_focus", "operator": "not_equal", "operand": false}
+    """
+    return _test_panel_or_overlay_has_focus(
+            _overlay_view_element_detection_list,
+            view,
+            operator,
+            operand,
+            match_all
+            )
+
+
+def _test_panel_visible(view, operator, operand, match_all):
+    """ Is any panel visible? """
+    result = False
+
+    win = view.window()
+    panel_name = win.active_panel()
+    test_val = (( panel_name is not None ))
+    result = _evaluate_test(test_val, operator, operand)
 
     return result
 
@@ -994,12 +1141,12 @@ _context_tests_by_key = {
     # Window
     'group_has_multiselect'    : _test_group_has_multiselect,
     'group_has_transient_sheet': _test_group_has_transient_sheet,
-    'overlay_has_focus'        : _test_unimplemented,
+    'overlay_has_focus'        : _test_overlay_has_focus,
     'overlay_name'             : _test_unimplemented,
     'overlay_visible'          : _test_unimplemented,
     'panel'                    : _test_panel,
-    'panel_has_focus'          : _test_unimplemented,
-    'panel_visible'            : _test_unimplemented,
+    'panel_has_focus'          : _test_panel_has_focus,
+    'panel_visible'            : _test_panel_visible,
     'panel_type'               : _test_unimplemented,
 
     # Unimplemented
