@@ -228,6 +228,13 @@ _overlay_view_element_detection_list = [
     'command_palette:',
 ]
 
+_find_panel_type_detection_list = [
+    'find:',
+    'incremental_find:',
+    'replace:',
+    'find_in_files:',
+]
+
 # Debugging?  This is one of the rare situations where debugging
 # and validation/verification is done at module load time.
 debugging = is_debugging(DebugBits.LOADING_CONTEXT_ENV)
@@ -621,6 +628,25 @@ def _curr_word_for_snippet(view, rgn):
     return result
 
 
+def _view_element_found_in_list(view, test_list: List[str]):
+    """ Do any of ``test_list`` strings appear in ``view.element()``? """
+    result   = False
+    element  = view.element()
+    if debugging:
+        print('In _view_element_found_in_list()....')
+        print(f'  {view=}')
+        print(f'  {test_list=}')
+        print(f'  {element=}')
+
+    if element:
+        for pdstr in test_list:
+            if pdstr in element:
+                result = True
+                break
+
+    return result
+
+
 # =========================================================================
 # Standard Context Test Functions
 # =========================================================================
@@ -973,6 +999,20 @@ def _test_group_has_transient_sheet(view, operator, operand, match_all):
     return result
 
 
+def _test_overlay_has_focus(view, operator, operand, match_all):
+    """ Does any panel have focus?
+
+    This logic supports all of these possible context conditions:
+    - {"key": "overlay_has_focus"}
+    - {"key": "overlay_has_focus", "operator": "equal", "operand": true}
+    - {"key": "overlay_has_focus", "operator": "equal", "operand": false}
+    - {"key": "overlay_has_focus", "operator": "not_equal", "operand": true}
+    - {"key": "overlay_has_focus", "operator": "not_equal", "operand": false}
+    """
+    test_val = _view_element_found_in_list(view, _overlay_view_element_detection_list)
+    return _evaluate_test(test_val, operator, operand)
+
+
 def _test_panel(view, operator, operand, match_all):
     """ Does name of active panel == `operand`? """
     result = False
@@ -996,7 +1036,81 @@ def _test_panel(view, operator, operand, match_all):
     return result
 
 
-def _test_panel_or_overlay_has_focus(
+def _test_panel_has_focus(view, operator, operand, match_all):
+    """ Does any panel have focus?
+
+    This logic supports all of these possible context conditions:
+    - {"key": "panel_has_focus"}
+    - {"key": "panel_has_focus", "operator": "equal", "operand": true}
+    - {"key": "panel_has_focus", "operator": "equal", "operand": false}
+    - {"key": "panel_has_focus", "operator": "not_equal", "operand": true}
+    - {"key": "panel_has_focus", "operator": "not_equal", "operand": false}
+    """
+    test_val = _view_element_found_in_list(view, _panel_view_element_detection_list)
+    return _evaluate_test(test_val, operator, operand)
+
+
+
+def _test_panel_visible(view, operator, operand, match_all):
+    """ Is any panel visible? """
+    result = False
+
+    win = view.window()
+    panel_name = win.active_panel()
+    test_val = (( panel_name is not None ))
+    result = _evaluate_test(test_val, operator, operand)
+
+    return result
+
+
+def _test_panel_type(view, operator, operand, match_all):
+    """
+    Is the type of the Panel with focus a match with ``operator`` and ``operand``?
+
+    Used with key bindings like this:
+
+    { "keys": ["alt+c"], "command": "toggle_case_sensitive", "context":
+        [{"key": "panel_type", "operand": "find"}, {"key": "panel_has_focus"}],
+    },
+    { "keys": ["enter"], "command": "select", "context":
+        [
+            { "key": "panel_has_focus", "operator": "equal", "operand": true },
+            { "key": "panel_type", "operand": "input"},
+        ],
+    },
+
+    Possible choices:
+
+    - "input" = any panel created by ``window.create_io_panel()``
+    - "find"  = any input View on any of these Panels:
+
+        Find
+        Find-in-Files
+        Replace
+        Incremental Find
+
+    - "output" = output of a Build System, but not of the console, likely
+                 any panel created with ``window.create_output_panel()``
+    """
+    result = False
+
+    if operand == 'input':
+        found = _view_element_found_in_list(view, ['input:'])
+        if found:
+            result = _evaluate_test('input', operator, operand)
+    elif operand == 'find':
+        found = _view_element_found_in_list(view, _find_panel_type_detection_list)
+        if found:
+            result = _evaluate_test('find', operator, operand)
+    elif operand == 'output':
+        found = _view_element_found_in_list(view, [':output'])
+        if found:
+            result = _evaluate_test('output', operator, operand)
+
+    return result
+
+
+def _test_panel_type_found_in_list(
             test_list: List[str],
             view     : sublime.View,
             operator : str,
@@ -1025,7 +1139,7 @@ def _test_panel_or_overlay_has_focus(
     test_val = False
     element  = view.element()
     if debugging:
-        print('In _test_panel_or_overlay_has_focus()....')
+        print('In _view_element_found_in_list()....')
         print(f'  {test_list=}')
         print(f'  {view=}')
         print(f'  {operator=}')
@@ -1044,54 +1158,6 @@ def _test_panel_or_overlay_has_focus(
     return result
 
 
-def _test_panel_has_focus(view, operator, operand, match_all):
-    """ Does any panel have focus?
-
-    This logic supports all of these possible context conditions:
-    - {"key": "panel_has_focus"}
-    - {"key": "panel_has_focus", "operator": "equal", "operand": true}
-    - {"key": "panel_has_focus", "operator": "equal", "operand": false}
-    - {"key": "panel_has_focus", "operator": "not_equal", "operand": true}
-    - {"key": "panel_has_focus", "operator": "not_equal", "operand": false}
-    """
-    return _test_panel_or_overlay_has_focus(
-            _panel_view_element_detection_list,
-            view,
-            operator,
-            operand,
-            match_all
-            )
-
-
-def _test_overlay_has_focus(view, operator, operand, match_all):
-    """ Does any panel have focus?
-
-    This logic supports all of these possible context conditions:
-    - {"key": "overlay_has_focus"}
-    - {"key": "overlay_has_focus", "operator": "equal", "operand": true}
-    - {"key": "overlay_has_focus", "operator": "equal", "operand": false}
-    - {"key": "overlay_has_focus", "operator": "not_equal", "operand": true}
-    - {"key": "overlay_has_focus", "operator": "not_equal", "operand": false}
-    """
-    return _test_panel_or_overlay_has_focus(
-            _overlay_view_element_detection_list,
-            view,
-            operator,
-            operand,
-            match_all
-            )
-
-
-def _test_panel_visible(view, operator, operand, match_all):
-    """ Is any panel visible? """
-    result = False
-
-    win = view.window()
-    panel_name = win.active_panel()
-    test_val = (( panel_name is not None ))
-    result = _evaluate_test(test_val, operator, operand)
-
-    return result
 
 
 # -------------------------------------------------------------------------
@@ -1147,7 +1213,7 @@ _context_tests_by_key = {
     'panel'                    : _test_panel,
     'panel_has_focus'          : _test_panel_has_focus,
     'panel_visible'            : _test_panel_visible,
-    'panel_type'               : _test_unimplemented,
+    'panel_type'               : _test_panel_type,
 
     # Unimplemented
     'has_next_field'           : _test_unimplemented,
