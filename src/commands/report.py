@@ -30,7 +30,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             edit            : sublime.Edit,
             key_groups      : Optional[Iterable[data.KeyGroup]] = None,
             key_names       : Optional[Iterable[str]] = None,
-            keys_list       : Optional[Iterable[Iterable[str]]] = None,
+            keypress_list   : Optional[Iterable[Iterable[str]]] = None,
             packages        : Optional[Iterable[str]] = None,
             limit_to_context: Optional[bool] = False,
             format          : Format   = Format.OUTLINED,
@@ -38,15 +38,15 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             ):
         r"""
         Generate Key-Binding Report in format `format`, limited by `packages`,
-        `key_groups` and `keys_list`.
+        `key_groups` and `keypress_list`.
 
-        Precondition:   ``packages``, ``key_groups``, ``key_names`` and ``keys_list``
+        Precondition:   ``packages``, ``key_groups``, ``key_names`` and ``keypress_list``
                         must each be a list, set, tuple or ``None``.
 
         All of these arguments serve to LIMIT the output of the report.
         - packages,
         - key_names,
-        - keys_list, and
+        - keypress_list, and
         - limit_to_context
 
         Omit them or pass ``None`` to intentionally remove limits in that
@@ -66,7 +66,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                             the other key groups.
 
                             ``None`` or ``[]`` when the only keys that should
-                            be included are in ``key_names`` and ``keys_list``.
+                            be included are in ``key_names`` and ``keypress_list``.
 
                             To get all individual keypresses plus all
                             multi-keypress key sequences, pass
@@ -78,7 +78,8 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                             honored if found in ``core.all_key_names``.
                             ``None`` or ``[]`` when key names are not limited.
 
-        :param keys_list:   List, tuple or set of "keys" (same format
+        :param keypress_list:
+                            List, tuple or set of "keys" (same format
                             as "keys" elements from JSON key bindings,
                             embedded in an outer list) e.g.
 
@@ -126,10 +127,10 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                 //     SYMBOL_KEYS    =  3  #   /
                 //     NAMED_KEYS     =  4  #  /
                 //     KEYPAD_KEYS    =  5  # /
-                "key_groups": [1],
-                "key_names": ["q", "w", "e", "s"],
-                "keys_list": [["ctrl+p"], ["ctrl+shift+p"], ["ctrl+k", "ctrl+u"]],
-                "packages": ["Default"],
+                "key_groups"   : [1],
+                "key_names"    : ["q", "w", "e", "s"],
+                "keypress_list": [["ctrl+p"], ["ctrl+shift+p"], ["ctrl+k", "ctrl+u"]],
+                "packages"     : ["Default"],
 
                 // class Format(IntEnum):
                 //     # Formats supported by Generator
@@ -153,7 +154,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         },
 
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | Description                   |packages   |key_groups   |key_names | keys_list                              |
+        | Description                   |packages   |key_groups   |key_names | keypress_list                          |
         +===============================+===========+=============+==========+========================================+
         | By Package:  output all key   |['pkgname']| None or []  |None or []| None or []                             |
         | bindings contained in Package |           |             |          |                                        |
@@ -176,7 +177,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         | By specified ``KeyGroup``     |['pkgname']|[F_KEYS, ...]|None or []| None or []                             |
         | limited to a Package.         |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified ``keys_list``    |None or [] | None or []  |None or []|[["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]]|
+        | By specified ``keypress_list``|None or [] | None or []  |None or []|[["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]]|
         | for all Packages.             |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
         """
@@ -191,7 +192,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             print('In KeyBindingReportCommand.run()...')
             print(f'  {key_groups=}')
             print(f'  {key_names=}')
-            print(f'  {keys_list=}')
+            print(f'  {keypress_list=}')
             print(f'  {packages=}')
             print(f'  {limit_to_context=}')
             print(f'  {format=}')
@@ -205,7 +206,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         else:
             view = None
 
-        key_data.generate(key_groups, key_names, keys_list, packages, view)
+        key_data.generate(key_groups, key_names, keypress_list, packages, view)
         t1 = datetime.now()
 
         tgt_file = r'r:\by_main_key.txt'

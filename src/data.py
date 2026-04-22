@@ -8,7 +8,7 @@ Usage:
 
     key_groups       = [KeyGroup.NUMBERS]
     key_names        = ["q", "w", "a", "s"]
-    keys_list        = [["ctrl+p"], ["ctrl+shift+p"], ["ctrl+k", "ctrl+u"]]
+    keypress_list    = [["ctrl+p"], ["ctrl+shift+p"], ["ctrl+k", "ctrl+u"]]
     packages         = ["Default"]
     limit_to_context = False
 
@@ -18,7 +18,7 @@ Usage:
         view = None
 
     key_data = KeyBindingData()
-    key_data.generate(key_groups, key_names, keys_list, packages, view)
+    key_data.generate(key_groups, key_names, keypress_list, packages, view)
 
 Each time ``key_data.generate()`` is called produces a new data set.
 No memory of the previous call remains.
@@ -292,18 +292,18 @@ class KeyBindingData:
         self._debugging_building_key_seq_dict  = is_debugging(DebugBits.BUILDING_KEY_SEQ_DICT)
 
     def generate(self,
-            key_groups      : Optional[Iterable[KeyGroup]] = None,
-            key_names       : Optional[Iterable[str]] = None,
-            keys_list       : Optional[Iterable[Iterable[str]]] = None,
-            packages        : Optional[Iterable[str]] = None,
-            view            : sublime.View = None
+            key_groups   : Optional[Iterable[KeyGroup]] = None,
+            key_names    : Optional[Iterable[str]] = None,
+            keypress_list: Optional[Iterable[Iterable[str]]] = None,
+            packages     : Optional[Iterable[str]] = None,
+            view         : sublime.View = None
             ):
         r"""
         Generate Key-Binding data, based on argument values provided, if any.
-        ``key_groups``, ``key_names``, ``keys_list`` are added together, any
+        ``key_groups``, ``key_names``, ``keypress_list`` are added together, any
         overlap removed, and then limited by ``packages``.
 
-        Precondition:   ``key_groups``, ``key_names``, ``keys_list`` and ``packages``
+        Precondition:   ``key_groups``, ``key_names``, ``keypress_list`` and ``packages``
                         must each be a list, set, tuple or ``None``.
 
         Parameters:
@@ -315,7 +315,7 @@ class KeyBindingData:
                             groups to the data gathered.  ``KeyGroup.ALL`` is
                             equivalent to specifying all the other key groups.
                             ``None`` or ``[]`` when the only keys that should
-                            be included are in ``key_names`` and ``keys_list``.
+                            be included are in ``key_names`` and ``keypress_list``.
 
         :param key_names:   List of individual key names.  Each key in this list
                             specifies including all possible key-modifier
@@ -324,7 +324,8 @@ class KeyBindingData:
                             ``all_key_names``.
                             ``None`` or ``[]`` when not applicable.
 
-        :param keys_list:   List of "keys" (same format as "keys" elements
+        :param keypress_list:
+                            List of "keys" (same format as "keys" elements
                             from JSON key bindings) e.g.
 
                                 [["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]].
@@ -360,7 +361,7 @@ class KeyBindingData:
 
         key_groups       = [KeyGroup.NUMBERS]
         key_names        = ["q", "w", "a", "s"]
-        keys_list        = [["ctrl+p"], ["ctrl+shift+p"], ["ctrl+k", "ctrl+u"]]
+        keypress_list    = [["ctrl+p"], ["ctrl+shift+p"], ["ctrl+k", "ctrl+u"]]
         packages         = ["Default"]
         limit_to_context = True
 
@@ -370,7 +371,7 @@ class KeyBindingData:
             view = None
 
         key_data = KeyBindingData()
-        key_data.generate(key_groups, key_names, keys_list, packages, view)
+        key_data.generate(key_groups, key_names, keypress_list, packages, view)
 
         class KeyGroup(IntEnum):
             # Non-negative values index into ``key_name_groups``.
@@ -396,7 +397,7 @@ class KeyBindingData:
             ANY                           = 0b11111111
 
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | Description                   |packages   |key_groups   |key_names | keys_list                              |
+        | Description                   |packages   |key_groups   |key_names | keypress_list                          |
         +===============================+===========+=============+==========+========================================+
         | By Package:  output all key   |['pkgname']| None or []  |None or []| None or []                             |
         | bindings contained in Package |           |             |          |                                        |
@@ -419,7 +420,7 @@ class KeyBindingData:
         | By specified ``KeyGroup``     |['pkgname']|[F_KEYS, ...]|None or []| None or []                             |
         | limited to a Package.         |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified ``keys_list``    |None or [] | None or []  |None or []|[["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]]|
+        | By specified ``keypress_list``|None or [] | None or []  |None or []|[["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]]|
         | for all Packages.             |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
 
@@ -427,7 +428,7 @@ class KeyBindingData:
         How conflicts in input-limiting arguments are resolved:
         -------------------------------------------------------
         1.  Each list provided has duplicates removed.  Part of doing that
-            for ``keys_list`` if present is converting its elements to
+            for ``keypress_list`` if present is converting its elements to
             tuples so they can more efficiently have duplicates removed
             since tuples can use operators like `==`, `!=`, `in` and be
             keys in dictionaries.  In doing so create:
@@ -474,7 +475,7 @@ class KeyBindingData:
             include_key_name_set = Unique list of accepted key
             names based on ``key_groups``.
 
-        If ``keys_list`` was provided, ``keys_tuples_set`` is created from it.
+        If ``keypress_list`` was provided, ``keys_tuples_set`` is created from it.
             The above conflict/overlap resolution removed anything already
             covered by other arguments.  If there is nothing left, then
             ``keys_tuples_set`` is set to ``None``.
@@ -502,14 +503,14 @@ class KeyBindingData:
             if not self._is_list_tuple_or_set(key_groups):
                 msg = core.arg_type_error_message(key_groups, 'key_groups', req_type, after_msg)
                 raise TypeError(msg)
-        if keys_list:
-            if not self._is_list_tuple_or_set(keys_list):
-                msg = core.arg_type_error_message(keys_list, 'keys_list', req_type, after_msg)
+        if keypress_list:
+            if not self._is_list_tuple_or_set(keypress_list):
+                msg = core.arg_type_error_message(keypress_list, 'keypress_list', req_type, after_msg)
                 raise TypeError(msg)
             # If execution arrives here, then we need to also test its members.
-            for keypresses in keys_list:
+            for keypresses in keypress_list:
                 if not self._is_list_tuple_or_set(keypresses):
-                    msg = f'  Each of the keypresses in `keys_list` arg must be a {req_type}.' \
+                    msg = f'  Each of the keypresses in `keypress_list` arg must be a {req_type}.' \
                           f'  At least 1 was type {type(keypresses)}.{after_msg}'
                     raise TypeError(msg)
         if packages:
@@ -521,7 +522,7 @@ class KeyBindingData:
         # Remove duplicates from limiting args, pursuant to:
         #
         # 1.  Each list provided has duplicates removed.  Part of doing that
-        #     for ``keys_list`` if present is converting its elements to
+        #     for ``keypress_list`` if present is converting its elements to
         #     tuples so they can more efficiently have duplicates removed
         #     since tuples can use operators like `==`, `!=`, `in` and be
         #     keys in dictionaries.
@@ -534,17 +535,17 @@ class KeyBindingData:
             key_names = set(key_names)
 
         keys_tuples_set = None
-        if keys_list:
+        if keypress_list:
             # Remember:  this is a Iterable of Iterables, e.g.
             # [["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]].
             # Lists cannot be used in sets or as dictionary keys.  So we need
             # to convert its items to tuples regardless of how many there are.
-            # And we need to later assume ``keys_list`` is a set.
+            # And we need to later assume ``keypress_list`` is a set.
             # VITAL:  it's vital that `keys_tuples_set` contains TUPLES since
             # tuples can use operators like `==`, `!=`, `in` and be keys
             # in dictionaries!
             keys_tuples_set = set()
-            for keypresses in keys_list:
+            for keypresses in keypress_list:
                 keys_tuples_set.add(tuple(keypresses))
 
         if packages and type(packages) != set:
@@ -1030,7 +1031,7 @@ class KeyBindingData:
                             if debugging:
                                 print(f'  Excluding {keypress_tuple_bep} because:\n'
                                         f'    - that key_name was neither in `key_names` nor `key_groups`, and\n'
-                                        f'    - that keypress was not in `keys_list`.'
+                                        f'    - that keypress was not in `keypress_list`.'
                                         )
                             continue
                     else:
@@ -1038,7 +1039,7 @@ class KeyBindingData:
                         if debugging:
                             print(f'  Excluding {keypress_tuple_bep} because:\n'
                                     f'    - that key_name was neither in `key_names` nor `key_groups`, and\n'
-                                    f'    - that keypress was not in `keys_list`.'
+                                    f'    - that keypress was not in `keypress_list`.'
                                     )
                         continue
 
@@ -1055,7 +1056,7 @@ class KeyBindingData:
                             if debugging:
                                 print(f'  Excluding {keypress_tuple_bep} because:\n'
                                         f'    - KEY_SEQUENCES was not in `key_groups`,\n'
-                                        f'    - that keypress sequence was not in `keys_list`.'
+                                        f'    - that keypress sequence was not in `keypress_list`.'
                                         )
                             continue
                     else:
@@ -1063,7 +1064,7 @@ class KeyBindingData:
                         if debugging:
                             print(f'  Excluding {keypress_tuple_bep} because:\n'
                                     f'    - KEY_SEQUENCES was not in `key_groups`, and\n'
-                                    f'    - that keypress sequence was not in `keys_list`.'
+                                    f'    - that keypress sequence was not in `keypress_list`.'
                                     )
                         continue
 

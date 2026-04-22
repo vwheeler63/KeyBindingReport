@@ -183,11 +183,13 @@
 		"command": "key_binding_report_which_binding",
 	},
 
-// packages  : str      = ['Default'],
-// key_groups: KeyGroup = [KeyGroup.F_KEYS],
-// keys_list : str      = [],
-// format    : Format   = Format.OUTLINED,
-// flags     : int      = 0
+// key_groups      : Optional[Iterable[data.KeyGroup]] = None,
+// key_names       : Optional[Iterable[str]] = None,
+// keypress_list   : Optional[Iterable[Iterable[str]]] = None,
+// packages        : Optional[Iterable[str]] = None,
+// limit_to_context: Optional[bool] = False,
+// format          : Format   = Format.OUTLINED,
+// flags           : FlagBits = FlagBits.SHOW_UNBOUND_KEY_COMBINATIONS
 
 
 // class FlagBits(IntFlag):

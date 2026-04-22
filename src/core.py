@@ -39,7 +39,7 @@ keys (plural)
     - ["up"]
     - ["enter"]
 
-keys_list
+keypress_list
     List[List[str]]:  a list of "keys" as defined above.  They can
     contain 0 or more "keys", and may even contain duplicate keypresses/
     keypress sequences since they may be supplied by a user calling

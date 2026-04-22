@@ -21,10 +21,10 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
     """ Generate Key-Binding Report for specified keypress. """
 
     def run(
-            self     : sublime_plugin.TextCommand,
-            edit     : sublime.Edit,
-            keys_list: List[List[str]] = [["f2"]],
-            format   : Format   = Format.OUTLINED
+            self         : sublime_plugin.TextCommand,
+            edit         : sublime.Edit,
+            keypress_list: List[List[str]] = [["f2"]],
+            format       : Format   = Format.OUTLINED
             ):
         """
         By specified key based on current scope Report binding selected the
@@ -32,18 +32,20 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
         binding where current scope matches key context.  Generate output
         in format `format`.
 
-        :param self:        KeyBindingReportCommand object connected to current View
-        :param edit:        sublime.Edit connected to current View, needed to edit Buffer
-        :param keys_list:   List, tuple or set of "keys" (same format as "keys"
-                              elements from JSON key bindings).  Note that this enables
-                              you to specify more than one "keys" value.  Example:
-                              ``[["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]]``
-        :param format:      Which output format (ascii_table.Format)
+        :param self:            KeyBindingReportCommand object connected to current View
+        :param edit:            sublime.Edit connected to current View, needed to edit Buffer
+        :param keypress_list:   List, tuple or set of "keys" (same format as "keys"
+                                  elements from JSON key bindings).  Note that this enables
+                                  you to specify more than one "keys" value.  Example:
+                                  ``[["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]]``
+        :param format:          Which output format (ascii_table.Format)
         :return:  None
         """
         print(f"It's me.... {__name__}")
         from ...lib import context
-        context.update_view_event_listeners(sublime.active_window().active_view())
+        # context._snippet_triggers_dictionary()
+        print(self.view)
+        print(self.view.element())
         return
 
         debugging = is_debugging(DebugBits.WHICH_BINDING_REPORT)
