@@ -83,9 +83,12 @@ class KeyBinding(dict):
         """
         indent = '  ' * indent_level
         if include_extra:
-            print(f'{indent}{self.pkg_name}/{self.file_name}')
+            result = f'{indent}source: {self.pkg_name}/{self.file_name}\n'
+        else:
+            result = ''
+
         cmd_as_func = self.command_as_function_repr()
-        result = f'{indent}{{ {repr(self["keys"])}, {cmd_as_func}'
+        result += f'{indent}{{ {repr(self["keys"])}, {cmd_as_func}'
 
         if self.context:
             result += '\n' + self.context.format_context(indent_level + 1)

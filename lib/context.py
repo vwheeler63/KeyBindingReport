@@ -1358,8 +1358,9 @@ class Context(list):
                         longest_op_len = op_len
 
             # Now generate indented formatted strings.
+            cond_lines = []
             for condition in self.conditions:
-                lines.append(
+                cond_lines.append(
                         condition.format_condition(
                                 longest_key_len,
                                 longest_op_len,
@@ -1367,6 +1368,7 @@ class Context(list):
                                 )
                         )
 
+            lines.append( ',\n'.join(cond_lines) )
             lines.append(f'{indent}]')
         else:
             lines[0] += ']'

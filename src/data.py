@@ -20,6 +20,9 @@ Usage:
     key_data = KeyBindingData()
     key_data.generate(key_groups, key_names, keypress_list, packages, view)
 
+    # From this point forward, ``key_data`` carries all the data needed
+    # to generate any type variety of reports and tests on key-bindings.
+
 Each time ``key_data.generate()`` is called produces a new data set.
 No memory of the previous call remains.
 """
@@ -58,10 +61,10 @@ key_name_groups = [
     # F_KEYS      == 2
     ['f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12','f13','f14','f15','f16','f17','f18','f19','f20'],
     # SYMBOL_KEYS == 3
-    [',','.','\\','/',';',"'",'`','-','=','[',']',       # OK with or w/o key modifiers. (Unshifted)
-            '"', '(', ')', '[', ']', '{', '}', '`',      # Only w/o key modifiers.       (Shifted)
-            '~', '!', '@', '#', '$', '%', '^', '&',      # Only w/o key modifiers.       (Shifted)
-            '*', '_', '+', '|', ':', '"', '<', '>', '?'  # Only w/o key modifiers.       (Shifted)
+    ["'",',','-','.','/',';','=','[','\\',']','`',  # OK with or w/o key modifiers. (Unshifted)
+            '!','"','#','$','%','&','(',            # Only w/o key modifiers.       (Shifted)
+            ')','*','+',':','<','>','?',            # Only w/o key modifiers.       (Shifted)
+            '@','^','_','{','|','}','~',            # Only w/o key modifiers.       (Shifted)
             ],
             # The last 3 rows are added because these "bare" keypresses (i.e. having
             # no ctrl/alt/shift key modifiers) are 100% bind-able in Sublime Text
@@ -144,6 +147,28 @@ def main_key_and_modifier_code(keypress_str: str) -> Tuple[str, int]:
     return main_key_name, key_modifier_code
 
 
+def modifier_repr(key_modifier_code: int) -> str:
+    modifiers = []
+    if key_modifier_code & ModifierKeyBits.CTRL:
+        modifiers.append('ctrl')
+    if key_modifier_code & ModifierKeyBits.ALT:
+        modifiers.append('alt')
+    if key_modifier_code & ModifierKeyBits.SHIFT:
+        modifiers.append('shift')
+    return '+'.join(modifiers)
+
+
+def keypress_repr(main_key_name: str, key_modifier_code: int) -> List[str]:
+    if key_modifier_code:
+        mod_repr = modifier_repr(key_modifier_code)
+        keypr_repr = f'{mod_repr}+{main_key_name}'
+    else:
+        keypr_repr = f'{main_key_name}'
+
+    result = f'[{keypr_repr}]'
+    return result
+
+
 def encoded_keypress_from_components(main_key_name: str, key_modifier_code: int) -> int:
     """
     Encoded keypress from `main_key_name` and `key_modifier_code`.
@@ -218,8 +243,8 @@ class ReportKeyBinding(key_binding.KeyBinding):
         # Incorporate contents of `decoded_key_binding` into `self`.
         super().__init__(decoded_key_binding, pkg_name, file_name)
         # Store extra data for report.
-        self.pkg_name     = pkg_name
-        self.file_name    = file_name
+        self.pkg_name  = pkg_name
+        self.file_name = file_name
 
     def __repr__(self):
         """
@@ -290,6 +315,46 @@ class KeyBindingData:
         self._debugging_filtering_stage_ii     = is_debugging(DebugBits.FILTERING_STAGE_II)
         self._debugging_building_main_key_dict = is_debugging(DebugBits.BUILDING_MAIN_KEY_DICT)
         self._debugging_building_key_seq_dict  = is_debugging(DebugBits.BUILDING_KEY_SEQ_DICT)
+
+    def __repr__(self) -> str:
+        components = []
+        append = components.append
+        indent_level = 4
+        indent = '  ' * indent_level
+        sort_dicts = False
+
+        if sort_dicts:
+            items = sorted(self.mdictByMainKey.items())
+        else:
+            items = self.mdictByMainKey.items()
+
+        for main_key_name, key_mod_list in items:
+            krepr = repr(main_key_name)
+
+            # Is key_mod_list comprised of all `None` values?
+            all_none_value = not any(key_mod_list)
+
+            # Populate `vrepr`.
+            if all_none_value:
+                vrepr = repr(key_mod_list)
+            else:
+                binding_list_items = []
+                for i, binding_list in enumerate(key_mod_list):
+                    if binding_list is None:
+                        binding_list_items.append(f'{indent}None')
+                    else:
+                        bindings = []
+                        for binding in binding_list:
+                            bindings.append( binding.format_binding(indent_level + 1, True) )
+                        bindings_list_repr = ',\n'.join(bindings)
+                        binding_list_items.append(f'{indent}[\n{bindings_list_repr}\n{indent}]')
+
+                binding_list_items_repr = ',\n'.join(binding_list_items)
+                vrepr = f'[\n{binding_list_items_repr}\n      ]'
+
+            append("%s: %s" % (krepr, vrepr))
+
+        return "{%s}" % ",\n ".join(components)
 
     def generate(self,
             key_groups   : Optional[Iterable[KeyGroup]] = None,
@@ -386,8 +451,8 @@ class KeyBindingData:
             KEYPAD_KEYS    =  5  # /
 
         class FlagBits(IntFlag):
-            SHOW_UNBOUND_KEY_COMBINATIONS = 0b00000001
-            SHOW_PACKAGE_NAME             = 0b00000010
+            INCLUDE_UNBOUND_KEY_COMBINATIONS = 0b00000001
+            ADD_PACKAGE_COLUMN             = 0b00000010
             ADD_COMMENTS_COLUMN           = 0b00000100
             INCLUDE_UNTRANSLATED_CONTEXTS = 0b00001000
             INCLUDE_ENGLISH_CONTEXTS      = 0b00010000
@@ -610,7 +675,7 @@ class KeyBindingData:
                 include_key_name_set.update(key_names)
 
         if debugging:
-            print('After removing overlap phase I:')
+            print('After removing arg overlap phase I:')
             print(f'  {key_names=}')
             print(f'  {include_key_name_set=}')
 
@@ -645,7 +710,7 @@ class KeyBindingData:
                         keys_tuples_set.remove(keypress_tuple)
 
         if debugging:
-            print('After removing overlap phase II:')
+            print('After removing arg overlap phase II:')
             print(f'  {keys_tuples_set=}')
             print(f'  {include_key_name_set=}')
 
@@ -698,7 +763,7 @@ class KeyBindingData:
             keys_tuples_set = None
 
         if debugging:
-            print('After removing overlap phase III:')
+            print('After removing arg overlap phase III:')
             print(f'  {incl_all_multi_key_seqs=}')
             print(f'  {keys_tuples_set=}')
 
@@ -824,6 +889,8 @@ class KeyBindingData:
 
         # For each `.sublime-keymap` file...
         for path in keymap_paths:
+            if debugging or True:
+                print(f'  {path=}')
             match = pkg_name_from_resource_path_re.search(path)
             if not match:
                 raise AssertionError(f'  >>> ERROR >>> Resource path pattern not recognized!  [{path}]')
@@ -1113,7 +1180,9 @@ class KeyBindingData:
                     ...
                 ]
         """
-        assert rpt_binding.keypress_count() > 1, f'Number of elements in `keys` expected > 1, got {rpt_binding.keypress_count()}!'
+        if not (rpt_binding.keypress_count() > 1):
+            raise AssertionError(f'Number of elements in `keys` expected > 1, got {rpt_binding.keypress_count()}!')
+
         debugging = self._debugging_building_key_seq_dict
         if debugging:
             print('In _add_binding_to_key_seq_dict()...')
@@ -1144,17 +1213,17 @@ class KeyBindingData:
                     None,   # binding list for [Alt-Ctrl-Shift-a]
                 ]
         """
+        if rpt_binding.keypress_count() != 1:
+            raise AssertionError(f'Number of elements in `keys` expected 1, got {rpt_binding.keypress_count()}!')
+        if key_name not in self.mdictByMainKey:
+            raise AssertionError(f'  ERROR!  Found key name [{key_name}] not in mdictByMainKey.')
+
         debugging = self._debugging_building_main_key_dict
         if debugging:
             print('In _add_binding_to_main_key_dict()...')
             print(f'  {key_name=}')
             print(f'  {key_mod_code=}')
             print(f'  rpt_binding={rpt_binding.format_binding(1)}')
-
-        if rpt_binding.keypress_count() != 1:
-            raise AssertionError(f'Number of elements in `keys` expected 1, got {rpt_binding.keypress_count()}!')
-        if key_name not in self.mdictByMainKey:
-            raise AssertionError(f'  ERROR!  Found key name [{key_name}] not in mdictByMainKey.')
 
         # Here we know mdictByMainKey[key_name] exists.
         by_main_key_item = self.mdictByMainKey[key_name]
