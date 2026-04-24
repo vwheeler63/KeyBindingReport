@@ -341,7 +341,7 @@ import os
 import sys
 import sublime
 from enum import IntFlag
-from ..lib.ascii_table import Format, Generator
+#from ..lib.ascii_table import Format, Generator
 from ..lib.debug import DebugBits, is_debugging, set_debugging_bits
 from ..keybindingreport import package_name
 

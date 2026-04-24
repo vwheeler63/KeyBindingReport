@@ -12,7 +12,7 @@ import sublime_plugin
 import sublime
 from sublime import Region, View
 from sublime_types import Point
-from ...lib.ascii_table import Format, Generator
+from ...lib.ascii_table import Format, AsciiTable
 from ...lib.debug import IntFlag, DebugBits, is_debugging
 from .. import core
 
@@ -24,7 +24,7 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
             self         : sublime_plugin.TextCommand,
             edit         : sublime.Edit,
             keypress_list: List[List[str]] = [["f2"]],
-            format       : Format   = Format.OUTLINED
+            format       : Format = Format.OUTLINED
             ):
         """
         By specified key based on current scope Report binding selected the
@@ -41,6 +41,10 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
         :param format:          Which output format (ascii_table.Format)
         :return:  None
         """
+        any_debugging = is_debugging(DebugBits.ANY)
+        if any_debugging:
+            print('>\n>\n>\n>')
+
         print(f"It's me.... {__name__}")
         from ...lib import context
         # context._snippet_triggers_dictionary()
