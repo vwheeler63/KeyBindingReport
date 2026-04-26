@@ -14,10 +14,22 @@ class AsciiTable():
     Tables that can generate ASCII representations of themselves
     in a variety of formats.
     """
-    __slots__ = ['table', 'row_count', 'column_count', 'max_column_widths', 'column_alignments']
+    __slots__ = [
+            'table',
+            'row_count',
+            'column_count',
+            'max_column_widths',
+            'column_alignments',
+            'tight_columns',
+            'debugging'
+            ]
 
     def __init__(self, table: List[Iterable[str]]):
+        if table is None:
+            msg = '`table` must be a list of iterables elements.  Got `None` instead.'
+            raise AssertionError(msg)
         self.table = table
+        self.debugging = False
         self._gather_metadata()
 
     def __repr__(self):
@@ -25,6 +37,26 @@ class AsciiTable():
         for i, w in enumerate(self.max_column_widths):
             result += f'  Col {i + 1} max width: {w:>2}\n'
         return result
+
+    def _gather_metadata(self):
+        """ Gather information needed about `self.table` """
+        self.row_count = len(self.table)
+        self.column_count = 0
+        self.max_column_widths = []
+
+        for row in self.table:
+            # Keep max in ``column_count`` and extend ``max_column_widths`` when needed.
+            if (col_count := len(row)) > self.column_count:
+                self.column_count = col_count
+                while (curr_cols := len(self.max_column_widths)) < col_count:
+                    self.max_column_widths.append(1)
+
+            for i, field in enumerate(row):
+                if (width := len(field)) > self.max_column_widths[i]:
+                    self.max_column_widths[i] = max(1, width)
+
+        self.column_alignments = [''] * self.column_count
+        self.tight_columns = [False] * self.column_count
 
     def set_column_alignments(self, alignment_list: Iterable[str]):
         """
@@ -46,52 +78,55 @@ class AsciiTable():
             raise AssertionError(msg)
         self.column_alignments = alignment_list
 
-    def as_string(self, fmt: Format):
+    def set_tight_columns(self, tight_col_list: Iterable[bool]):
+        """
+        Set whether each column is considered "tight".
+
+        Tight means no whitespace to the left or right of its contents.
+        """
+        if len(tight_col_list) != len(self.max_column_widths):
+            msg = f'`tight_col_list` must have {len(self.max_column_widths)} elements.  Got {len(tight_col_list)} instead.'
+            raise AssertionError(msg)
+        self.tight_columns = tight_col_list
+
+    def as_string(self, format: Format):
+        self.debugging = True
+        if self.debugging:
+            print(f'In {self.__class__.__name__}.as_string()....')
+            print(f'  {self.row_count        = }')
+            print(f'  {self.column_count     = }')
+            print(f'  {self.max_column_widths= }')
+            print(f'  {self.column_alignments= }')
+            print(f'  {self.tight_columns    = }')
+
         """ Representation of `self` as a string """
-        if fmt == Format.BARE:
+        if format == Format.BARE:
             result = self._bare_string_repr()
-        elif fmt == Format.OUTLINED:
+        elif format == Format.OUTLINED:
             result = self._outlined_string_repr()
-        elif fmt == Format.RESTRUCTUREDTEXT:
+        elif format == Format.RESTRUCTUREDTEXT:
             result = self._restructuredtext_string_repr()
         else:
             result = ''
 
         return result
 
-    def _gather_metadata(self):
-        """ Gather information needed about `self.table` """
-        self.row_count = len(self.table)
-        self.column_count = 0
-        self.max_column_widths = []
-
-        for row in self.table:
-            # Keep max in ``column_count`` and extend ``max_column_widths`` if needed.
-            if (col_count := len(row)) > self.column_count:
-                self.column_count = col_count
-                while (curr_cols := len(self.max_column_widths)) < col_count:
-                    self.max_column_widths.append(0)
-
-            for i, field in enumerate(row):
-                if (width := len(field)) > self.max_column_widths[i]:
-                    self.max_column_widths[i] = width
-
-        self.column_alignments = [''] * self.column_count
-
     def _row_separator(self, line_char: str):
         row_sep_parts = ['+']
 
-        for max_w in self.max_column_widths:
-            col_segment = line_char * (max_w + 2)
+        for i, max_w in enumerate(self.max_column_widths):
+            if self.tight_columns[i]:
+                col_segment = line_char * max_w
+            else:
+                col_segment = line_char * (max_w + 2)
+
             row_sep_parts.append(col_segment)
             row_sep_parts.append('+')
 
         return ''.join(row_sep_parts)
 
-
     def _single_line_row_separator(self):
         return self._row_separator('-')
-
 
     def _double_line_row_separator(self):
         return self._row_separator('=')
@@ -106,10 +141,15 @@ class AsciiTable():
         ActionScript             [S]       [ ]         [ ]
 
         Default column separation == 3 spaces.
+
+        Tight columns only impact this format when 2 adjacent columns
+        are both "tight".
         """
         lines = []
         line_parts = []
         col_sep = '   '
+        tight_col_sep = '  '
+        second_to_last_col_idx = self.column_count - 2
 
         for row in self.table:
             line_parts.clear()
@@ -119,7 +159,14 @@ class AsciiTable():
                 col_repr = f'{col:{self.column_alignments[i]}{self.max_column_widths[i]}}'
                 line_parts.append(col_repr)
 
-            line = col_sep.join(line_parts)
+                if i < second_to_last_col_idx:
+                    # Not last column.
+                    if self.tight_columns[i]:
+                        line_parts.append(tight_col_sep)
+                    else:
+                        line_parts.append(col_sep)
+
+            line = ''.join(line_parts)
             lines.append(line)
 
         return '\n'.join(lines)
@@ -148,9 +195,13 @@ class AsciiTable():
 
             for i, col in enumerate(row):
                 col_repr = f'{col:{self.column_alignments[i]}{self.max_column_widths[i]}}'
-                line_parts.append(' ')
-                line_parts.append(col_repr)
-                line_parts.append(' |')
+                if self.tight_columns[i]:
+                    line_parts.append(col_repr)
+                    line_parts.append('|')
+                else:
+                    line_parts.append(' ')
+                    line_parts.append(col_repr)
+                    line_parts.append(' |')
 
             line = ''.join(line_parts)
             lines.append(line)
@@ -189,9 +240,13 @@ class AsciiTable():
 
             for i, col in enumerate(row):
                 col_repr = f'{col:{self.column_alignments[i]}{self.max_column_widths[i]}}'
-                line_parts.append(' ')
-                line_parts.append(col_repr)
-                line_parts.append(' |')
+                if self.tight_columns[i]:
+                    line_parts.append(col_repr)
+                    line_parts.append('|')
+                else:
+                    line_parts.append(' ')
+                    line_parts.append(col_repr)
+                    line_parts.append(' |')
 
             line = ''.join(line_parts)
             lines.append(line)

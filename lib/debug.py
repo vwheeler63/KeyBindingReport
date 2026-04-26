@@ -205,6 +205,7 @@ class DebugBits(IntFlag):
     FILTERING_ON_CONTEXT   = 0x0100
     BUILDING_MAIN_KEY_DICT = 0x0200
     BUILDING_KEY_SEQ_DICT  = 0x0400
+    OUTPUT                 = 0x0800
 
     # ---------------------------------------------------------------------
     # Load/Reload/Import-Time Bits
@@ -239,7 +240,7 @@ class DebugBits(IntFlag):
 # output, getting away from the profuse "all at once" debug output.
 # =========================================================================
 
-_debugging: DebugBits = DebugBits.IMPORTING | DebugBits.LOADING_CONTEXT_ENV
+_debugging: DebugBits = DebugBits.IMPORTING
 _valid_debugging_string_re = None
 _cfg_debugging_print_format = '04X'
 

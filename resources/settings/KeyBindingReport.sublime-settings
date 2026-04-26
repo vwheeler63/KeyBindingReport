@@ -26,7 +26,9 @@
 	// FILTERING_ON_CONTEXT   = 0x0100
 	// BUILDING_MAIN_KEY_DICT = 0x0200
 	// BUILDING_KEY_SEQ_DICT  = 0x0400
+	// OUTPUT                 = 0x0800
 	//
+	// LOADING_CONTEXT_ENV    = 0x4000
 	// IMPORTING              = 0x8000
 	//
 	// NONE                   = 0x0000

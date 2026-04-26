@@ -31,9 +31,9 @@ class KeyBinding(dict):
         self.update(decoded_key_binding)
 
         if 'context' in decoded_key_binding:
-            self.context = context.Context(self)
+            self.smart_context = context.Context(self)
         else:
-            self.context = None
+            self.smart_context = None
 
         self.pkg_name = pkg_name
         self.file_name = file_name
@@ -90,20 +90,13 @@ class KeyBinding(dict):
         cmd_as_func = self.command_as_function_repr()
         result += f'{indent}{{ {repr(self["keys"])}, {cmd_as_func}'
 
-        if self.context:
-            result += '\n' + self.context.format_context(indent_level + 1)
+        if self.smart_context:
+            result += '\n' + self.smart_context.format_context(indent_level + 1)
             result += f'\n{indent}}}'
         else:
             result += ' }'
 
         return result
-
-    def command_as_function_repr(self) -> str:
-        command = self['command']
-        args_repr = ''
-        if 'args' in self:
-            args_repr = repr(self['args'])
-        return f'{command}({args_repr})'
 
     def keypress_count(self) -> int:
         """
@@ -120,6 +113,9 @@ class KeyBinding(dict):
     def command(self) -> str:
         return self['command']
 
+    def has_args(self) -> bool:
+        return (( 'args' in self ))
+
     def args(self) -> Optional[dict]:
         result = None
 
@@ -128,7 +124,17 @@ class KeyBinding(dict):
 
         return result
 
-    def context(self) -> Optional[list]:
+    def command_as_function_repr(self) -> str:
+        command = self['command']
+        args_repr = ''
+        if 'args' in self:
+            args_repr = repr(self['args'])
+        return f'{command}({args_repr})'
+
+    def has_context(self) -> bool:
+        return (( self.smart_context is not None ))
+
+    def decoded_context(self) -> Optional[list]:
         result = None
 
         if 'context' in self:
@@ -136,14 +142,25 @@ class KeyBinding(dict):
 
         return result
 
+    def smart_context(self) -> Optional[list]:
+        return self.smart_context
+
+    def package_name(self) -> str:
+        return self.pkg_name
+
+    def keymap_file_name(self) -> str:
+        return self.file_name
+
     def parts(self) -> Tuple[List[str], str, dict, List[dict]]:
         """
         Parts of JSON Key-Binding object, extracted as:
 
-        - keys   :  Tuple[str]   (e.g. ("alt+up"))
-        - command:  str          (e.g. 'box_drawing_draw_one_character')
-        - args   :  dict or None (e.g. {'direction': 0, 'line_count': 1})
-        - context:  List[dict]   (e.g. [{'key': 'box_drawing.ok_to_draw', 'match_all': True}])
+        - keys    :   Tuple[str]   (e.g. ("alt+up"))
+        - command :   str          (e.g. 'box_drawing_draw_one_character')
+        - args    :   dict or None (e.g. {'direction': 0, 'line_count': 1})
+        - context :   List[dict]   (e.g. [{'key': 'box_drawing.ok_to_draw', 'match_all': True}])
+        - pkg_name:   str
+        - file_name:  str
 
         Examples above use this JSON binding as input:
         {
@@ -172,5 +189,5 @@ class KeyBinding(dict):
         else:
             ctxt = None
 
-        return keys, cmd, args, ctxt
+        return keys, cmd, args, ctxt, self.pkg_name, self.file_name
 

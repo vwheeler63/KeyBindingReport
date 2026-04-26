@@ -253,7 +253,6 @@ def _on_qry_context_listeners():
     Generate and return a list of instantiated event-listener objects
     that have ``on_query_context()`` functions.
     """
-    debugging = is_debugging(DebugBits.LOADING_CONTEXT_ENV)
     if debugging:
         print('In context._on_qry_context_listeners()...:')
 
@@ -701,7 +700,6 @@ def _test_selections(test_val_func, view, operator, operand, match_all):
     :param operand:     (str | int | bool) value to compare with.
     :param match_all:   Do all selections have to evaluate TRUE?
     """
-    debugging = is_debugging(DebugBits.FILTERING_ON_CONTEXT)
     if debugging:
         print(f'    In _test_selections()...')
         print(f'      test_val_func={test_val_func.__name__}')
@@ -746,7 +744,6 @@ def _test_selections_scope(selector_pt_func, view, operator, selector, match_all
     :param selector:     (str | int | bool) scope_name to compare with.
     :param match_all:   Do all selections have to evaluate TRUE?
     """
-    debugging = is_debugging(DebugBits.FILTERING_ON_CONTEXT)
     if debugging:
         print(f'    In _test_selections_scope()...')
         print(f'      selector_pt_func={selector_pt_func.__name__}')
@@ -1132,7 +1129,6 @@ def _test_panel_visible(view, operator, operand, match_all):
 # -------------------------------------------------------------------------
 
 def _test_unimplemented(view, operator, operand, match_all):
-    debugging = is_debugging(DebugBits.FILTERING_ON_CONTEXT)
     if debugging:
         print('    >>>> UNIMPLEMENTED.')
     return False
@@ -1286,7 +1282,7 @@ class Context(list):
         :param binding:  for better debug output
         :param path:     for better debug output
         """
-        condition_list = binding.context()
+        condition_list = binding.decoded_context()
         if condition_list is None:
             raise AssertionError('`binding` "context" entry not present.')
 
@@ -1456,6 +1452,7 @@ class Context(list):
 
         :param view:  Active View (used to test if key context is applicable)
         """
+        global debugging
         debugging = is_debugging(DebugBits.FILTERING_ON_CONTEXT)
         if debugging:
             print(f'In {self.__class__.__name__}.query()...')

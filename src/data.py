@@ -125,42 +125,43 @@ def main_key_and_modifier_code(keypress_str: str) -> Tuple[str, int]:
     module docstring for details.
     """
     lsWorkingKeypress = keypress_str
-    key_modifier_code = 0
+    modifier_code = 0
 
     modifier_str = 'shift+'
     if modifier_str in lsWorkingKeypress:
-        key_modifier_code |= ModifierKeyBits.SHIFT
+        modifier_code |= ModifierKeyBits.SHIFT
         lsWorkingKeypress = lsWorkingKeypress.replace(modifier_str, '')
 
     modifier_str = 'ctrl+'
     if modifier_str in lsWorkingKeypress:
-        key_modifier_code |= ModifierKeyBits.CTRL
+        modifier_code |= ModifierKeyBits.CTRL
         lsWorkingKeypress = lsWorkingKeypress.replace(modifier_str, '')
 
     modifier_str = 'alt+'
     if modifier_str in lsWorkingKeypress:
-        key_modifier_code |= ModifierKeyBits.ALT
+        modifier_code |= ModifierKeyBits.ALT
         lsWorkingKeypress = lsWorkingKeypress.replace(modifier_str, '')
 
     main_key_name = lsWorkingKeypress
 
-    return main_key_name, key_modifier_code
+    return main_key_name, modifier_code
 
 
-def modifier_repr(key_modifier_code: int) -> str:
+def modifier_repr(modifier_code: int) -> str:
     modifiers = []
-    if key_modifier_code & ModifierKeyBits.CTRL:
+    if modifier_code & ModifierKeyBits.CTRL:
         modifiers.append('ctrl')
-    if key_modifier_code & ModifierKeyBits.ALT:
+    if modifier_code & ModifierKeyBits.ALT:
         modifiers.append('alt')
-    if key_modifier_code & ModifierKeyBits.SHIFT:
+    if modifier_code & ModifierKeyBits.SHIFT:
         modifiers.append('shift')
     return '+'.join(modifiers)
 
 
-def keypress_repr(main_key_name: str, key_modifier_code: int) -> List[str]:
-    if key_modifier_code:
-        mod_repr = modifier_repr(key_modifier_code)
+def keypress_repr(main_key_name: str, modifier_code: int) -> List[str]:
+    """ This is the reverse of ``main_key_and_modifier_code(str)``. """
+    if modifier_code:
+        mod_repr = modifier_repr(modifier_code)
         keypr_repr = f'{mod_repr}+{main_key_name}'
     else:
         keypr_repr = f'{main_key_name}'
@@ -169,13 +170,13 @@ def keypress_repr(main_key_name: str, key_modifier_code: int) -> List[str]:
     return result
 
 
-def encoded_keypress_from_components(main_key_name: str, key_modifier_code: int) -> int:
+def encoded_keypress_from_components(main_key_name: str, modifier_code: int) -> int:
     """
-    Encoded keypress from `main_key_name` and `key_modifier_code`.
+    Encoded keypress from `main_key_name` and `modifier_code`.
 
     :param main_key_name:       Official name of key, found in `all_key_names`.
                                   (See Key Names in module docstring for the list.)
-    :param key_modifier_code:   Integer representation of Ctrl+Alt+Shift key
+    :param modifier_code:   Integer representation of Ctrl+Alt+Shift key
                                   modifiers accommodating keypress.
                                   (See "key-modifier code" and "encoded keypress"
                                   in definitions in module docstring for details.)
@@ -184,7 +185,7 @@ def encoded_keypress_from_components(main_key_name: str, key_modifier_code: int)
 
     if main_key_name in key_index_by_key_name_dict:
         i = key_index_by_key_name_dict[main_key_name]
-        result = (i << 4) | key_modifier_code
+        result = (i << 4) | modifier_code
 
     return result
 
@@ -201,6 +202,41 @@ def encoded_keypress(keypress_str: str) -> int:
     """
     kn, mod_code = main_key_and_modifier_code(keypress_str)
     return encoded_keypress_from_components(kn, mod_code)
+
+
+def modifier_characters(modifier_code: int, mod_applies_char: str) -> Tuple[str, str, str]:
+    """
+    Tuple of ``mod_applies_char`` or empty strings based on ``ModifierKeyBits``
+    set in ``modifier_code``.  Example:
+
+    - '' , '' , ''  <= no modifiers
+    - 'x', '' , ''  <= Shift              modifier
+    - '' , 'x', ''  <=         Ctrl       modifier
+    - 'x', 'x', ''  <= Shift + Ctrl       modifier
+    - '' , '' , 'x' <=                Alt modifier
+    - 'x', '' , 'x' <= Shift +        Alt modifier
+    - '' , 'x', 'x' <=         Ctrl + Alt modifier
+    - 'x', 'x', 'x' <= Shift + Ctrl + Alt modifier
+
+    It is by design that this *not* be the same sequence as the modifier
+    keys appear in `.sublime-keymap` files.
+    """
+    if modifier_code & ModifierKeyBits.SHIFT:
+        S = mod_applies_char
+    else:
+        S = ''
+
+    if modifier_code & ModifierKeyBits.CTRL:
+        C = mod_applies_char
+    else:
+        C = ''
+
+    if modifier_code & ModifierKeyBits.ALT:
+        A = mod_applies_char
+    else:
+        A = ''
+
+    return S, C, A
 
 
 # =========================================================================
@@ -279,12 +315,6 @@ class ReportKeyBinding(key_binding.KeyBinding):
         """
         binding_str = self.format_binding()
         return f'<{self.__class__.__name__} pkg={self.pkg_name} {binding_str}>'
-
-    def package_name(self) -> str:
-        return self.pkg_name
-
-    def keymap_file_name(self) -> str:
-        return self.file_name
 
 
 class KeyBindingData:
@@ -889,7 +919,7 @@ class KeyBindingData:
 
         # For each `.sublime-keymap` file...
         for path in keymap_paths:
-            if debugging or True:
+            if debugging:
                 print(f'  {path=}')
             match = pkg_name_from_resource_path_re.search(path)
             if not match:
@@ -946,10 +976,10 @@ class KeyBindingData:
         populated, but must be fully represented with its empty parts.
 
         by_main_key_dict
-            "a": [
+            "a": [  <-- modifier_list
                     None,   # binding list for unmodified 'a' key
                     None,   # binding list for [Shift-a]
-                    [...],  # binding list for [Ctrl-a]
+                    [...],  # binding list for [Ctrl-a]   <-- binding_list
                     [...],  # binding list for [Ctrl-Shift-a]
                     None,   # binding list for [Alt-a]
                     None,   # binding list for [Alt-Shift-a]
@@ -1157,8 +1187,8 @@ class KeyBindingData:
             # ``view`` parameter, then exclude this key-binding if its
             # "context" entry does not match current context.
             # -------------------------------------------------------------
-            if view is not None and binding.context:
-                if not binding.context.query(view):
+            if view is not None and binding.has_context():
+                if not binding.smart_context.query(view):
                     continue
 
             # -------------------------------------------------------------

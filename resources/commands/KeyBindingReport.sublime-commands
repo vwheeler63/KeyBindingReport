@@ -189,19 +189,19 @@
 // packages        : Optional[Iterable[str]] = None,
 // limit_to_context: Optional[bool] = False,
 // format          : Format   = Format.OUTLINED,
-// flags           : FlagBits = FlagBits.SHOW_UNBOUND_KEY_COMBINATIONS
+// flags           : FlagBits = FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
 
 
 // class FlagBits(IntFlag):
-//     SHOW_UNBOUND_KEY_COMBINATIONS = 0b00000001  #   1
-//     SHOW_PACKAGE_NAME             = 0b00000010  #   2
-//     ADD_COMMENTS_COLUMN           = 0b00000100  #   4
-//     INCLUDE_UNTRANSLATED_CONTEXTS = 0b00001000  #   8
-//     INCLUDE_ENGLISH_CONTEXTS      = 0b00010000  #  16
+//     INCLUDE_UNBOUND_KEY_COMBINATIONS = 0b00000001  #   1
+//     INCLUDE_UNTRANSLATED_CONTEXTS    = 0b00000010  #   2
+//     INCLUDE_ENGLISH_CONTEXTS         = 0b00000100  #   4
+//     ADD_PACKAGE_COLUMN               = 0b00001000  #   8
+//     ADD_COMMENTS_COLUMN              = 0b00010000  #  16
 
-//     NONE                          = 0b00000000  #   0
-//     ALL                           = 0b11111111  # 255
-//     ANY                           = 0b11111111  # 255
+//     NONE                             = 0b00000000  #   0
+//     ALL                              = 0b11111111  # 255
+//     ANY                              = 0b11111111  # 255
 
 
 // class KeyGroup(IntEnum):
