@@ -262,7 +262,7 @@ def _debugging_string_validator_regex():
     """
     bit_class = DebugBits
     attr_list = dir(bit_class)
-    bit_names = []
+    bit_names = ['NONE']     # Otherwise this doesn't get included because 0 not power of 2.
 
     for attr in attr_list:
         if attr[0] == '_':
