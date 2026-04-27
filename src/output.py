@@ -26,22 +26,31 @@ Usage:
     key_data.generate(key_groups, key_names, keypress_list, packages, view)
 
     # ---------------------------------------------------------------------
-    title   = 'KeyBindingReport:  Specified Key-Bindings'
-
-    flags   = (output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
-            | output.FlagBits.INCLUDE_UNTRANSLATED_CONTEXTS
+    footnotes    = []
+    footnote_num = 0
+    title        = f'{core.package_name}:  Specified Key-Bindings'
+    flags        = (
+            # output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS |
+              output.FlagBits.INCLUDE_UNTRANSLATED_CONTEXTS
             | output.FlagBits.ADD_PACKAGE_COLUMN
+            | output.FlagBits.ADD_FILE_COLUMN
+            | output.FlagBits.ADD_COMMENTS_COLUMN
             )
 
-    format  = ascii_table.OUTLINED
     out = output.KeyBindingOutput(key_data)
     out.set_comments_column_width(60)
-    mktable, last_footnote_num = out.main_key_table(flags, format, last_footnote_num)
+    mktable, footnotes, footnote_num = out.main_key_table(flags, format, footnotes, footnote_num)
     asc_tbl = ascii_table.AsciiTable(mktable)
     asc_tbl.set_tight_columns([True, True, True, True, False, False, False, False])
     asc_tbl.set_column_alignments(['^', '', '', '', '', '', '', ''])
     content_parts = [self._heading(title)]
     content_parts.append( asc_tbl.as_string(format) )
+    content_parts.append('')
+
+    # Insert footnotes.
+    for footnote in footnotes:
+        content_parts.append(footnote.formatted())
+
     content_parts.append('')
     content = '\n'.join(content_parts)
     #
@@ -175,6 +184,37 @@ class FlagBits(IntFlag):
     ANY                              = 0b11111111  # 255
 
 
+class Footnote:
+    """ Containers for key-binding table footnotes """
+    __slots__ = ['number', 'context', 'format']
+
+    def __init__(self, number: int, context: context.Context, format: ascii_table.Format):
+        self.number = number
+        self.context = context
+        self.format = format
+
+    def __str__(self) -> str:
+        return self.formatted()
+
+    def formatted_reference(self) -> str:
+        """ Footnote reference appropriate for ``format`` """
+        if self.format == ascii_table.Format.RESTRUCTUREDTEXT:
+            result = f'([{self.number}]_)'
+        else:
+            result = f'({self.number})'
+
+        return result
+
+    def formatted(self) -> str:
+        """ Footnote content appropriate for ``format`` """
+        if self.format == ascii_table.Format.RESTRUCTUREDTEXT:
+            result = f'.. [{self.number}]\n{self.context.format_context(2)}'
+        else:
+            result = f'({self.number})\n{self.context.format_context(2)}'
+
+        return result
+
+
 class KeyBindingOutput:
     """ Managers of Key-Binding Report output """
     __slots__ = ['data', 'modifier_applies_symbol', 'comments_column_width']
@@ -194,16 +234,13 @@ class KeyBindingOutput:
         """ Set new comments-column width. """
         self.comments_column_width = max(0, width)   # Non-negative only.
 
-    def _formated_footnote_ref(self, footnote_num: int, format: ascii_table.Format) -> str:
-        """ Footnote reference appropriate for ``format`` """
-        if format == ascii_table.Format.RESTRUCTUREDTEXT:
-            result = f'([{footnote_num}]_)'
-        else:
-            result = f'({footnote_num})'
-
-        return result
-
-    def main_key_table(self, flags: FlagBits, format: ascii_table.Format, last_footnote_num: int) -> List[List[str]]:
+    def main_key_table(
+            self             : KeyBindingOutput,
+            flags            : FlagBits,
+            format           : ascii_table.Format,
+            footnotes        : List[Footnote]=[],
+            prev_footnote_num: int=0
+            ) -> Tuple[List[List[str]], List[Footnote], int]:
         """
         Generate and return main-key table based on:
 
@@ -229,8 +266,10 @@ class KeyBindingOutput:
         Key S C A Command              Package            File          Comments
 
         :param flags:              OR-ed combination of FlagBits bits
-        :param last_footnote_num:  one-based last-footnote number;
+        :param prev_footnote_num:  one-based last-footnote number;
                                      0 = first footnote has not yet been generated.
+
+        :return:  Tuple:  table, footnotes, last_footnote_num
         """
         debugging = is_debugging(DebugBits.OUTPUT)
         if debugging:
@@ -245,7 +284,7 @@ class KeyBindingOutput:
         col_count            = 5
         table                = []
         command_parts        = []
-        footnote_contexts    = []
+        footnote_num         = prev_footnote_num
         empty_comments       = ' ' * self.comments_column_width
         heading_row          = ['Key', 'S', 'C', 'A', 'Command']
 
@@ -297,10 +336,10 @@ class KeyBindingOutput:
                         command_parts.clear()
 
                         if binding.has_context() and lboolContextRelevant:
-                            footnote_contexts.append(binding.smart_context)
-                            last_footnote_num += 1
-                            footnote_ref = self._formated_footnote_ref(last_footnote_num, format)
-                            command_parts.append(footnote_ref)
+                            footnote_num += 1
+                            footnote = Footnote(footnote_num, binding.smart_context, format)
+                            footnotes.append(footnote)
+                            command_parts.append(footnote.formatted_reference())
 
                         command_parts.append(binding.command_as_function_repr())
                         row[4] = ' '.join(command_parts)
@@ -319,4 +358,4 @@ class KeyBindingOutput:
 
                         table.append(row)
 
-        return table, last_footnote_num
+        return table, footnotes, footnote_num

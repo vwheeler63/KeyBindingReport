@@ -247,9 +247,11 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         t2 = datetime.now()
 
         # Generate report.
-        last_footnote_num = 0
-        title   = f'{core.package_name}:  Specified Key-Bindings'
-        flags   = ( #output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS |
+        footnotes    = []
+        footnote_num = 0
+        title        = f'{core.package_name}:  Specified Key-Bindings'
+        flags        = (
+                # output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS |
                   output.FlagBits.INCLUDE_UNTRANSLATED_CONTEXTS
                 | output.FlagBits.ADD_PACKAGE_COLUMN
                 | output.FlagBits.ADD_FILE_COLUMN
@@ -258,12 +260,18 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
         out = output.KeyBindingOutput(key_data)
         out.set_comments_column_width(60)
-        mktable, last_footnote_num = out.main_key_table(flags, format, last_footnote_num)
+        mktable, footnotes, footnote_num = out.main_key_table(flags, format, footnotes, footnote_num)
         asc_tbl = ascii_table.AsciiTable(mktable)
         asc_tbl.set_tight_columns([True, True, True, True, False, False, False, False])
         asc_tbl.set_column_alignments(['^', '', '', '', '', '', '', ''])
         content_parts = [self._heading(title)]
         content_parts.append( asc_tbl.as_string(format) )
+        content_parts.append('')
+
+        # Insert footnotes.
+        for footnote in footnotes:
+            content_parts.append(footnote.formatted())
+
         content_parts.append('')
         content = '\n'.join(content_parts)
 
