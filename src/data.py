@@ -387,18 +387,18 @@ class KeyBindingData:
         return "{%s}" % ",\n ".join(components)
 
     def generate(self,
-            key_groups   : Optional[Iterable[KeyGroup]] = None,
-            key_names    : Optional[Iterable[str]] = None,
-            keypress_list: Optional[Iterable[Iterable[str]]] = None,
-            packages     : Optional[Iterable[str]] = None,
-            view         : sublime.View = None
+            key_groups       : Optional[Iterable[KeyGroup]] = None,
+            key_names        : Optional[Iterable[str]] = None,
+            keypress_list    : Optional[Iterable[Iterable[str]]] = None,
+            limit_to_packages: Optional[Iterable[str]] = None,
+            view             : sublime.View = None
             ):
         r"""
         Generate Key-Binding data, based on argument values provided, if any.
         ``key_groups``, ``key_names``, ``keypress_list`` are added together, any
-        overlap removed, and then limited by ``packages``.
+        overlap removed, and then limited by ``limit_to_packages``.
 
-        Precondition:   ``key_groups``, ``key_names``, ``keypress_list`` and ``packages``
+        Precondition:   ``key_groups``, ``key_names``, ``keypress_list`` and ``limit_to_packages``
                         must each be a list, set, tuple or ``None``.
 
         Parameters:
@@ -425,16 +425,18 @@ class KeyBindingData:
 
                                 [["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]].
 
-                            Meaning:  include key bindings with these "keys".
-                            these specific keypresses/keypress sequences.
+                            Meaning:  include key bindings with these specific
+                            keypresses/keypress sequences.
                             ``None`` or ``[]`` when not applicable.
 
-        :param packages:    List of package names data should be limited to;
+        :param limit_to_packages:
+                            List of package names data should be limited to;
                             ``None`` or ``[]`` when packages are not limited.
 
-        :param view:        ``None`` means NOT to limit report to only those
-                            bindings that match the current context (i.e.
-                            selection locations, surrounding text, scope, etc.)
+        :param view:        Passing a view means "do not include key bindings
+                            that do not match the current context in that View.
+                            ``None`` means report content is not limited to
+                            current context.
 
                             When not ``None`` it MUST be the current View, even
                             when the View is part of the UI, such as the input
@@ -443,10 +445,6 @@ class KeyBindingData:
                             matters, since that appears to be the only way to
                             get a reference to one of these views.  There are a
                             handful of context keys (tests) that require it.
-
-                            When a View is supplied in this parameter, the
-                            report excludes key bindings that do not match
-                            the context of this View.  (Takes longer.)
 
         :return:  None
 
@@ -457,7 +455,7 @@ class KeyBindingData:
         key_groups       = [KeyGroup.NUMBERS]
         key_names        = ["q", "w", "a", "s"]
         keypress_list    = [["ctrl+p"], ["ctrl+shift+p"], ["ctrl+k", "ctrl+u"]]
-        packages         = ["Default"]
+        limit_to_packages         = ["Default"]
         limit_to_context = True
 
         if limit_to_context:
@@ -608,9 +606,9 @@ class KeyBindingData:
                     msg = f'  Each of the keypresses in `keypress_list` arg must be a {req_type}.' \
                           f'  At least 1 was type {type(keypresses)}.{after_msg}'
                     raise TypeError(msg)
-        if packages:
-            if not self._is_list_tuple_or_set(packages):
-                msg = core.arg_type_error_message(packages, 'packages', req_type, after_msg)
+        if limit_to_packages:
+            if not self._is_list_tuple_or_set(limit_to_packages):
+                msg = core.arg_type_error_message(limit_to_packages, 'limit_to_packages', req_type, after_msg)
                 raise TypeError(msg)
 
         # ---------------------------------------------------------------------
@@ -643,17 +641,17 @@ class KeyBindingData:
             for keypresses in keypress_list:
                 keys_tuples_set.add(tuple(keypresses))
 
-        if packages and type(packages) != set:
-            packages = set(packages)
+        if limit_to_packages and type(limit_to_packages) != set:
+            limit_to_packages = set(limit_to_packages)
 
-        # All of packages, key_groups, key_names, keys_tuples_set are now set objects.
+        # All of limit_to_packages, key_groups, key_names, keys_tuples_set are now set objects.
 
         if debugging:
             print('After removing duplicates:')
             print(f'  {key_groups=}')
             print(f'  {key_names=}')
             print(f'  {keys_tuples_set=}')
-            print(f'  {packages=}')
+            print(f'  {limit_to_packages=}')
 
         # ---------------------------------------------------------------------
         # Prepare ``include_key_name_set`` while removing overlap from
@@ -801,7 +799,7 @@ class KeyBindingData:
         # Build report data.
         # ---------------------------------------------------------------------
         self._build_report_data(
-                packages,
+                limit_to_packages,
                 include_key_name_set,
                 keys_tuples_set,
                 incl_all_multi_key_seqs,
@@ -814,7 +812,7 @@ class KeyBindingData:
         return (( T == list or T == tuple or T == set ))
 
     def _build_report_data(self,
-            packages               : Optional[Set[str]],
+            limit_to_packages      : Optional[Set[str]],
             include_key_name_set   : Optional[Set[str]],
             keys_tuples_set        : Optional[Set[Tuple[str]]],
             incl_all_multi_key_seqs: bool,
@@ -833,7 +831,8 @@ class KeyBindingData:
         what is left in the INPUT data is exactly what the user requested.
 
 
-        :param packages:    Optional:  Set of packages to limit data to;
+        :param limit_to_packages:
+                            Optional:  Set of packages to limit data to;
                             ``None`` == no limits on packages.
 
         :param include_key_name_set:
@@ -877,7 +876,7 @@ class KeyBindingData:
         Algorithm
         ---------
 
-        If ``packages`` specified and not empty, `.sublime-keymap` files
+        If ``limit_to_packages`` specified and not empty, `.sublime-keymap` files
         not in those Packages are not included in the input data.
 
         Note:
@@ -895,7 +894,7 @@ class KeyBindingData:
         debugging = self._debugging_filtering_stage_i
         if debugging:
             print(f'In _build_report_data()')
-            print(f'  {packages=}')
+            print(f'  {limit_to_packages=}')
             print(f'  {include_key_name_set=}')
             print(f'  {keys_tuples_set=}')
             print(f'  {view=}')
@@ -928,9 +927,9 @@ class KeyBindingData:
             file_name = match[2]
 
             # -----------------------------------------------------------------
-            # If `packages` specified, exclude Packages not in list.
+            # If `limit_to_packages` specified, exclude Packages not in list.
             # -----------------------------------------------------------------
-            if packages and pkg_name not in packages:
+            if limit_to_packages and pkg_name not in limit_to_packages:
                 if debugging:
                     print(f'  Excluding package:  [{pkg_name}].')
                 continue

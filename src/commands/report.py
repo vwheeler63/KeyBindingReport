@@ -52,79 +52,67 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         return '\n'.join(parts)
 
     def run(
-            self            : sublime_plugin.ApplicationCommand,
-            edit            : sublime.Edit,
-            key_groups      : Optional[Iterable[data.KeyGroup]] = None,
-            key_names       : Optional[Iterable[str]] = None,
-            keypress_list   : Optional[Iterable[Iterable[str]]] = None,
-            packages        : Optional[Iterable[str]] = None,
-            limit_to_context: Optional[bool] = False,
-            format          : ascii_table.Format = ascii_table.Format.OUTLINED,
-            flags           : output.FlagBits = output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
+            self             : sublime_plugin.ApplicationCommand,
+            edit             : sublime.Edit,
+            key_groups       : Optional[Iterable[data.KeyGroup]] = None,
+            key_names        : Optional[Iterable[str]] = None,
+            keypress_list    : Optional[Iterable[Iterable[str]]] = None,
+            limit_to_packages: Optional[Iterable[str]] = None,
+            limit_to_context : Optional[bool] = False,
+            format           : ascii_table.Format = ascii_table.Format.OUTLINED,
+            flags            : output.FlagBits = output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
             ):
         r"""
-        Generate Key-Binding Report in format `format`, limited by `packages`,
-        `key_groups` and `keypress_list`.
+        Generate Key-Binding Report.
 
-        Precondition:   ``packages``, ``key_groups``, ``key_names`` and ``keypress_list``
+        Precondition:   `key_groups``, ``key_names``, ``keypress_list`` and ``limit_to_packages``
                         must each be a list, set, tuple or ``None``.
 
-        All of these arguments serve to LIMIT the output of the report.
-        - packages,
-        - key_names,
-        - keypress_list, and
-        - limit_to_context
+        These arguments are interpreted "additively":
+        ---------------------------------------------
+        - key_groups      e.g. [KeyGroup.NUMBER_KEYS],
+        - key_names       e.g. ['f1', 'f2'], and
+        - keypress_list   e.g. [['ctrl+k', 'ctrl+u'], ['alt+break'], ...]
 
-        Omit them or pass ``None`` to intentionally remove limits in that
-        particular category.
-
-        When combinations of them appear, the results are additive, in a
-        logical way.  See detailed parameters description below for details.
-
+        These arguments serve to LIMIT the output of the report:
+        --------------------------------------------------------
+        - limit_to_packages  e.g. ['Default', 'User']
+        - limit_to_context   e.g. True
 
         Parameters:
         -----------
         :param self:        Command object connected to Application
 
-        :param key_groups:  List, tuple or set of ``KeyGroup`` integers,
-                            limiting report to those key groups.
-                            ``KeyGroup.ALL`` is equivalent to specifying all
-                            the other key groups.
-
+        :param key_groups:  List of ``KeyGroup`` integers, adding keys from these
+                            groups to the data gathered.  ``KeyGroup.ALL`` is
+                            equivalent to specifying all the other key groups.
                             ``None`` or ``[]`` when the only keys that should
                             be included are in ``key_names`` and ``keypress_list``.
 
-                            To get all individual keypresses plus all
-                            multi-keypress key sequences, pass
-                            ``[KeyGroup.ALL, KeyGroup.KEY_SEQUENCES]``.
-
-        :param key_names:   List, tuple or set of key names. Meaning: report
-                            on all key bindings connected to this key,
-                            including all key-modifier combinations".  Only
-                            honored if found in ``core.all_key_names``.
-                            ``None`` or ``[]`` when key names are not limited.
+        :param key_names:   List of individual key names.  Each key in this list
+                            specifies including all possible key-modifier
+                            combinations with this key.  Each key only has
+                            an impact on data gathered if it is found in
+                            ``data.all_key_names``.
+                            ``None`` or ``[]`` when not applicable.
 
         :param keypress_list:
-                            List, tuple or set of "keys" (same format
-                            as "keys" elements from JSON key bindings,
-                            embedded in an outer list) e.g.
+                            List of "keys" (same format as "keys" elements
+                            from JSON key bindings) e.g.
 
                                 [["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]].
 
-                            Meaning:  report on key bindings connected to
-                            these specific keypresses/keypress sequences.
+                            Meaning:  include key bindings with these specific
+                            keypresses/keypress sequences.
                             ``None`` or ``[]`` when not applicable.
 
-        :param packages:    List, tuple or set of package names report
-                            should be limited to; ``None`` or ``[]`` when
-                            packages are not limited.
+        :param limit_to_packages:
+                            List of package names data should be limited to;
+                            ``None`` or ``[]`` when packages are not limited.
 
         :param limit_to_context:
-                            Whether to NOT include key bindings with context
-                            entries that do not match the current scope.
-                            When ``True``, this command fetches the current
-                            scope from the active View and passes it on
-                            to ``core.build_report_data()``.
+                            Do not include key bindings that do not match the
+                            current context in the active View.
 
         :param format:      Which output format (ascii_table.Format)
 
@@ -156,7 +144,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                 "key_groups"   : [1],
                 "key_names"    : ["q", "w", "e", "s"],
                 "keypress_list": [["ctrl+p"], ["ctrl+shift+p"], ["ctrl+k", "ctrl+u"]],
-                "packages"     : ["Default"],
+                "limit_to_packages"     : ["Default"],
 
                 // class Format(IntEnum):
                 //     # Formats supported by Generator
@@ -217,7 +205,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             print(f'  {key_groups=}')
             print(f'  {key_names=}')
             print(f'  {keypress_list=}')
-            print(f'  {packages=}')
+            print(f'  {limit_to_packages=}')
             print(f'  {limit_to_context=}')
             print(f'  {format=}')
             print(f'  flags=0b{flags:08b}')
@@ -230,7 +218,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         else:
             view = None
 
-        key_data.generate(key_groups, key_names, keypress_list, packages, view)
+        key_data.generate(key_groups, key_names, keypress_list, limit_to_packages, view)
         t1 = datetime.now()
 
         # Write verification/validation files.
