@@ -58,7 +58,7 @@ class KeyBinding(dict):
         }>
 
         """
-        return f'<{self.__class__.__name__} {self.format_binding()}>'
+        return f'{self.__class__.__name__}({self.format_binding()})'
 
     def format_binding(self, indent_level: int = 0, include_extra: bool = False) -> str:
         """

@@ -1207,7 +1207,7 @@ class ContextCondition(dict):
         return self.format_condition()
 
     def __repr__(self):
-        return f'<{self.__class__.__name__} {self.format_condition()}>'
+        return f'{self.__class__.__name__}({self.format_condition()})'
 
     def format_condition(self,
             longest_key_len: int = 0,
@@ -1307,7 +1307,7 @@ class Context(list):
             cond_name_list.append(cond["key"])
 
         short_test_name_list = ', '.join(cond_name_list)
-        return f'<{self.__class__.__name__} [{short_test_name_list}]>'
+        return f'{self.__class__.__name__}({short_test_name_list})'
 
     def __repr__(self):
         """
@@ -1319,7 +1319,7 @@ class Context(list):
           { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": True }
         ]>
         """
-        return f'<{self.__class__.__name__} {self.format_context()}>'
+        return f'{self.__class__.__name__}({self.format_context()})'
 
     def format_context(self, indent_level: int = 0) -> str:
         """
