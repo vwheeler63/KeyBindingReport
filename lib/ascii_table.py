@@ -214,7 +214,7 @@ class AsciiTable():
         """
         +------------------------+---------+-----------+----------+
         | Package                | Shipped | Installed | Unpacked |
-        +------------------------+---------+-----------+----------+
+        +========================+=========+===========+==========+
         | Default                | [S]     | [ ]       | [U]      |
         +------------------------+---------+-----------+----------+
         | .git                   | [ ]     | [ ]       | [U]      |
@@ -234,13 +234,13 @@ class AsciiTable():
         lines.append(row_sep)
         last_row_idx = self.row_count - 1
 
-        for i, row in enumerate(self.table):
+        for ri, row in enumerate(self.table):
             line_parts.clear()
             line_parts.append('|')
 
-            for i, col in enumerate(row):
-                col_repr = f'{col:{self.column_alignments[i]}{self.max_column_widths[i]}}'
-                if self.tight_columns[i]:
+            for ci, col in enumerate(row):
+                col_repr = f'{col:{self.column_alignments[ci]}{self.max_column_widths[ci]}}'
+                if self.tight_columns[ci]:
                     line_parts.append(col_repr)
                     line_parts.append('|')
                 else:
@@ -251,7 +251,7 @@ class AsciiTable():
             line = ''.join(line_parts)
             lines.append(line)
 
-            if i == 0:
+            if ri == 0:
                 lines.append(title_sep)
             else:
                 lines.append(row_sep)
