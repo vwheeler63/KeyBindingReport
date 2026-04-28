@@ -174,8 +174,8 @@ class FlagBits(IntFlag):
     INCLUDE_UNTRANSLATED_CONTEXTS    = 0b00000010  #   2
     INCLUDE_ENGLISH_CONTEXTS         = 0b00000100  #   4
     ADD_PACKAGE_COLUMN               = 0b00001000  #   8
-    ADD_FILE_COLUMN                  = 0b00010000  #   8
-    ADD_COMMENTS_COLUMN              = 0b00100000  #  16
+    ADD_FILE_COLUMN                  = 0b00010000  #  16
+    ADD_COMMENTS_COLUMN              = 0b00100000  #  32
 
     # Utility Bits
     ANY_CONTEXT                      = 0b00000010 | 0b00000100
