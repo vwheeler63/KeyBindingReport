@@ -39,7 +39,7 @@ class KeyBinding(dict):
         self.file_name = file_name
 
     def __str__(self):
-        return self.format_binding()
+        return self.formatted()
 
     def __repr__(self):
         """
@@ -58,9 +58,9 @@ class KeyBinding(dict):
         }>
 
         """
-        return f'{self.__class__.__name__}({self.format_binding()})'
+        return f'{self.__class__.__name__}({self.formatted()})'
 
-    def format_binding(self, indent_level: int = 0, include_extra: bool = False) -> str:
+    def formatted(self, indent_level: int = 0, include_extra: bool = False) -> str:
         """
         Python representation of ``self`` (same structure as in
         .sublime-keymap files) such that the keys and values are in logical order.
@@ -91,7 +91,7 @@ class KeyBinding(dict):
         result += f'{indent}{{ {repr(self["keys"])}, {cmd_as_func}'
 
         if self.smart_context:
-            result += '\n' + self.smart_context.format_context(indent_level + 1)
+            result += '\n' + self.smart_context.formatted(indent_level + 1)
             result += f'\n{indent}}}'
         else:
             result += ' }'

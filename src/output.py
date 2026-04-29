@@ -208,9 +208,9 @@ class Footnote:
     def formatted(self) -> str:
         """ Footnote content appropriate for ``format`` """
         if self.format == ascii_table.Format.RESTRUCTUREDTEXT:
-            result = f'.. [{self.number}]\n{self.context.format_context(2)}'
+            result = f'.. [{self.number}]\n{self.context.formatted(2)}'
         else:
-            result = f'({self.number})\n{self.context.format_context(2)}'
+            result = f'({self.number})\n{self.context.formatted(2)}'
 
         return result
 

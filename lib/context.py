@@ -1204,12 +1204,12 @@ class ContextCondition(dict):
         self.update(condition_dict)
 
     def __str__(self):
-        return self.format_condition()
+        return self.formatted()
 
     def __repr__(self):
-        return f'{self.__class__.__name__}({self.format_condition()})'
+        return f'{self.__class__.__name__}({self.formatted()})'
 
-    def format_condition(self,
+    def formatted(self,
             longest_key_len: int = 0,
             longest_op_len: int = 0,
             indent_level: int = 0
@@ -1319,9 +1319,9 @@ class Context(list):
           { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": True }
         ]>
         """
-        return f'{self.__class__.__name__}({self.format_context()})'
+        return f'{self.__class__.__name__}({self.formatted()})'
 
-    def format_context(self, indent_level: int = 0) -> str:
+    def formatted(self, indent_level: int = 0) -> str:
         """
         Python representation of ``self`` (same structure as in
         .sublime-keymap files) such that the keys and values are in logical order.
@@ -1357,7 +1357,7 @@ class Context(list):
             cond_lines = []
             for condition in self.conditions:
                 cond_lines.append(
-                        condition.format_condition(
+                        condition.formatted(
                                 longest_key_len,
                                 longest_op_len,
                                 indent_level + 1
@@ -1439,7 +1439,7 @@ class Context(list):
                 msg = (
                         f'  {self.__class__.__name__}:  key [{key}] not recognized.\n'
                         f'  keymap={self.binding.pkg_name}/{self.binding.file_name}\n'
-                        f'{self.binding.format_binding(1, include_extra = True)}'
+                        f'{self.binding.formatted(1, include_extra = True)}'
                       )
                 print(msg)
 
@@ -1456,7 +1456,7 @@ class Context(list):
         debugging = is_debugging(DebugBits.FILTERING_ON_CONTEXT)
         if debugging:
             print(f'In {self.__class__.__name__}.query()...')
-            print(f'{self.binding.format_binding(1, include_extra = True)}')
+            print(f'{self.binding.formatted(1, include_extra = True)}')
 
         all_tests_passed = True
 

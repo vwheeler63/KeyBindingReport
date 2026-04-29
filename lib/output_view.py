@@ -1,3 +1,11 @@
+"""
+This file was originally `OverrideAudit.lib.output_view` module.
+Used here with permission.
+
+The MIT License (MIT)
+
+Copyright 2017-2025 Terence Martin
+"""
 import sublime
 
 

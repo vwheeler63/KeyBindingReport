@@ -313,7 +313,7 @@ class ReportKeyBinding(key_binding.KeyBinding):
         <ReportKeyBinding pkg=Default { ['right'], move({'by': 'characters', 'forward': True}) }>
 
         """
-        binding_str = self.format_binding()
+        binding_str = self.formatted()
         return f'<{self.__class__.__name__} pkg={self.pkg_name} {binding_str}>'
 
 
@@ -375,7 +375,7 @@ class KeyBindingData:
                     else:
                         bindings = []
                         for binding in binding_list:
-                            bindings.append( binding.format_binding(indent_level + 1, True) )
+                            bindings.append( binding.formatted(indent_level + 1, True) )
                         bindings_list_repr = ',\n'.join(bindings)
                         binding_list_items.append(f'{indent}[\n{bindings_list_repr}\n{indent}]')
 
@@ -934,6 +934,12 @@ class KeyBindingData:
                     print(f'  Excluding package:  [{pkg_name}].')
                 continue
 
+            # -------------------------------------------------------------
+            # If `limit_to_context` specified (view is not None), then the
+            # keymaps involved with different syntaxes include selectors
+            # that limit their key bindings to just that syntax.  So we
+            # do not need to bother with excluding them here.
+            # -------------------------------------------------------------
             if debugging:
                 print(f'  Including package:  [{pkg_name}].')
 
@@ -1215,7 +1221,7 @@ class KeyBindingData:
         debugging = self._debugging_building_key_seq_dict
         if debugging:
             print('In _add_binding_to_key_seq_dict()...')
-            print(f'  rpt_binding={rpt_binding.format_binding(1)}')
+            print(f'  rpt_binding={rpt_binding.formatted(1)}')
 
         keys_tuple = rpt_binding.keys_as_tuple()
 
@@ -1252,7 +1258,7 @@ class KeyBindingData:
             print('In _add_binding_to_main_key_dict()...')
             print(f'  {key_name=}')
             print(f'  {key_mod_code=}')
-            print(f'  rpt_binding={rpt_binding.format_binding(1)}')
+            print(f'  rpt_binding={rpt_binding.formatted(1)}')
 
         # Here we know mdictByMainKey[key_name] exists.
         by_main_key_item = self.mdictByMainKey[key_name]
