@@ -93,11 +93,11 @@ class AsciiTable():
         self.debugging = True
         if self.debugging:
             print(f'In {self.__class__.__name__}.as_string()....')
-            print(f'  {self.row_count        = }')
-            print(f'  {self.column_count     = }')
-            print(f'  {self.max_column_widths= }')
-            print(f'  {self.column_alignments= }')
-            print(f'  {self.tight_columns    = }')
+            print(f'  {self.row_count         = }')
+            print(f'  {self.column_count      = }')
+            print(f'  {self.max_column_widths = }')
+            print(f'  {self.column_alignments = }')
+            print(f'  {self.tight_columns     = }')
 
         """ Representation of `self` as a string """
         if format == Format.BARE:
