@@ -239,16 +239,16 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         footnote_num = 0
         title        = f'{core.package_name}:  Specified Key-Bindings'
         flags        = (
-                # output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS |
-                  output.FlagBits.INCLUDE_UNTRANSLATED_CONTEXTS
+                  output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
+                | output.FlagBits.INCLUDE_UNTRANSLATED_CONTEXTS
                 | output.FlagBits.ADD_PACKAGE_COLUMN
                 | output.FlagBits.ADD_FILE_COLUMN
-                | output.FlagBits.ADD_COMMENTS_COLUMN
                 )
 
         out = output.KeyBindingOutput(key_data)
         out.set_comments_column_width(60)
         mktable, footnotes, footnote_num = out.main_key_table(flags, format, footnotes, footnote_num)
+        # pprint.pp(mktable)
         asc_tbl = ascii_table.AsciiTable(mktable)
         asc_tbl.set_tight_columns([True, True, True, True, False, False, False, False])
         asc_tbl.set_column_alignments(['^', '', '', '', '', '', '', ''])

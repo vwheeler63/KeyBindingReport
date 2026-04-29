@@ -238,17 +238,15 @@ class KeyBindingOutput:
             self             : KeyBindingOutput,
             flags            : FlagBits,
             format           : ascii_table.Format,
-            footnotes        : List[Footnote]=[],
-            prev_footnote_num: int=0
-            ) -> Tuple[List[List[str]], List[Footnote], int]:
+            footnotes        : List[Footnote]       = [],
+            prev_footnote_num: int                  = 0
+            ) -> tuple[List[List[str]], List[Footnote], int]:
         """
-        Generate and return main-key table based on:
+        Generate and return main-key table based on contents of:
 
-        - Contents of
-          - self.data
-          - self.modifier_applies_symbol
-          - self.comments_column_width
-
+        - self.data
+        - self.modifier_applies_symbol
+        - self.comments_column_width
         - ``flags``
 
         by_main_key_dict
@@ -266,6 +264,8 @@ class KeyBindingOutput:
         Key S C A Command              Package            File          Comments
 
         :param flags:              OR-ed combination of FlagBits bits
+        :param format:             needed to instantiate Footnote objects
+        :param footnotes:          possibly-empty list of Footnote objects
         :param prev_footnote_num:  one-based last-footnote number;
                                      0 = first footnote has not yet been generated.
 
@@ -274,19 +274,26 @@ class KeyBindingOutput:
         debugging = is_debugging(DebugBits.OUTPUT)
         if debugging:
             print('In KeyBindingOutput.main_key_table()...')
-            print(f'  0b{flags=:8b}')
+            print(f'  {flags =:#8b}')
 
-        lboolInclPackage     = False
-        lboolInclFile        = False
-        lboolInclCommentsCol = False
-        lboolContextRelevant = False
-        lboolInclUnbndKeypr  = False
-        col_count            = 5
-        table                = []
-        command_parts        = []
-        footnote_num         = prev_footnote_num
-        empty_comments       = ' ' * self.comments_column_width
-        heading_row          = ['Key', 'S', 'C', 'A', 'Command']
+        lboolInclUnbndKeypr   = False
+        lboolInclCtxtUntransl = False
+        lboolInclCtxtEnglish  = False
+        lboolInclPackage      = False
+        lboolInclFile         = False
+        lboolInclCommentsCol  = False
+        lboolContextRelevant  = False
+        col_count             = 6      # Minimum
+        table                 = []
+        command_parts         = []
+        footnote_num          = prev_footnote_num
+        space                 = ' '
+        empty_comments        = space * self.comments_column_width
+        heading_row           = ['Key', 'S', 'C', 'A', 'Command', 'Args']
+
+        lboolInclUnbndKeypr   = bool(flags & FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS)
+        lboolInclCtxtUntransl = bool(flags & FlagBits.INCLUDE_UNTRANSLATED_CONTEXTS)
+        lboolInclCtxtEnglish  = bool(flags & FlagBits.INCLUDE_ENGLISH_CONTEXTS)
 
         if flags & FlagBits.ADD_PACKAGE_COLUMN:
             col_count += 1
@@ -302,8 +309,6 @@ class KeyBindingOutput:
             heading_row.append('Comments')
         if flags & FlagBits.ANY_CONTEXT:
             lboolContextRelevant = True
-        if flags & FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS:
-            lboolInclUnbndKeypr = True
 
         table.append(heading_row)
 
@@ -311,6 +316,8 @@ class KeyBindingOutput:
 
         for main_key in by_main_key_dict:
             modifier_list = by_main_key_dict[main_key]
+            lboolHasAnyBindings = any(modifier_list)
+
             for modifier_code, binding_list in enumerate(modifier_list):
                 if not binding_list and not lboolInclUnbndKeypr:
                     continue
@@ -327,13 +334,13 @@ class KeyBindingOutput:
                         #   |       +-- binding.command_as_function_repr()
                         #   +-- footnote reference to context if present
                         # -------------------------------------------------
+                        command_parts.clear()
+
                         row = [''] * col_count  # Pre-allocate N columns
                         row[0] = main_key       # 'f5'
                         row[1] = S              # Shift
                         row[2] = C              # Ctrl
                         row[3] = A              # Alt
-
-                        command_parts.clear()
 
                         if binding.has_context() and lboolContextRelevant:
                             footnote_num += 1
@@ -341,11 +348,12 @@ class KeyBindingOutput:
                             footnotes.append(footnote)
                             command_parts.append(footnote.formatted_reference())
 
-                        command_parts.append(binding.command_as_function_repr())
+                        command_parts.append(binding.command())
                         row[4] = ' '.join(command_parts)
+                        row[5] = binding.args_repr() if binding.has_args() else ' '
 
                         # Remaining optional columns.
-                        next_col_i = 5
+                        next_col_i = 6
                         if lboolInclPackage:
                             row[next_col_i] = binding.package_name()
                             next_col_i += 1
@@ -357,5 +365,51 @@ class KeyBindingOutput:
                             next_col_i += 1
 
                         table.append(row)
+                elif lboolInclUnbndKeypr and lboolHasAnyBindings:
+                    # The following are all True:
+                    # - `binding_list` == None,
+                    # - `lboolInclUnbndKeypr`, and
+                    # - `lboolHasAnyBindings`
+                    #
+                    # which means we are on one of these items:
+                    #
+                    # "a": [  <-- modifier_list
+                    #         None,   # binding list for unmodified 'a' key
+                    #         None,   # binding list for [Shift-a]
+                    #         [...],  # binding list for [Ctrl-a]   <-- binding_list
+                    #         [...],  # binding list for [Ctrl-Shift-a]
+                    #         None,   # binding list for [Alt-a]
+                    #         None,   # binding list for [Alt-Shift-a] <<<<<=== we are here <<<<<
+                    #         None,   # binding list for [Alt-Ctrl-a]
+                    #         None,   # binding list for [Alt-Ctrl-Shift-a]
+                    #     ]
+                    #
+                    # and therefore need to generate an output for an unbound
+                    # keypress combination.  The modifier keys are signified by
+                    # `modifier_code` and are already in `S`, `C` and `A`.
+                        command_parts.clear()
+
+                        row = [''] * col_count  # Pre-allocate N columns
+                        row[0] = main_key       # 'f5'
+                        row[1] = S              # Shift
+                        row[2] = C              # Ctrl
+                        row[3] = A              # Alt
+                        row[4] = space          # Command (not bound to any commands)
+                        row[5] = space          # Args (not bound to any commands)
+
+                        # Remaining optional columns.
+                        next_col_i = 6
+                        if lboolInclPackage:
+                            row[next_col_i] = space
+                            next_col_i += 1
+                        if lboolInclFile:
+                            row[next_col_i] = space
+                            next_col_i += 1
+                        if lboolInclCommentsCol:
+                            row[next_col_i] = empty_comments
+                            next_col_i += 1
+
+                        table.append(row)
+
 
         return table, footnotes, footnote_num

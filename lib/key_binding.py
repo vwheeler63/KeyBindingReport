@@ -124,11 +124,17 @@ class KeyBinding(dict):
 
         return result
 
+    def args_repr(self) -> str:
+        result = ''
+
+        if 'args' in self:
+            result = repr(self['args'])
+
+        return result
+
     def command_as_function_repr(self) -> str:
         command = self['command']
-        args_repr = ''
-        if 'args' in self:
-            args_repr = repr(self['args'])
+        args_repr = self.args_repr()
         return f'{command}({args_repr})'
 
     def has_context(self) -> bool:

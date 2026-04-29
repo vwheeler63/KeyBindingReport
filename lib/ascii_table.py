@@ -93,6 +93,7 @@ class AsciiTable():
         self.debugging = True
         if self.debugging:
             print(f'In {self.__class__.__name__}.as_string()....')
+            print(f'  {format                 = }')
             print(f'  {self.row_count         = }')
             print(f'  {self.column_count      = }')
             print(f'  {self.max_column_widths = }')
