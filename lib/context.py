@@ -1247,6 +1247,10 @@ class ContextCondition(dict):
 
         return result
 
+    def english(self, indent_level: int = 0) -> str:
+        indent = '  ' * indent_level
+        return f'{indent}English:  Description of ContextCondition'
+
 
 class Context(list):
     """
@@ -1321,20 +1325,51 @@ class Context(list):
         """
         return f'{self.__class__.__name__}({self.formatted()})'
 
-    def formatted(self, indent_level: int = 0) -> str:
+    def formatted(self, indent_level: int = 0, raw: bool = True, english: bool = False) -> str:
         """
         Python representation of ``self`` (same structure as in
         .sublime-keymap files) such that the keys and values are in logical order.
 
         Representation:
-        ---------------
+        ===============
+
+        raw:
+        ----
         "context": [
-          { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": True }
-          { "key": "selection_empty"           , "operator": "equal"         , "operand": True, "match_all": True }
-          { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": True }
-          { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": True }
+          { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": True },
+          { "key": "selection_empty"           , "operator": "equal"         , "operand": True, "match_all": True },
+          { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": True },
+          { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": True },
           { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": True }
         ]
+
+        english:
+        --------
+        "context": [
+          English:  Description of ContextCondition,
+          English:  Description of ContextCondition,
+          English:  Description of ContextCondition,
+          English:  Description of ContextCondition,
+          English:  Description of ContextCondition
+        ]
+
+        raw and english:
+        ----------------
+        "context": [
+          { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": True }
+            English:  Description of ContextCondition,
+          { "key": "selection_empty"           , "operator": "equal"         , "operand": True, "match_all": True }
+            English:  Description of ContextCondition,
+          { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": True }
+            English:  Description of ContextCondition,
+          { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": True }
+            English:  Description of ContextCondition,
+          { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": True }
+            English:  Description of ContextCondition
+        ]
+
+        :param indent_level:  Level of indentation for output
+        :param english:       Include English description with raw condition repr?
         """
         indent = '  ' * indent_level
         lines = [f'{indent}"context": [']
@@ -1355,14 +1390,29 @@ class Context(list):
 
             # Now generate indented formatted strings.
             cond_lines = []
+
             for condition in self.conditions:
-                cond_lines.append(
-                        condition.formatted(
-                                longest_key_len,
-                                longest_op_len,
-                                indent_level + 1
-                                )
-                        )
+                if raw and english:
+                    # Raw and English
+                    cond_str = condition.formatted(
+                            longest_key_len,
+                            longest_op_len,
+                            indent_level + 1
+                            )
+
+                    cond_str += '\n' + condition.english(indent_level + 2)
+                elif english:
+                    # English only
+                    cond_str = condition.english(indent_level + 1)
+                else:
+                    # Raw only
+                    cond_str = condition.formatted(
+                            longest_key_len,
+                            longest_op_len,
+                            indent_level + 1
+                            )
+
+                cond_lines.append(cond_str)
 
             lines.append( ',\n'.join(cond_lines) )
             lines.append(f'{indent}]')

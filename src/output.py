@@ -205,12 +205,16 @@ class Footnote:
 
         return result
 
-    def formatted(self) -> str:
+    def formatted(self, flags: FlagBits) -> str:
         """ Footnote content appropriate for ``format`` """
+        raw     = bool(flags & FlagBits.INCLUDE_UNTRANSLATED_CONTEXTS)
+        english = bool(flags & FlagBits.INCLUDE_ENGLISH_CONTEXTS)
+        footnote_str = self.context.formatted(2, raw=raw, english=english)
+
         if self.format == ascii_table.Format.RESTRUCTUREDTEXT:
-            result = f'.. [{self.number}]\n{self.context.formatted(2)}'
+            result = f'.. [{self.number}]\n{footnote_str}'
         else:
-            result = f'({self.number})\n{self.context.formatted(2)}'
+            result = f'({self.number})\n{footnote_str}'
 
         return result
 
@@ -276,13 +280,11 @@ class KeyBindingOutput:
             print('In KeyBindingOutput.main_key_table()...')
             print(f'  {flags =:#8b}')
 
-        lboolInclUnbndKeypr   = False
-        lboolInclCtxtUntransl = False
-        lboolInclCtxtEnglish  = False
-        lboolInclPackage      = False
-        lboolInclFile         = False
+        lboolInclUnbndKeypr   = bool(flags & FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS)
+        lboolContextRelevant  = bool(flags & FlagBits.ANY_CONTEXT)
+        lboolInclPackageCol   = False
+        lboolInclFileCol      = False
         lboolInclCommentsCol  = False
-        lboolContextRelevant  = False
         col_count             = 6      # Minimum
         table                 = []
         command_parts         = []
@@ -291,24 +293,19 @@ class KeyBindingOutput:
         empty_comments        = space * self.comments_column_width
         heading_row           = ['Key', 'S', 'C', 'A', 'Command', 'Args']
 
-        lboolInclUnbndKeypr   = bool(flags & FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS)
-        lboolInclCtxtUntransl = bool(flags & FlagBits.INCLUDE_UNTRANSLATED_CONTEXTS)
-        lboolInclCtxtEnglish  = bool(flags & FlagBits.INCLUDE_ENGLISH_CONTEXTS)
 
         if flags & FlagBits.ADD_PACKAGE_COLUMN:
             col_count += 1
-            lboolInclPackage = True
+            lboolInclPackageCol = True
             heading_row.append('Package')
         if flags & FlagBits.ADD_FILE_COLUMN:
             col_count += 1
-            lboolInclFile = True
+            lboolInclFileCol = True
             heading_row.append('File')
         if flags & FlagBits.ADD_COMMENTS_COLUMN:
             col_count += 1
             lboolInclCommentsCol = True
             heading_row.append('Comments')
-        if flags & FlagBits.ANY_CONTEXT:
-            lboolContextRelevant = True
 
         table.append(heading_row)
 
@@ -354,10 +351,10 @@ class KeyBindingOutput:
 
                         # Remaining optional columns.
                         next_col_i = 6
-                        if lboolInclPackage:
+                        if lboolInclPackageCol:
                             row[next_col_i] = binding.package_name()
                             next_col_i += 1
-                        if lboolInclFile:
+                        if lboolInclFileCol:
                             row[next_col_i] = binding.keymap_file_name()
                             next_col_i += 1
                         if lboolInclCommentsCol:
@@ -399,10 +396,10 @@ class KeyBindingOutput:
 
                         # Remaining optional columns.
                         next_col_i = 6
-                        if lboolInclPackage:
+                        if lboolInclPackageCol:
                             row[next_col_i] = space
                             next_col_i += 1
-                        if lboolInclFile:
+                        if lboolInclFileCol:
                             row[next_col_i] = space
                             next_col_i += 1
                         if lboolInclCommentsCol:

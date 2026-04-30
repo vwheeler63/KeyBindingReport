@@ -241,6 +241,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         flags        = (
                   output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
                 | output.FlagBits.INCLUDE_UNTRANSLATED_CONTEXTS
+                | output.FlagBits.INCLUDE_ENGLISH_CONTEXTS
                 | output.FlagBits.ADD_PACKAGE_COLUMN
                 | output.FlagBits.ADD_FILE_COLUMN
                 )
@@ -258,7 +259,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
         # Insert footnotes.
         for footnote in footnotes:
-            content_parts.append(footnote.formatted())
+            content_parts.append(footnote.formatted(flags))
 
         content_parts.append('')
         content = '\n'.join(content_parts)
