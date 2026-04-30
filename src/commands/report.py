@@ -238,13 +238,6 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         footnotes    = []
         footnote_num = 0
         title        = f'{core.package_name}:  Specified Key-Bindings'
-        flags        = (
-                  output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
-                | output.FlagBits.INCLUDE_UNTRANSLATED_CONTEXTS
-                | output.FlagBits.INCLUDE_ENGLISH_CONTEXTS
-                | output.FlagBits.ADD_PACKAGE_COLUMN
-                | output.FlagBits.ADD_FILE_COLUMN
-                )
 
         out = output.KeyBindingOutput(key_data)
         out.set_comments_column_width(60)
