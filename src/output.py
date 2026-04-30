@@ -119,7 +119,7 @@ All input data goes away when the last reference to the created
 ***************************************************************************"""
 
 from enum import IntFlag, IntEnum
-from typing import List, Tuple, Set, Optional, Iterable
+from typing import List, Set, Optional, Iterable
 from ..lib.debug import DebugBits, is_debugging
 from . import core
 from . import data
@@ -267,7 +267,7 @@ class KeyBindingOutput:
         :param prev_footnote_num:  one-based last-footnote number;
                                      0 = first footnote has not yet been generated.
 
-        :return:  Tuple:  table, footnotes, last_footnote_num
+        :return:  tuple:  table, footnotes, last_footnote_num
         """
         debugging = is_debugging(DebugBits.OUTPUT)
         if debugging:

@@ -81,13 +81,13 @@ Usage
 Public API
 ==========
 
-    def set_debugging_bits(setting_value: Union[int, str, bool]):
+    def set_debugging_bits(setting_value: int | str | bool):
         # Set Debug Module setting to ``selection_bits``.
 
-    def add_debugging_bits(setting_value: Union[int, str, bool]):
+    def add_debugging_bits(setting_value: int | str | bool):
         # Add 1 bits in ``selection_bits`` to Debug Module setting.
 
-    def subtract_debugging_bits(setting_value: Union[int, str, bool]):
+    def subtract_debugging_bits(setting_value: int | str | bool):
         # Subtract 1 bits in ``selection_bits`` from Debug Module setting.
 
     def is_debugging(selection_bits: DebugBits = DebugBits.ANY) -> int:
@@ -109,7 +109,6 @@ Public API
 # to ``_debugging`` below.
 # from __future__ import annotations
 from enum import IntFlag
-from typing import Union
 import re
 
 
@@ -278,9 +277,7 @@ def _debugging_string_validator_regex():
     return re.compile(final_re)
 
 
-def _securely_computed_bits_from_setting_input(
-        selection_bits: Union[int, str, bool, DebugBits]
-        ) -> DebugBits:
+def _securely_computed_bits_from_setting_input(selection_bits: int | str | bool | DebugBits) -> DebugBits:
     """
     Accept any of int | str | bool | DebugBits, and securely compute the
     applicable Debug Module bits in an int:  ``result``.
@@ -378,19 +375,19 @@ def _subtract_debugging_bits(selection_bits: int):
     _report_debugging_setting()
 
 
-def set_debugging_bits(setting_value: Union[int, str, bool, DebugBits]):
+def set_debugging_bits(setting_value: int | str | bool | DebugBits):
     """ Set Debug Module setting to ``selection_bits``. """
     bits = _securely_computed_bits_from_setting_input(setting_value)
     _set_debugging_bits(bits)
 
 
-def add_debugging_bits(setting_value: Union[int, str, bool, DebugBits]):
+def add_debugging_bits(setting_value: int | str | bool | DebugBits):
     """ Add '1' bits in ``selection_bits`` to Debug Module setting.  """
     bits = _securely_computed_bits_from_setting_input(setting_value)
     _add_debugging_bits(bits)
 
 
-def subtract_debugging_bits(setting_value: Union[int, str, bool, DebugBits]):
+def subtract_debugging_bits(setting_value: int | str | bool | DebugBits):
     """ Subtract '1' bits in ``selection_bits`` from Debug Module setting.  """
     bits = _securely_computed_bits_from_setting_input(setting_value)
     _subtract_debugging_bits(bits)

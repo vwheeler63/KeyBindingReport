@@ -137,7 +137,7 @@ import importlib
 import pprint
 from datetime import datetime
 from enum import IntFlag, IntEnum
-from typing import Tuple, List, Union
+from typing import List
 from xml.etree import ElementTree as ET
 import sublime
 from sublime import QueryOperator

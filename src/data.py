@@ -27,7 +27,7 @@ Each time ``key_data.generate()`` is called produces a new data set.
 No memory of the previous call remains.
 """
 import re
-from typing import List, Tuple, Set, Optional, Iterable
+from typing import List, Set, Optional, Iterable
 from enum import IntEnum, IntFlag
 import sublime
 from . import core
@@ -114,7 +114,7 @@ del i, count, grp, key_name
 # Utilities
 # =========================================================================
 
-def main_key_and_modifier_code(keypress_str: str) -> Tuple[str, int]:
+def main_key_and_modifier_code(keypress_str: str) -> tuple[str, int]:
     """
     Key-modifier code from `keypress_str` (e.g. "ctrl+alt+shift+p").
 
@@ -204,7 +204,7 @@ def encoded_keypress(keypress_str: str) -> int:
     return encoded_keypress_from_components(kn, mod_code)
 
 
-def modifier_characters(modifier_code: int, mod_applies_char: str) -> Tuple[str, str, str]:
+def modifier_characters(modifier_code: int, mod_applies_char: str) -> tuple[str, str, str]:
     """
     Tuple of ``mod_applies_char`` or empty strings based on ``ModifierKeyBits``
     set in ``modifier_code``.  Example:
@@ -814,7 +814,7 @@ class KeyBindingData:
     def _build_report_data(self,
             limit_to_packages      : Optional[Set[str]],
             include_key_name_set   : Optional[Set[str]],
-            keys_tuples_set        : Optional[Set[Tuple[str]]],
+            keys_tuples_set        : Optional[Set[tuple[str]]],
             incl_all_multi_key_seqs: bool,
             view                   : sublime.View
             ):
@@ -1031,7 +1031,7 @@ class KeyBindingData:
             pkg_name               : str,
             file_name              : str,
             include_key_name_set   : Optional[Set[str]],
-            keys_tuples_set        : Optional[Set[Tuple[str]]],
+            keys_tuples_set        : Optional[Set[tuple[str]]],
             incl_all_multi_key_seqs: bool,
             view                   : sublime.View
             ):
@@ -1039,7 +1039,7 @@ class KeyBindingData:
         Add key bindings from ``path``, which key bindings are included in these args:
 
         - include_key_name_set   : Optional[Set[str]],
-        - keys_tuples_set        : Optional[Set[Tuple[str]]],
+        - keys_tuples_set        : Optional[Set[tuple[str]]],
         - incl_all_multi_key_seqs: bool,
         - view                   : sublime.View
 

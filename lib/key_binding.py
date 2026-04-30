@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional
+from typing import List, Optional
 from . import context
 
 
@@ -157,11 +157,11 @@ class KeyBinding(dict):
     def keymap_file_name(self) -> str:
         return self.file_name
 
-    def parts(self) -> Tuple[List[str], str, dict, List[dict]]:
+    def parts(self) -> tuple[List[str], str, dict, List[dict]]:
         """
         Parts of JSON Key-Binding object, extracted as:
 
-        - keys    :   Tuple[str]   (e.g. ("alt+up"))
+        - keys    :   tuple[str]   (e.g. ("alt+up"))
         - command :   str          (e.g. 'box_drawing_draw_one_character')
         - args    :   dict or None (e.g. {'direction': 0, 'line_count': 1})
         - context :   List[dict]   (e.g. [{'key': 'box_drawing.ok_to_draw', 'match_all': True}])

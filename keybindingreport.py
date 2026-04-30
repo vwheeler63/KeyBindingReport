@@ -15,7 +15,6 @@ See `README.md` and `src/core.py` for more details.
 import importlib
 import sys
 import os
-from typing import Tuple
 
 
 # =========================================================================
@@ -42,7 +41,7 @@ if debugging:
 # Load / Reload
 # =========================================================================
 
-def reload(dotted_subpkg: str, submodules: Tuple[str, ...] = ()):
+def reload(dotted_subpkg: str, submodules: tuple[str, ...] = ()):
     """
     Reload each module in `submodules` only if previously loaded.  This is a
     precondition of calling ``importlib.reload()`` but is also for efficiency:
