@@ -6,7 +6,8 @@ class Format(IntEnum):
     """ Formats supported by AsciiTable """
     BARE             = 0
     OUTLINED         = 1
-    RESTRUCTUREDTEXT = 2
+    OUTLINED_COLUMNS = 2
+    RESTRUCTUREDTEXT = 3
 
 
 class AsciiTable():
@@ -89,11 +90,11 @@ class AsciiTable():
             raise AssertionError(msg)
         self.tight_columns = tight_col_list
 
-    def as_string(self, format: Format):
+    def as_string(self, fmt: Format):
         self.debugging = True
         if self.debugging:
             print(f'In {self.__class__.__name__}.as_string()....')
-            print(f'  {format                 = }')
+            print(f'  {fmt                    = }')
             print(f'  {self.row_count         = }')
             print(f'  {self.column_count      = }')
             print(f'  {self.max_column_widths = }')
@@ -101,19 +102,22 @@ class AsciiTable():
             print(f'  {self.tight_columns     = }')
 
         """ Representation of `self` as a string """
-        if format == Format.BARE:
+        if fmt == Format.BARE:
             result = self._bare_string_repr()
-        elif format == Format.OUTLINED:
+        elif fmt == Format.OUTLINED:
             result = self._outlined_string_repr()
-        elif format == Format.RESTRUCTUREDTEXT:
+        elif fmt == Format.OUTLINED_COLUMNS:
+            result = self._outlined_string_repr(True)
+        elif fmt == Format.RESTRUCTUREDTEXT:
             result = self._restructuredtext_string_repr()
         else:
             result = ''
 
         return result
 
-    def _row_separator(self, line_char: str):
+    def _row_separator(self, line_char: str, with_col_seps: bool = False):
         row_sep_parts = ['+']
+        last_i = self.column_count - 1
 
         for i, max_w in enumerate(self.max_column_widths):
             if self.tight_columns[i]:
@@ -122,15 +126,19 @@ class AsciiTable():
                 col_segment = line_char * (max_w + 2)
 
             row_sep_parts.append(col_segment)
-            row_sep_parts.append('+')
+
+            if with_col_seps or i == last_i:
+                row_sep_parts.append('+')
+            else:
+                row_sep_parts.append(line_char)
 
         return ''.join(row_sep_parts)
 
-    def _single_line_row_separator(self):
-        return self._row_separator('-')
+    def _single_line_row_separator(self, with_col_seps: bool = False):
+        return self._row_separator('-', with_col_seps)
 
-    def _double_line_row_separator(self):
-        return self._row_separator('=')
+    def _double_line_row_separator(self, with_col_seps: bool = False):
+        return self._row_separator('=', with_col_seps)
 
     def _bare_string_repr(self):
         """
@@ -173,8 +181,18 @@ class AsciiTable():
         return '\n'.join(lines)
 
 
-    def _outlined_string_repr(self):
+    def _outlined_string_repr(self, with_col_seps: bool = False):
         """
+        with_col_seps = False:
+        +---------------------------------------------------------+
+        | Package                  Shipped   Installed   Unpacked |
+        | Default                  [S]       [ ]         [U]      |
+        | .git                     [ ]       [ ]         [U]      |
+        | A File Icon              [ ]       [I]         [ ]      |
+        | ASP                      [S]       [ ]         [ ]      |
+        | ActionScript             [S]       [ ]         [ ]      |
+        +---------------------------------------------------------+
+        with_col_seps = True:
         +------------------------+---------+-----------+----------+
         | Package                | Shipped | Installed | Unpacked |
         | Default                | [S]     | [ ]       | [U]      |
@@ -186,9 +204,21 @@ class AsciiTable():
         """
         lines = []
         line_parts = []
-        row_sep = self._single_line_row_separator()
+        last_i = self.column_count - 1
+        row_sep = self._single_line_row_separator(with_col_seps)
 
         lines.append(row_sep)
+
+        if with_col_seps:
+            tight_col_suffix = '|'
+            col_prefix = ' '
+            col_suffix = ' |'
+            last_col_suffix = col_suffix
+        else:
+            tight_col_suffix = ' '
+            col_prefix = ' '
+            col_suffix = '  '
+            last_col_suffix = ' |'
 
         for row in self.table:
             line_parts.clear()
@@ -198,11 +228,14 @@ class AsciiTable():
                 col_repr = f'{col:{self.column_alignments[i]}{self.max_column_widths[i]}}'
                 if self.tight_columns[i]:
                     line_parts.append(col_repr)
-                    line_parts.append('|')
+                    line_parts.append(tight_col_suffix)
                 else:
-                    line_parts.append(' ')
+                    line_parts.append(col_prefix)
                     line_parts.append(col_repr)
-                    line_parts.append(' |')
+                    if i == last_i:
+                        line_parts.append(last_col_suffix)
+                    else:
+                        line_parts.append(col_suffix)
 
             line = ''.join(line_parts)
             lines.append(line)
