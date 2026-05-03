@@ -1,5 +1,9 @@
 [
 	// Items listed here become available in the Command Palette.
+
+	// --------------------------------------------------------------------
+	// Basics
+	// --------------------------------------------------------------------
 	{
 		"caption": "KeyBindingReport: Open Readme",
 		"command": "open_file",
@@ -24,6 +28,28 @@
 		}
 	},
 
+
+	// --------------------------------------------------------------------
+	// Keys Used Report
+	// --------------------------------------------------------------------
+	{
+		"caption": "KeyBindingReport: Keys Used Report",
+		"command": "key_binding_report_keys_used",
+	},
+
+
+	// --------------------------------------------------------------------
+	// Which Binding Report
+	// --------------------------------------------------------------------
+	{
+		"caption": "KeyBindingReport: Which Binding?",
+		"command": "key_binding_report_which_binding",
+	},
+
+
+	// --------------------------------------------------------------------
+	// Binding List Report
+	// --------------------------------------------------------------------
 	{
 		"caption": "KeyBindingReport: For Specific Key Combinations in Default Package",
 		"command": "key_binding_report",
@@ -178,10 +204,6 @@
 		},
 	},
 
-	{
-		"caption": "KeyBindingReport: Which Binding?",
-		"command": "key_binding_report_which_binding",
-	},
 
 // key_groups      : Optional[Iterable[data.KeyGroup]] = None,
 // key_names       : Optional[Iterable[str]] = None,

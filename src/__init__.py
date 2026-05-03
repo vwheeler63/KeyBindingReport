@@ -21,6 +21,7 @@ __all__ = [
     # commands/*
     'KeyBindingReportCommand',
     "KeyBindingReportWhichBindingCommand",
+    'KeyBindingReportKeysUsedCommand',
 ]
 
 if debugging:
