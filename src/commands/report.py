@@ -59,7 +59,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             keypress_list    : Optional[Iterable[Iterable[str]]] = None,
             limit_to_packages: Optional[Iterable[str]] = None,
             limit_to_context : Optional[bool] = False,
-            format           : ascii_table.Format = ascii_table.Format.OUTLINED,
+            fmt              : ascii_table.Format = ascii_table.Format.OUTLINED,
             flags            : output.FlagBits = output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
             ):
         r"""
@@ -114,7 +114,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                             Do not include key bindings that do not match the
                             current context in the active View.
 
-        :param format:      Which output format (ascii_table.Format)
+        :param fmt:         Which output format (ascii_table.Format)
 
         :param flags:       Bitwise-OR-ed combination of ``FlagBits`` enumerators.
 
@@ -151,7 +151,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                 //     BARE             = 0
                 //     OUTLINED         = 1
                 //     RESTRUCTUREDTEXT = 2
-                "format": 1,
+                "fmt": 1,
 
                 // class FlagBits(IntFlag):
                 //     INCLUDE_UNBOUND_KEY_COMBINATIONS = 0b00000001  #   1
@@ -207,7 +207,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             print(f'  {keypress_list=}')
             print(f'  {limit_to_packages=}')
             print(f'  {limit_to_context=}')
-            print(f'  {format=}')
+            print(f'  {fmt=}')
             print(f'  flags=0b{flags:08b}')
 
         t0 = datetime.now()
@@ -235,19 +235,20 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         t2 = datetime.now()
 
         # Generate report.
-        footnotes    = []
-        footnote_num = 0
-        title        = f'{core.package_name}:  Specified Key-Bindings'
+        footnotes = []
+        last_footnote_num = 0
+        title = f'{core.package_name}:  Specified Key-Bindings'
 
         out = output.KeyBindingOutput(key_data)
         out.set_comments_column_width(60)
-        mktable, footnotes, footnote_num = out.main_key_table(flags, format, footnotes, footnote_num)
+        mktable, footnotes, last_footnote_num = out.main_key_table(flags, fmt, footnotes, last_footnote_num)
         # pprint.pp(mktable)
+
         asc_tbl = ascii_table.AsciiTable(mktable)
         asc_tbl.set_tight_columns([True, True, True, True, False, False, False, False])
         asc_tbl.set_column_alignments(['^', '', '', '', '', '', '', ''])
         content_parts = [self._heading(title)]
-        content_parts.append( asc_tbl.as_string(format) )
+        content_parts.append( asc_tbl.as_string(fmt) )
         content_parts.append('')
 
         # Insert footnotes.

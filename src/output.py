@@ -32,13 +32,13 @@ Usage:
 
     out = output.KeyBindingOutput(key_data)
     out.set_comments_column_width(60)
-    mktable, footnotes, footnote_num = out.main_key_table(flags, format, footnotes, footnote_num)
+    mktable, footnotes, footnote_num = out.main_key_table(flags, fmt, footnotes, footnote_num)
     # pprint.pp(mktable)
     asc_tbl = ascii_table.AsciiTable(mktable)
     asc_tbl.set_tight_columns([True, True, True, True, False, False, False, False])
     asc_tbl.set_column_alignments(['^', '', '', '', '', '', '', ''])
     content_parts = [self._heading(title)]
-    content_parts.append( asc_tbl.as_string(format) )
+    content_parts.append( asc_tbl.as_string(fmt) )
     content_parts.append('')
 
     # Insert footnotes.
@@ -180,19 +180,19 @@ class FlagBits(IntFlag):
 
 class Footnote:
     """ Containers for key-binding table footnotes """
-    __slots__ = ['number', 'context', 'format']
+    __slots__ = ['number', 'context', 'fmt']
 
-    def __init__(self, number: int, context: context.Context, format: ascii_table.Format):
+    def __init__(self, number: int, context: context.Context, fmt: ascii_table.Format):
         self.number = number
         self.context = context
-        self.format = format
+        self.fmt = fmt
 
     def __str__(self) -> str:
         return self.formatted()
 
     def formatted_reference(self) -> str:
-        """ Footnote reference appropriate for ``format`` """
-        if self.format == ascii_table.Format.RESTRUCTUREDTEXT:
+        """ Footnote reference appropriate for ``fmt`` """
+        if self.fmt == ascii_table.Format.RESTRUCTUREDTEXT:
             result = f'([{self.number}]_)'
         else:
             result = f'({self.number})'
@@ -200,12 +200,12 @@ class Footnote:
         return result
 
     def formatted(self, flags: FlagBits) -> str:
-        """ Footnote content appropriate for ``format`` """
+        """ Footnote content appropriate for ``fmt`` """
         raw     = bool(flags & FlagBits.INCLUDE_UNTRANSLATED_CONTEXTS)
         english = bool(flags & FlagBits.INCLUDE_ENGLISH_CONTEXTS)
         footnote_str = self.context.formatted(2, raw=raw, english=english)
 
-        if self.format == ascii_table.Format.RESTRUCTUREDTEXT:
+        if self.fmt == ascii_table.Format.RESTRUCTUREDTEXT:
             result = f'.. [{self.number}]\n{footnote_str}'
         else:
             result = f'({self.number})\n{footnote_str}'
@@ -235,7 +235,7 @@ class KeyBindingOutput:
     def main_key_table(
             self             : KeyBindingOutput,
             flags            : FlagBits,
-            format           : ascii_table.Format,
+            fmt              : ascii_table.Format,
             footnotes        : List[Footnote]       = [],
             prev_footnote_num: int                  = 0
             ) -> tuple[List[List[str]], List[Footnote], int]:
@@ -262,7 +262,7 @@ class KeyBindingOutput:
         Key S C A Command              Package            File          Comments
 
         :param flags:              OR-ed combination of FlagBits bits
-        :param format:             needed to instantiate Footnote objects
+        :param fmt:                needed to instantiate Footnote objects
         :param footnotes:          possibly-empty list of Footnote objects
         :param prev_footnote_num:  one-based last-footnote number;
                                      0 = first footnote has not yet been generated.
@@ -335,7 +335,7 @@ class KeyBindingOutput:
 
                         if binding.has_context() and lboolContextRelevant:
                             footnote_num += 1
-                            footnote = Footnote(footnote_num, binding.smart_context, format)
+                            footnote = Footnote(footnote_num, binding.smart_context, fmt)
                             footnotes.append(footnote)
                             command_parts.append(footnote.formatted_reference())
 

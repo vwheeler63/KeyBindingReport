@@ -24,13 +24,13 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
             self         : sublime_plugin.TextCommand,
             edit         : sublime.Edit,
             keypress_list: List[List[str]] = [["f2"]],
-            format       : Format = Format.OUTLINED
+            fmt          : Format = Format.OUTLINED
             ):
         """
         By specified key based on current scope Report binding selected the
         same way Sublime Text selects it:  reverse search selecting first
         binding where current scope matches key context.  Generate output
-        in format `format`.
+        in format `fmt`.
 
         :param self:            KeyBindingReportCommand object connected to current View
         :param edit:            sublime.Edit connected to current View, needed to edit Buffer
@@ -38,7 +38,7 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
                                   elements from JSON key bindings).  Note that this enables
                                   you to specify more than one "keys" value.  Example:
                                   ``[["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]]``
-        :param format:          Which output format (ascii_table.Format)
+        :param fmt:             Which output format (ascii_table.Format)
         :return:  None
         """
         any_debugging = is_debugging(DebugBits.ANY)
