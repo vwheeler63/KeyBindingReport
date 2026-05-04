@@ -1209,6 +1209,23 @@ class ContextCondition(dict):
     def __repr__(self):
         return f'{self.__class__.__name__}({self.formatted()})'
 
+    def _json_value_repr(self, value: str | bool | int) -> str:
+        if isinstance(value, str):
+            if '"' in value:
+                value = value.replace('"', '\\"')
+            result = f'"{value}"'  # Force double quotes to be JSON compatible
+        elif isinstance(value, bool):
+            # Remove capital letter to be JSON compatible.
+            if value:
+                result = 'true'
+            else:
+                result = 'false'
+        else:
+            # We THINK this is a number, based on survey of existing keymap files.
+            result = repr(value)
+
+        return result
+
     def formatted(self,
             longest_key_len: int = 0,
             longest_op_len: int = 0,
@@ -1218,7 +1235,7 @@ class ContextCondition(dict):
         Python representation of ``json_binding`` context conditions (same structure as
         in .sublime-keymap files) such that the keys and values are in logical order.
 
-        Each condition presented on 1 line.
+        Each condition presented on 1 line in JSON-compatible representation.
 
         Representation (just one of these, but 2 shown to show meaning of args):
         ------------------------------------------------------------------------
@@ -1239,9 +1256,11 @@ class ContextCondition(dict):
             result += f', "operator": {field:{longest_op_len + 2}}'
         if 'operand' in self:
             # This value can be str, bool or int, so we use `repr()`.
-            result += f', "operand": {repr(self["operand"])}'
+            val_repr = self._json_value_repr(self["operand"])
+            result += f', "operand": {val_repr}'
         if 'match_all' in self:
-            result += f', "match_all": {repr(self["match_all"])}'
+            val_repr = self._json_value_repr(self["match_all"])
+            result += f', "match_all": {val_repr}'
 
         result += ' }'
 
