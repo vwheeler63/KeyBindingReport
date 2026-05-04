@@ -1488,7 +1488,7 @@ class Context(list):
             if not found:
                 msg = (
                         f'  {self.__class__.__name__}:  key [{key}] not recognized.\n'
-                        f'  keymap={self.binding.pkg_name}/{self.binding.file_name}\n'
+                        f'  keymap={self.binding.source}\n'
                         f'{self.binding.formatted(1, include_extra = True)}'
                       )
                 print(msg)

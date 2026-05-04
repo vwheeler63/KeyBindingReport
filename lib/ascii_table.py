@@ -91,7 +91,7 @@ class AsciiTable():
         self.tight_columns = tight_col_list
 
     def as_string(self, fmt: Format):
-        self.debugging = True
+        self.debugging = False
         if self.debugging:
             print(f'In {self.__class__.__name__}.as_string()....')
             print(f'  {fmt                    = }')

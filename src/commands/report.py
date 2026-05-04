@@ -25,10 +25,9 @@ _cfg_report_title = 'Key-Binding Report'
 
 _report_key = """Key:
 
-  - S = Shift
-  - C = Ctrl
   - A = Alt
-  - (Footnote ref) prefixing command means context is shown in footnote."""
+  - C = Ctrl
+  - S = Shift"""
 
 
 # =========================================================================
@@ -150,14 +149,15 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                 //     # Formats supported by Generator
                 //     BARE             = 0
                 //     OUTLINED         = 1
-                //     RESTRUCTUREDTEXT = 2
+                //     OUTLINED_COLUMNS = 2
+                //     RESTRUCTUREDTEXT = 3
                 "fmt": 1,
 
                 // class FlagBits(IntFlag):
                 //     INCLUDE_UNBOUND_KEY_COMBINATIONS = 0b00000001  #   1
                 //     INCLUDE_UNTRANSLATED_CONTEXTS    = 0b00000010  #   2
                 //     INCLUDE_ENGLISH_CONTEXTS         = 0b00000100  #   4
-                //     ADD_PACKAGE_COLUMN               = 0b00001000  #   8
+                //     ADD_SOURCE_COLUMN                = 0b00001000  #   8
                 //     ADD_COMMENTS_COLUMN              = 0b00010000  #  16
                 //
                 //     NONE                             = 0b00000000  #   0
@@ -195,12 +195,9 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         | for all Packages.             |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
         """
-        any_debugging = is_debugging(DebugBits.ANY)
-        if any_debugging:
-            print('>\n>\n>\n>')
-
         debugging = is_debugging(DebugBits.KEY_BINDING_REPORT)
         if debugging:
+            print('>\n>\n>\n>')
             print('In KeyBindingReportCommand.run()...')
             print(f'  {key_groups=}')
             print(f'  {key_names=}')
@@ -211,14 +208,15 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             print(f'  flags=0b{flags:08b}')
 
         t0 = datetime.now()
+        view = self.view
         key_data = data.KeyBindingData()
 
         if limit_to_context:
-            view = self.view
+            rpt_gen_view = self.view
         else:
-            view = None
+            rpt_gen_view = None
 
-        key_data.generate(key_groups, key_names, keypress_list, limit_to_packages, view)
+        key_data.generate(key_groups, key_names, keypress_list, limit_to_packages, rpt_gen_view)
         t1 = datetime.now()
 
         # Write verification/validation files.
@@ -241,14 +239,15 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
         out = output.KeyBindingOutput(key_data)
         out.set_comments_column_width(60)
-        mktable, footnotes, last_footnote_num = out.main_key_table(flags, fmt, footnotes, last_footnote_num)
-        # pprint.pp(mktable)
+        main_key_table, footnotes, last_footnote_num = out.main_key_table(flags, fmt, footnotes, last_footnote_num)
+        # pprint.pp(main_key_table)
 
-        asc_tbl = ascii_table.AsciiTable(mktable)
-        asc_tbl.set_tight_columns([True, True, True, True, False, False, False, False])
-        asc_tbl.set_column_alignments(['^', '', '', '', '', '', '', ''])
+        mk_table = ascii_table.AsciiTable(main_key_table)
+        #                                Key    W      A     C     S    Cmd    Args   Ctxt   Src
+        mk_table.set_tight_columns(    [True, True, True, True, True, False, False, False, False])
+        mk_table.set_column_alignments(['^',    '',   '',   '',   '',    '',    '',   '^',    ''])
         content_parts = [self._heading(title)]
-        content_parts.append( asc_tbl.as_string(fmt) )
+        content_parts.append( mk_table.as_string(fmt) )
         content_parts.append('')
 
         # Insert footnotes.

@@ -19,11 +19,10 @@ class KeyBinding(dict):
     """
     # __slots__ = [
     #     'context',
-    #     'pkg_name',
-    #     'file_name',
+    #     'source',
     # ]
 
-    def __init__(self, decoded_key_binding: dict, pkg_name: str, file_name: str):
+    def __init__(self, decoded_key_binding: dict, source: str):
         """
         :param decoded_key_binding:  key binding decoded from JSON in .sublime-keymap
         :param path:                 for improved debug output
@@ -35,8 +34,7 @@ class KeyBinding(dict):
         else:
             self.smart_context = None
 
-        self.pkg_name = pkg_name
-        self.file_name = file_name
+        self.source = source
 
     def __str__(self):
         return self.formatted()
@@ -83,7 +81,7 @@ class KeyBinding(dict):
         """
         indent = '  ' * indent_level
         if include_extra:
-            result = f'{indent}source: {self.pkg_name}/{self.file_name}\n'
+            result = f'{indent}source: {self.source}\n'
         else:
             result = ''
 
@@ -151,22 +149,18 @@ class KeyBinding(dict):
     def smart_context(self) -> Optional[list]:
         return self.smart_context
 
-    def package_name(self) -> str:
-        return self.pkg_name
-
-    def keymap_file_name(self) -> str:
-        return self.file_name
+    def source_file(self) -> str:
+        return self.source
 
     def parts(self) -> tuple[List[str], str, dict, List[dict]]:
         """
         Parts of JSON Key-Binding object, extracted as:
 
-        - keys    :   tuple[str]   (e.g. ("alt+up"))
-        - command :   str          (e.g. 'box_drawing_draw_one_character')
-        - args    :   dict or None (e.g. {'direction': 0, 'line_count': 1})
-        - context :   List[dict]   (e.g. [{'key': 'box_drawing.ok_to_draw', 'match_all': True}])
-        - pkg_name:   str
-        - file_name:  str
+        - keys   :   tuple[str]   (e.g. ("alt+up"))
+        - command:   str          (e.g. 'box_drawing_draw_one_character')
+        - args   :   dict or None (e.g. {'direction': 0, 'line_count': 1})
+        - context:   List[dict]   (e.g. [{'key': 'box_drawing.ok_to_draw', 'match_all': True}])
+        - source :   str
 
         Examples above use this JSON binding as input:
         {
@@ -195,5 +189,5 @@ class KeyBinding(dict):
         else:
             ctxt = None
 
-        return keys, cmd, args, ctxt, self.pkg_name, self.file_name
+        return keys, cmd, args, ctxt, self.source
 

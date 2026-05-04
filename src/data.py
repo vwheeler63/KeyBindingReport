@@ -123,28 +123,71 @@ def main_key_and_modifier_code(keypress_str: str) -> tuple[str, int]:
 
     See "key-modifier code" and "encoded keypress" in definitions in
     module docstring for details.
+
+    IMPORTANT!  ``keypress_str.split('+')`` is not adequate logic by itself
+    because we have valid ``keypress_str`` values that look like
+    this: "ctrl++".
+
+                                    OSX       Win/Linux
+    | #   shift   # |
+    | #   ctrl    # | <------------------------------+
+    | #    alt    # | <-------------+                |
+    | #  command  # | <-------------|--+--------+    |
+    |    option     | Mac's 'alt' --+  |      [Win]  |
+    |     super     | -----------------+--------+    |
+    |    primary    | -----------------+-------------+
     """
-    lsWorkingKeypress = keypress_str
     modifier_code = 0
 
-    modifier_str = 'shift+'
-    if modifier_str in lsWorkingKeypress:
-        modifier_code |= ModifierKeyBits.SHIFT
-        lsWorkingKeypress = lsWorkingKeypress.replace(modifier_str, '')
+    if keypress_str.endswith('++'):
+        main_key_name = '+'
+        modifier_list = keypress_str[:-2].split('+')
+    else:
+        key_list      = keypress_str.split('+')
+        main_key_name = key_list.pop()
+        modifier_list = key_list
 
-    modifier_str = 'ctrl+'
-    if modifier_str in lsWorkingKeypress:
-        modifier_code |= ModifierKeyBits.CTRL
-        lsWorkingKeypress = lsWorkingKeypress.replace(modifier_str, '')
-
-    modifier_str = 'alt+'
-    if modifier_str in lsWorkingKeypress:
-        modifier_code |= ModifierKeyBits.ALT
-        lsWorkingKeypress = lsWorkingKeypress.replace(modifier_str, '')
-
-    main_key_name = lsWorkingKeypress
+    for mod_key in modifier_list:
+        if mod_key == 'shift':
+            modifier_code |= ModifierKeyBits.SHIFT
+        elif mod_key in ['ctrl', 'control']:
+            modifier_code |= ModifierKeyBits.CTRL
+        elif mod_key in ['alt', 'option']:
+            modifier_code |= ModifierKeyBits.ALT
+        elif mod_key in ['super', 'command']:
+            # Command key on OSX, Windows key on Windows and Linux.
+            # Either way we record this as "COMMAND" bit.  The column
+            # heading for this on Windows and Linux will is 'W' whereas
+            # whereas on OSX it is '⌘'
+            modifier_code |= ModifierKeyBits.COMMAND
+        elif mod_key == 'primary':
+            if platform_name == 'OSX':
+                modifier_code |= ModifierKeyBits.COMMAND
+            else:
+                modifier_code |= ModifierKeyBits.CTRL
+        else:
+            raise AssertionError(f'data.main_key_and_modifier_code(): modifier key unrecognized: [{mod_key}].')
 
     return main_key_name, modifier_code
+
+
+def main_key_and_modifier_list(keypress_str: str) -> tuple[str, list[str]]:
+    """
+    Main key and modifier-key list
+
+    :param keypress_str:  Keypress definition string compatible with
+                            Sublime Text `.sublime-keymap` "keys" entries.
+                            Example:  "ctrl+shift+p"
+    """
+    if keypress_str.endswith('++'):
+        main_key_name = '+'
+        modifier_list = keypress_str[:-2].split('+')
+    else:
+        key_list = keypress_str.split('+')
+        main_key_name = key_list.pop()
+        modifier_list = key_list
+
+    return main_key_name, modifier_list
 
 
 def modifier_repr(modifier_code: int) -> str:
@@ -204,39 +247,54 @@ def encoded_keypress(keypress_str: str) -> int:
     return encoded_keypress_from_components(kn, mod_code)
 
 
-def modifier_characters(modifier_code: int, mod_applies_char: str) -> tuple[str, str, str]:
+def modifier_characters(modifier_code: int, mod_applies_char: str) -> tuple[str, str, str, str]:
     """
-    Tuple of ``mod_applies_char`` or empty strings based on ``ModifierKeyBits``
+    Tuple of ``mod_applies_char`` or space characters based on ``ModifierKeyBits``
     set in ``modifier_code``.  Example:
 
-    - '' , '' , ''  <= no modifiers
-    - 'x', '' , ''  <= Shift              modifier
-    - '' , 'x', ''  <=         Ctrl       modifier
-    - 'x', 'x', ''  <= Shift + Ctrl       modifier
-    - '' , '' , 'x' <=                Alt modifier
-    - 'x', '' , 'x' <= Shift +        Alt modifier
-    - '' , 'x', 'x' <=         Ctrl + Alt modifier
-    - 'x', 'x', 'x' <= Shift + Ctrl + Alt modifier
+    - ' ', ' ', ' ', ' ' <= no modifiers
+    - ' ', ' ', ' ', 'x' <=                    Shift modifier
+    - ' ', ' ', 'x', ' ' <=             Ctrl         modifier
+    - ' ', ' ', 'x', 'x' <=             Ctrl + Shift modifier
+    - ' ', 'x', ' ', ' ' <=       Alt                modifier
+    - ' ', 'x', ' ', 'x' <=       Alt +        Shift modifier
+    - ' ', 'x', 'x', ' ' <=       Alt + Ctrl         modifier
+    - ' ', 'x', 'x', 'x' <=       Alt + Ctrl + Shift modifier
+    - 'x', ' ', ' ', ' ' <= Cmd                      modifier
+    - 'x', ' ', ' ', 'x' <= Cmd +              Shift modifier
+    - 'x', ' ', 'x', ' ' <= Cmd +       Ctrl         modifier
+    - 'x', ' ', 'x', 'x' <= Cmd +       Ctrl + Shift modifier
+    - 'x', 'x', ' ', ' ' <= Cmd + Alt                modifier
+    - 'x', 'x', ' ', 'x' <= Cmd + Alt +        Shift modifier
+    - 'x', 'x', 'x', ' ' <= Cmd + Alt + Ctrl         modifier
+    - 'x', 'x', 'x', 'x' <= Cmd + Alt + Ctrl + Shift modifier
 
     It is by design that this *not* be the same sequence as the modifier
     keys appear in `.sublime-keymap` files.
     """
+    space = ' '
+
     if modifier_code & ModifierKeyBits.SHIFT:
         S = mod_applies_char
     else:
-        S = ''
+        S = space
 
     if modifier_code & ModifierKeyBits.CTRL:
         C = mod_applies_char
     else:
-        C = ''
+        C = space
 
     if modifier_code & ModifierKeyBits.ALT:
         A = mod_applies_char
     else:
-        A = ''
+        A = space
 
-    return S, C, A
+    if modifier_code & ModifierKeyBits.COMMAND:
+        M = mod_applies_char
+    else:
+        M = space
+
+    return M, A, C, S
 
 
 # =========================================================================
@@ -244,13 +302,14 @@ def modifier_characters(modifier_code: int, mod_applies_char: str) -> tuple[str,
 # =========================================================================
 
 class ModifierKeyBits(IntFlag):
-    SHIFT         = 0b001
-    CTRL          = 0b010
-    ALT           = 0b100
+    SHIFT         = 0b0001
+    CTRL          = 0b0010
+    ALT           = 0b0100
+    COMMAND       = 0b1000
 
-    NONE          = 0b000
-    ALL           = 0b111
-    ANY           = 0b111
+    NONE          = 0b0000
+    ALL           = 0b1111
+    ANY           = 0b1111
 
 
 class KeyGroup(IntEnum):
@@ -273,14 +332,11 @@ class ReportKeyBinding(key_binding.KeyBinding):
     - package name
     - ``.sublime-keymap`` file name
     """
-    __slots__ = ['json_binding', 'pkg_name', 'file_name']
+    __slots__ = ['json_binding', 'source']
 
-    def __init__(self, decoded_key_binding: dict, pkg_name: str, file_name: str):
+    def __init__(self, decoded_key_binding: dict, source: str):
         # Incorporate contents of `decoded_key_binding` into `self`.
-        super().__init__(decoded_key_binding, pkg_name, file_name)
-        # Store extra data for report.
-        self.pkg_name  = pkg_name
-        self.file_name = file_name
+        super().__init__(decoded_key_binding, source)
 
     def __repr__(self):
         """
@@ -314,7 +370,7 @@ class ReportKeyBinding(key_binding.KeyBinding):
 
         """
         binding_str = self.formatted()
-        return f'<{self.__class__.__name__} pkg={self.pkg_name} {binding_str}>'
+        return f'{self.__class__.__name__}: source={self.source} {binding_str}>'
 
 
 class KeyBindingData:
@@ -479,15 +535,18 @@ class KeyBindingData:
             KEYPAD_KEYS    =  5  # /
 
         class FlagBits(IntFlag):
-            INCLUDE_UNBOUND_KEY_COMBINATIONS = 0b00000001
-            ADD_PACKAGE_COLUMN             = 0b00000010
-            ADD_COMMENTS_COLUMN           = 0b00000100
-            INCLUDE_UNTRANSLATED_CONTEXTS = 0b00001000
-            INCLUDE_ENGLISH_CONTEXTS      = 0b00010000
+            # Output Flags
+            INCLUDE_UNBOUND_KEY_COMBINATIONS = 0b00000001  #   1
+            INCLUDE_UNTRANSLATED_CONTEXTS    = 0b00000010  #   2
+            INCLUDE_ENGLISH_CONTEXTS         = 0b00000100  #   4
+            ADD_SOURCE_COLUMN                = 0b00001000  #   8
+            ADD_COMMENTS_COLUMN              = 0b00010000  #  16
 
-            NONE                          = 0b00000000
-            ALL                           = 0b11111111
-            ANY                           = 0b11111111
+            # Utility Bits
+            ANY_CONTEXT                      = 0b00000010 | 0b00000100
+            NONE                             = 0b00000000  #   0
+            ALL                              = 0b11111111  # 255
+            ANY                              = 0b11111111  # 255
 
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
         | Description                   |packages   |key_groups   |key_names | keypress_list                          |
@@ -730,11 +789,11 @@ class KeyBindingData:
             for keypress_tuple in keys_tuples_set_copy:
                 if len(keypress_tuple) == 1:
                     keypress = keypress_tuple[0]
-                    key_name, _ = main_key_and_modifier_code(keypress)
-                    if key_name in include_key_name_set:
+                    main_key_name, _ = main_key_and_modifier_code(keypress)
+                    if main_key_name in include_key_name_set:
                         # Overlap
                         if debugging:
-                            print(f'Removing overlap with key {key_name} in {keypress_tuple}.')
+                            print(f'Removing overlap with key {main_key_name} in {keypress_tuple}.')
                         keys_tuples_set.remove(keypress_tuple)
 
         if debugging:
@@ -900,13 +959,6 @@ class KeyBindingData:
             print(f'  {view=}')
             print(f'  {incl_all_multi_key_seqs=}')
 
-        # Start fresh.
-        self._build_empty_main_key_dict()
-        self._build_empty_key_seq_dict()
-
-        # Loop through list of .sublime-keymap files in keymap-load order.
-        keymap_paths = sublime.find_resources('*.sublime-keymap')
-
         if view is not None:
             # Conditionally update any ViewEventListeners so they are using
             # the right view if consulted.  This is intentionally done ONCE
@@ -915,6 +967,13 @@ class KeyBindingData:
             # iterate thousands of times), and this would be unacceptably
             # inefficient.
             context.update_view_event_listeners(view)
+
+        # Start fresh.
+        self._build_empty_main_key_dict()
+        self._build_empty_key_seq_dict()
+
+        # Loop through list of .sublime-keymap files in keymap-load order.
+        keymap_paths = sublime.find_resources('*.sublime-keymap')
 
         # For each `.sublime-keymap` file...
         for path in keymap_paths:
@@ -984,12 +1043,20 @@ class KeyBindingData:
             "a": [  <-- modifier_list
                     None,   # binding list for unmodified 'a' key
                     None,   # binding list for [Shift-a]
-                    [...],  # binding list for [Ctrl-a]   <-- binding_list
-                    [...],  # binding list for [Ctrl-Shift-a]
+                    [...],  # binding list for [Ctrl-a]       <-- binding_list
+                    [...],  # binding list for [Ctrl-Shift-a] <-- binding_list
                     None,   # binding list for [Alt-a]
                     None,   # binding list for [Alt-Shift-a]
                     None,   # binding list for [Alt-Ctrl-a]
                     None,   # binding list for [Alt-Ctrl-Shift-a]
+                    None,   # binding list for [Command-a]
+                    None,   # binding list for [Command-Shift-a]
+                    [...],  # binding list for [Command-Ctrl-a]       <-- binding_list
+                    [...],  # binding list for [Command-Ctrl-Shift-a] <-- binding_list
+                    None,   # binding list for [Command-Alt-a]
+                    None,   # binding list for [Command-Alt-Shift-a]
+                    None,   # binding list for [Command-Alt-Ctrl-a]
+                    None,   # binding list for [Command-Alt-Ctrl-Shift-a]
                 ]
         """
         debugging = self._debugging_building_main_key_dict
@@ -999,7 +1066,7 @@ class KeyBindingData:
         self.mdictByMainKey = {}
 
         for key_name in all_key_names:
-            empty_list = [None] * 8
+            empty_list = [None] * 16
             self.mdictByMainKey[key_name] = empty_list
 
         # if debugging:
@@ -1117,7 +1184,7 @@ class KeyBindingData:
                 # since tuples can use operators like `==`, `!=` and `in`!
                 # ---------------------------------------------------------
                 keypress_str = keypress_tuple_bep[0]
-                key_name, mod_code = main_key_and_modifier_code(keypress_str)
+                main_key_name, mod_code = main_key_and_modifier_code(keypress_str)
 
                 is_in_keys_tuples_set = ((
                             keys_tuples_set is not None
@@ -1127,12 +1194,12 @@ class KeyBindingData:
 
                 if not is_in_keys_tuples_set:
                     if include_key_name_set:
-                        if key_name not in include_key_name_set:
+                        if main_key_name not in include_key_name_set:
                             # This should be excluded UNLESS its main key
                             # is in `include_key_name_set`.
                             if debugging:
                                 print(f'  Excluding {keypress_tuple_bep} because:\n'
-                                        f'    - that key_name was neither in `key_names` nor `key_groups`, and\n'
+                                        f'    - that main_key_name was neither in `key_names` nor `key_groups`, and\n'
                                         f'    - that keypress was not in `keypress_list`.'
                                         )
                             continue
@@ -1140,7 +1207,7 @@ class KeyBindingData:
                         # Is neither in ``key_set`` nor ``include_key_name_set``.
                         if debugging:
                             print(f'  Excluding {keypress_tuple_bep} because:\n'
-                                    f'    - that key_name was neither in `key_names` nor `key_groups`, and\n'
+                                    f'    - that main_key_name was neither in `key_names` nor `key_groups`, and\n'
                                     f'    - that keypress was not in `keypress_list`.'
                                     )
                         continue
@@ -1184,7 +1251,7 @@ class KeyBindingData:
             # Instantiate binding.  This "hooks it up" with context query
             # apparatus in case it is needed below.
             # -------------------------------------------------------------
-            binding = ReportKeyBinding(decoded_binding, pkg_name, file_name)
+            binding = ReportKeyBinding(decoded_binding, pkg_name + '/' + file_name)
 
             # -------------------------------------------------------------
             # If caller requested limiting bindings to only those that match
@@ -1202,7 +1269,7 @@ class KeyBindingData:
             if keypress_count_bep > 1:
                 self._add_binding_to_key_seq_dict(binding)
             else:
-                self._add_binding_to_main_key_dict(binding, key_name, mod_code)
+                self._add_binding_to_main_key_dict(binding, main_key_name, mod_code)
 
     def _add_binding_to_key_seq_dict(self, rpt_binding: ReportKeyBinding):
         """
@@ -1237,15 +1304,23 @@ class KeyBindingData:
     def _add_binding_to_main_key_dict(self, rpt_binding: ReportKeyBinding, key_name: str, key_mod_code: int):
         """
         by_main_key_dict
-            "a": [
+            "a": [  <-- modifier_list
                     None,   # binding list for unmodified 'a' key
                     None,   # binding list for [Shift-a]
-                    [...],  # binding list for [Ctrl-a]
-                    [...],  # binding list for [Ctrl-Shift-a]
+                    [...],  # binding list for [Ctrl-a]       <-- binding_list
+                    [...],  # binding list for [Ctrl-Shift-a] <-- binding_list
                     None,   # binding list for [Alt-a]
                     None,   # binding list for [Alt-Shift-a]
                     None,   # binding list for [Alt-Ctrl-a]
                     None,   # binding list for [Alt-Ctrl-Shift-a]
+                    None,   # binding list for [Command-a]
+                    None,   # binding list for [Command-Shift-a]
+                    [...],  # binding list for [Command-Ctrl-a]       <-- binding_list
+                    [...],  # binding list for [Command-Ctrl-Shift-a] <-- binding_list
+                    None,   # binding list for [Command-Alt-a]
+                    None,   # binding list for [Command-Alt-Shift-a]
+                    None,   # binding list for [Command-Alt-Ctrl-a]
+                    None,   # binding list for [Command-Alt-Ctrl-Shift-a]
                 ]
         """
         if rpt_binding.keypress_count() != 1:
