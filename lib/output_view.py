@@ -5,6 +5,13 @@ Used here with permission.
 The MIT License (MIT)
 
 Copyright 2017-2025 Terence Martin
+
+@version  1.1  04-May-2026 09:38  vw
+    Enhanced find_view() and output_to_view() to accept None as
+    window argument to search all windows for View with title.
+    If found, uses that View and its window.  Otherwise, creates
+    a new View in window containing current_view if provided,
+    otherwise the current active window is used.
 """
 import sublime
 
@@ -14,14 +21,23 @@ import sublime
 
 def find_view(window, title, current_view=None):
     """
-    Attempt to find a view with the given title (name) in the given window
+    Attempt to find a view with the given title (name) in the given window.
+
+    If current_view was not a match and window is None, all open windows are
+    searched for a matching view.
     """
     if current_view is not None and current_view.name() == title:
         return current_view
 
-    for view in window.views():
-        if view.name() == title:
-            return view
+    if window:
+        for view in window.views():
+            if view.name() == title:
+                return view
+    else:
+        for window in sublime.windows():
+            for view in window.views():
+                if view.name() == title:
+                    return view
 
 
 def new_scratch_view(window, title, syntax=None):
@@ -95,6 +111,15 @@ def output_to_view(window,
     checked first to see if it is the appropriate view before scanning, so that
     multiple views with the same title can be distinguished by the caller.
 
+    If window is None:
+
+    - If current_view was not a match, all open windows are searched for
+      matching view.
+    - window is then populated with the first window found in this order:
+      - window of found view,
+      - window of current_view,
+      - current active window.
+
     If an existing view is used, clear indicates if the current content should
     be cleared or not before adding the new data.
 
@@ -114,6 +139,15 @@ def output_to_view(window,
         content = "\n".join(content)
 
     view = find_view(window, title, current_view) if (reuse) else None
+
+    # Ensure window is populated before proceeding.
+    if window is None:
+        if view is not None:
+            window = view.window()
+        elif current_view is not None:
+            window = current_view.window()
+        else:
+            window = sublime.active_window()
 
     if view is None:
         view = new_scratch_view(window, title, syntax)
