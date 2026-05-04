@@ -36,9 +36,9 @@ from ..lib import context
 from ..lib import key_binding
 
 
-# =========================================================================
+# *************************************************************************
 # Constants (can be assigned/generated once on Package load)
-# =========================================================================
+# *************************************************************************
 
 platform_name = {
     'osx': 'OSX',
@@ -110,9 +110,9 @@ for i, key_name in enumerate(all_key_names):
 del i, count, grp, key_name
 
 
-# =========================================================================
+# *************************************************************************
 # Utilities
-# =========================================================================
+# *************************************************************************
 
 def main_key_and_modifier_code(keypress_str: str) -> tuple[str, int]:
     """
@@ -297,20 +297,9 @@ def modifier_characters(modifier_code: int, mod_applies_char: str) -> tuple[str,
     return M, A, C, S
 
 
-# =========================================================================
+# *************************************************************************
 # Classes
-# =========================================================================
-
-class ModifierKeyBits(IntFlag):
-    SHIFT         = 0b0001
-    CTRL          = 0b0010
-    ALT           = 0b0100
-    COMMAND       = 0b1000
-
-    NONE          = 0b0000
-    ALL           = 0b1111
-    ANY           = 0b1111
-
+# *************************************************************************
 
 class KeyGroup(IntEnum):
     """ Non-negative values index into ``key_name_groups``. """
@@ -323,6 +312,17 @@ class KeyGroup(IntEnum):
     SYMBOL_KEYS    =  3  #   /
     NAMED_KEYS     =  4  #  /
     KEYPAD_KEYS    =  5  # /
+
+
+class ModifierKeyBits(IntFlag):
+    SHIFT         = 0b0001
+    CTRL          = 0b0010
+    ALT           = 0b0100
+    COMMAND       = 0b1000
+
+    NONE          = 0b0000
+    ALL           = 0b1111
+    ANY           = 0b1111
 
 
 class ReportKeyBinding(key_binding.KeyBinding):
@@ -370,7 +370,7 @@ class ReportKeyBinding(key_binding.KeyBinding):
 
         """
         binding_str = self.formatted()
-        return f'{self.__class__.__name__}: source={self.source} {binding_str}>'
+        return f'{self.__class__.__name__}(source={self.source} {binding_str})'
 
 
 class KeyBindingData:
@@ -414,18 +414,18 @@ class KeyBindingData:
         else:
             items = self.mdictByMainKey.items()
 
-        for main_key_name, key_mod_list in items:
+        for main_key_name, binding_list_by_mod_key in items:
             krepr = repr(main_key_name)
 
-            # Is key_mod_list comprised of all `None` values?
-            all_none_value = not any(key_mod_list)
+            # Is binding_list_by_mod_key comprised of all `None` values?
+            all_none_value = not any(binding_list_by_mod_key)
 
             # Populate `vrepr`.
             if all_none_value:
-                vrepr = repr(key_mod_list)
+                vrepr = repr(binding_list_by_mod_key)
             else:
                 binding_list_items = []
-                for i, binding_list in enumerate(key_mod_list):
+                for i, binding_list in enumerate(binding_list_by_mod_key):
                     if binding_list is None:
                         binding_list_items.append(f'{indent}None')
                     else:
@@ -1301,7 +1301,7 @@ class KeyBindingData:
         if debugging:
             print(f'  Added rpt_binding for {keys_tuple}.')
 
-    def _add_binding_to_main_key_dict(self, rpt_binding: ReportKeyBinding, key_name: str, key_mod_code: int):
+    def _add_binding_to_main_key_dict(self, rpt_binding: ReportKeyBinding, main_key_name: str, key_mod_code: int):
         """
         by_main_key_dict
             "a": [  <-- modifier_list
@@ -1325,18 +1325,18 @@ class KeyBindingData:
         """
         if rpt_binding.keypress_count() != 1:
             raise AssertionError(f'Number of elements in `keys` expected 1, got {rpt_binding.keypress_count()}!')
-        if key_name not in self.mdictByMainKey:
-            raise AssertionError(f'  ERROR!  Found key name [{key_name}] not in mdictByMainKey.')
+        if main_key_name not in self.mdictByMainKey:
+            raise AssertionError(f'  ERROR!  Found key name [{main_key_name}] not in mdictByMainKey.')
 
         debugging = self._debugging_building_main_key_dict
         if debugging:
             print('In _add_binding_to_main_key_dict()...')
-            print(f'  {key_name=}')
+            print(f'  {main_key_name=}')
             print(f'  {key_mod_code=}')
             print(f'  rpt_binding={rpt_binding.formatted(1)}')
 
-        # Here we know mdictByMainKey[key_name] exists.
-        by_main_key_item = self.mdictByMainKey[key_name]
+        # Here we know mdictByMainKey[main_key_name] exists.
+        by_main_key_item = self.mdictByMainKey[main_key_name]
         key_binding_list = by_main_key_item[key_mod_code]
 
         if key_binding_list is None:

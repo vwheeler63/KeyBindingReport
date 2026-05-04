@@ -232,22 +232,22 @@ class DebugBits(IntFlag):
     ANY                    = 0xFFFF
 
 
-# =========================================================================
+# *************************************************************************
 # Data
 #
 # `_debugging` is a bit vector (int) used to do fast bit tests.
 # This allows us to selectively turn on and off parts of debugging
 # output, getting away from the profuse "all at once" debug output.
-# =========================================================================
+# *************************************************************************
 
 _debugging: DebugBits = DebugBits.IMPORTING
 _valid_debugging_string_re = None
 _cfg_debugging_print_format = '04X'
 
 
-# =========================================================================
+# *************************************************************************
 # Module Definitions
-# =========================================================================
+# *************************************************************************
 
 def _debugging_string_validator_regex():
     r"""

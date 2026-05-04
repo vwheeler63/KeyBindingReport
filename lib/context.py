@@ -146,9 +146,9 @@ from ..lib.debug import IntFlag, DebugBits, is_debugging
 from ..lib import key_binding
 
 
-# =========================================================================
+# *************************************************************************
 # Constants
-# =========================================================================
+# *************************************************************************
 
 class Snippet:
     """
@@ -515,9 +515,9 @@ if debugging:
     print(f'Total                                      : {t2 - t0}.')
 
 
-# =========================================================================
+# *************************************************************************
 # Utilities
-# =========================================================================
+# *************************************************************************
 
 def update_view_event_listeners(curr_view: sublime.View):
     """
@@ -649,9 +649,9 @@ def _view_element_found_in_list(view, test_list: List[str]):
     return result
 
 
-# =========================================================================
+# *************************************************************************
 # Standard Context Test Functions
-# =========================================================================
+# *************************************************************************
 
 def _evaluate_test(test_val, operator, operand):
     if debugging:
@@ -1185,9 +1185,9 @@ _context_tests_by_key = {
 }
 
 
-# =========================================================================
+# *************************************************************************
 # Context Classes
-# =========================================================================
+# *************************************************************************
 
 class ContextCondition(dict):
     """
@@ -1421,11 +1421,12 @@ class Context(list):
 
         return '\n'.join(lines)
 
-    def _condition_test(self, view, condition: ContextCondition, debugging: bool):
+    def _condition_test(self, view, condition: ContextCondition, debugging: bool) -> bool:
         """
-        :param view:            Current View (used to test if key context is applicable)
-        :param condition:      Single condition dictionary from key-binding context.
-        :param debugging:      Produce debugging output?
+        :param view:       Current View (used to test if key context is applicable)
+        :param condition:  Single condition dictionary from key-binding context.
+        :param debugging:  Produce debugging output?
+        :return:  Result of test of specified ContextCondition.
         """
         if debugging:
             print(f'  In {self.__class__.__name__}._condition_test()...')
