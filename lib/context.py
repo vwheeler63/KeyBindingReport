@@ -258,7 +258,7 @@ def _on_qry_context_listeners():
 
     skip_packages = ["Default.", "Package Control.", "SublimeLinter."]
     st_modules = [".sublime", ".sublime_plugin", ".sublime_types"]
-    funcs = []
+    listeners = []
     files = []
 
     resources = sublime.find_resources("*.py")
@@ -406,7 +406,7 @@ def _on_qry_context_listeners():
                 event_listener_count += 1
                 listener = attribute()
 
-            funcs.append(listener)  # Append instantiated EventListener class.
+            listeners.append(listener)  # Append instantiated EventListener class.
             files.append(full_path)
 
     if debugging:
@@ -423,7 +423,7 @@ def _on_qry_context_listeners():
         print(f'  event_listeners                         :  {event_listener_count:5}')
         print(f'  view_event_listeners                    :  {view_event_listener_count:5}')
 
-    return funcs, files
+    return listeners, files
 
 
 def _snippet_triggers_dictionary():
