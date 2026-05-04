@@ -291,7 +291,13 @@ class KeyBindingOutput:
         footnote_num          = prev_footnote_num
         space                 = ' '
         empty_comments        = space * self.comments_column_width
-        heading_row           = ['Key', 'W', 'A', 'C', 'S', 'Command', 'Args', 'Context']
+
+        if data.platform_name == 'OSX':
+            cmd_col_hdg = 'M'  # Command key
+        else:
+            cmd_col_hdg = 'W'  # Windows key
+
+        heading_row           = ['Key', cmd_col_hdg, 'A', 'C', 'S', 'Command', 'Args', 'Context']
         if len(heading_row) != min_col_count:
             raise AssertionError('KeyBindingOutput.main_key_table():  length of `heading_row` and `min_col_count` must match.')
 

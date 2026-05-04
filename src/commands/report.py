@@ -23,11 +23,6 @@ _cfg_report_title = 'Key-Binding Report'
 # Constants
 # =========================================================================
 
-_report_key = """Key:
-
-  - A = Alt
-  - C = Ctrl
-  - S = Shift"""
 
 
 # =========================================================================
@@ -38,6 +33,20 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
     """ Generate Key-Binding Report in specified format. """
 
     def _heading(self, title: str) -> str:
+        if data.platform_name == 'OSX':
+            cmd_col_hdg  = 'M'
+            cmd_key_name = 'Command'
+        else:
+            cmd_col_hdg  = 'W'
+            cmd_key_name = 'Windows'
+
+        report_key = f"""Key:
+
+  - {cmd_col_hdg} = {cmd_key_name}
+  - A = Alt
+  - C = Ctrl
+  - S = Shift"""
+
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         parts = ['']
         parts.append(title)
@@ -45,7 +54,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         parts.append('')
         parts.append(f'Report generated:  {timestamp}')
         parts.append('')
-        parts.append(_report_key)
+        parts.append(report_key)
         parts.append('')
 
         return '\n'.join(parts)
