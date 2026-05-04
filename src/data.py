@@ -45,7 +45,29 @@ platform_name = {
     'windows': 'Windows',
     'linux': 'Linux',
 }[sublime.platform()]
+
 platform_name_w_parens = '(' + platform_name + ')'
+
+# Column headings rely on platform_name.
+if platform_name == 'OSX':
+    cmd_col_hdg    = 'C'
+    cmd_key_name   = '⌘ Command'
+    alt_col_hdg    = 'O'
+    alt_key_name   = '⌥ Option'
+    ctrl_col_hdg   = '^'
+    ctrl_key_name  = 'Ctrl'
+    shift_col_hdg  = 'S'
+    shift_key_name = 'Shift'
+else:
+    cmd_col_hdg    = 'W'
+    cmd_key_name   = '⌘ Windows'
+    alt_col_hdg    = 'A'
+    alt_key_name   = 'Alt'
+    ctrl_col_hdg   = 'C'
+    ctrl_key_name  = 'Ctrl'
+    shift_col_hdg  = 'S'
+    shift_key_name = 'Shift'
+
 
 # Regex to extract package name from resource path.
 # Example of input:  'Packages/ScopeView/Default (Windows).sublime-keymap'
@@ -156,9 +178,7 @@ def main_key_and_modifier_code(keypress_str: str) -> tuple[str, int]:
             modifier_code |= ModifierKeyBits.ALT
         elif mod_key in ['super', 'command']:
             # Command key on OSX, Windows key on Windows and Linux.
-            # Either way we record this as "COMMAND" bit.  The column
-            # heading for this on Windows and Linux will is 'W' whereas
-            # whereas on OSX it is '⌘'
+            # Either way we record this as "COMMAND" bit.
             modifier_code |= ModifierKeyBits.COMMAND
         elif mod_key == 'primary':
             if platform_name == 'OSX':

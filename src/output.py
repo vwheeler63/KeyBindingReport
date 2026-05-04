@@ -207,7 +207,7 @@ class Footnote:
         if self.fmt == ascii_table.Format.RESTRUCTUREDTEXT:
             result = f'.. [{self.number}]\n{footnote_str}'
         else:
-            result = f'({self.number})\n{footnote_str}'
+            result = f'({self.number}):\n{footnote_str}'
 
         return result
 
@@ -292,12 +292,17 @@ class KeyBindingOutput:
         space                 = ' '
         empty_comments        = space * self.comments_column_width
 
-        if data.platform_name == 'OSX':
-            cmd_col_hdg = 'M'  # Command key
-        else:
-            cmd_col_hdg = 'W'  # Windows key
+        heading_row           = [
+                'Key',
+                data.cmd_col_hdg,
+                data.alt_col_hdg,
+                data.ctrl_col_hdg,
+                data.shift_col_hdg,
+                'Command',
+                'Args',
+                'Context'
+                ]
 
-        heading_row           = ['Key', cmd_col_hdg, 'A', 'C', 'S', 'Command', 'Args', 'Context']
         if len(heading_row) != min_col_count:
             raise AssertionError('KeyBindingOutput.main_key_table():  length of `heading_row` and `min_col_count` must match.')
 

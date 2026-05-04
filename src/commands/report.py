@@ -33,29 +33,24 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
     """ Generate Key-Binding Report in specified format. """
 
     def _heading(self, title: str) -> str:
-        if data.platform_name == 'OSX':
-            cmd_col_hdg  = 'M'
-            cmd_key_name = 'Command'
-        else:
-            cmd_col_hdg  = 'W'
-            cmd_key_name = 'Windows'
-
-        report_key = f"""Key:
-
-  - {cmd_col_hdg} = {cmd_key_name}
-  - A = Alt
-  - C = Ctrl
-  - S = Shift"""
-
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        parts = ['']
+        parts = []
+        parts.append('')
         parts.append(title)
         parts.append('=' * len(title))
         parts.append('')
         parts.append(f'Report generated:  {timestamp}')
         parts.append('')
-        parts.append(report_key)
-        parts.append('')
+
+        return '\n'.join(parts)
+
+    def _table_key(self) -> str:
+        parts = []
+        parts.append('Key:')
+        parts.append(f'  {data.cmd_col_hdg} = {data.cmd_key_name}')
+        parts.append(f'  {data.alt_col_hdg} = {data.alt_key_name}')
+        parts.append(f'  {data.ctrl_col_hdg} = {data.ctrl_key_name}')
+        parts.append(f'  {data.shift_col_hdg} = {data.shift_key_name}')
 
         return '\n'.join(parts)
 
@@ -228,6 +223,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         key_data.generate(key_groups, key_names, keypress_list, limit_to_packages, rpt_gen_view)
         t1 = datetime.now()
 
+        # TODO: rmv after testing.
         # Write verification/validation files.
         tgt_file = r'r:\by_main_key.txt'
         with open(tgt_file, 'w', encoding='utf-8') as f:
@@ -251,12 +247,17 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         main_key_table, footnotes, last_footnote_num = out.main_key_table(flags, fmt, footnotes, last_footnote_num)
         # pprint.pp(main_key_table)
 
-        mk_table = ascii_table.AsciiTable(main_key_table)
-        #                                Key    W      A     C     S    Cmd    Args   Ctxt   Src
-        mk_table.set_tight_columns(    [True, True, True, True, True, False, False, False, False])
-        mk_table.set_column_alignments(['^',    '',   '',   '',   '',    '',    '',   '^',    ''])
-        content_parts = [self._heading(title)]
-        content_parts.append( mk_table.as_string(fmt) )
+        mk_asc_table = ascii_table.AsciiTable(main_key_table)
+        #                                    Key    W      A     C     S   Cmd  Args  Ctxt   Src
+        mk_asc_table.set_tight_columns(    [True, True, True, True, True, True, True, True, False])
+        mk_asc_table.set_column_alignments(['^',    '',   '',   '',   '',   '',   '',  '^',    ''])
+
+        content_parts = []
+        content_parts.append(self._heading(title))
+        content_parts.append('')
+        content_parts.append( mk_asc_table.as_string(fmt) )
+        content_parts.append('')
+        content_parts.append(self._table_key())
         content_parts.append('')
 
         # Insert footnotes.
@@ -267,7 +268,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         content = '\n'.join(content_parts)
 
         output_view.output_to_view(
-                view.window(),
+                None,
                 _cfg_report_title,
                 content,
                 current_view=view
