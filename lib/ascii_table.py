@@ -103,13 +103,13 @@ class AsciiTable():
 
         """ Representation of `self` as a string """
         if fmt == Format.BARE:
-            result = self._bare_string_repr()
+            result = self._bare_repr()
         elif fmt == Format.OUTLINED:
-            result = self._outlined_string_repr()
+            result = self._outlined_repr()
         elif fmt == Format.OUTLINED_COLUMNS:
-            result = self._outlined_string_repr(True)
+            result = self._outlined_repr(True)
         elif fmt == Format.RESTRUCTUREDTEXT:
-            result = self._restructuredtext_string_repr()
+            result = self._restructuredtext_repr()
         else:
             result = ''
 
@@ -140,7 +140,7 @@ class AsciiTable():
     def _double_line_row_separator(self, with_col_seps: bool = False):
         return self._row_separator('=', with_col_seps)
 
-    def _bare_string_repr(self):
+    def _bare_repr(self):
         """
         Package                  Shipped   Installed   Unpacked
         Default                  [S]       [ ]         [U]
@@ -158,7 +158,7 @@ class AsciiTable():
         line_parts = []
         col_sep = '   '
         tight_col_sep = '  '
-        second_to_last_col_idx = self.column_count - 2
+        last_i = self.column_count - 1
 
         for row in self.table:
             line_parts.clear()
@@ -168,7 +168,7 @@ class AsciiTable():
                 col_repr = f'{col:{self.column_alignments[i]}{self.max_column_widths[i]}}'
                 line_parts.append(col_repr)
 
-                if i < second_to_last_col_idx:
+                if i < last_i:
                     # Not last column.
                     if self.tight_columns[i]:
                         line_parts.append(tight_col_sep)
@@ -181,7 +181,7 @@ class AsciiTable():
         return '\n'.join(lines)
 
 
-    def _outlined_string_repr(self, with_col_seps: bool = False):
+    def _outlined_repr(self, with_col_seps: bool = False):
         """
         with_col_seps = False:
         +---------------------------------------------------------+
@@ -244,7 +244,7 @@ class AsciiTable():
 
         return '\n'.join(lines)
 
-    def _restructuredtext_string_repr(self):
+    def _restructuredtext_repr(self):
         """
         +------------------------+---------+-----------+----------+
         | Package                | Shipped | Installed | Unpacked |
