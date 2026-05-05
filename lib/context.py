@@ -135,13 +135,12 @@ import os
 import re
 import importlib
 from datetime import datetime
-from enum import IntFlag, IntEnum
 from typing import List
 from xml.etree import ElementTree as ET
 import sublime
 from sublime import QueryOperator
 import sublime_plugin
-from ..lib.debug import IntFlag, DebugBits, is_debugging
+from ..lib.debug import DebugBits, is_debugging
 from ..lib import key_binding
 
 
@@ -1017,21 +1016,29 @@ def _test_panel_type(view, operator, operand, match_all):
 
     - "output" = output of a Build System, but not of the console, likely
                  any panel created with ``window.create_output_panel()``
-    """
-    result = False
 
-    if operand == 'input':
-        found = _view_element_found_in_list(view, ['input:'])
-        if found:
-            result = _evaluate_test('input', operator, operand)
-    elif operand == 'find':
-        found = _view_element_found_in_list(view, _find_panel_type_detection_list)
-        if found:
-            result = _evaluate_test('find', operator, operand)
-    elif operand == 'output':
-        found = _view_element_found_in_list(view, [':output'])
-        if found:
-            result = _evaluate_test('output', operator, operand)
+    Strangely, a test on Sublime Text's actual behavior with this shows
+    that regardless of the operator or operand, if `panel_has_focus` is
+    not true, then this test ALWAYS returns false.  Example:  testing for
+    `panel_type != 'find'` returns FALSE UNLESS some other type of panel
+    is open!  So we implement that here to mimic Sublime Text's actual
+    behavior.
+    """
+    result = _test_panel_has_focus(view, operator, operand, match_all)
+
+    if result:
+        if operand == 'input':
+            found = _view_element_found_in_list(view, ['input:'])
+            if found:
+                result = _evaluate_test('input', operator, operand)
+        elif operand == 'find':
+            found = _view_element_found_in_list(view, _find_panel_type_detection_list)
+            if found:
+                result = _evaluate_test('find', operator, operand)
+        elif operand == 'output':
+            found = _view_element_found_in_list(view, [':output'])
+            if found:
+                result = _evaluate_test('output', operator, operand)
 
     return result
 
