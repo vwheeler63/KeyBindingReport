@@ -607,7 +607,7 @@ class KeyBindingData:
             since tuples can use operators like `==`, `!=`, `in` and be
             keys in dictionaries.  In doing so create:
 
-                ``keys_tuples_set``
+                ``keypress_tuple_set``
 
         2.  If both ``key_names`` and ``key_groups`` are provided and are
             not empty, the result is additive in a logical way:
@@ -622,21 +622,21 @@ class KeyBindingData:
             restrictions on which keys are reported on.  Namely:
             ``include_key_name_set``.
 
-        3.  If (include_key_name_set is not None and ``keys_tuples_set`` is not None),
-            this indicates the user has specified a ``keys_tuples_set`` which *may*
+        3.  If (include_key_name_set is not None and ``keypress_tuple_set`` is not None),
+            this indicates the user has specified a ``keypress_tuple_set`` which *may*
             have overlap with ``include_key_name_set``.  Since the latter
             means "report on all possible key combinations for these keys",
-            any keypress/keypress sequence present in ``keys_tuples_set`` which
+            any keypress/keypress sequence present in ``keypress_tuple_set`` which
             has one of those key names as the main key would be redundant and
-            is removed from ``keys_tuples_set``.
+            is removed from ``keypress_tuple_set``.
 
         4.  Finally, "overlap" may occur if:
 
-            - ``keys_tuples_set`` and ``key_groups`` were both provided and not empty,
+            - ``keypress_tuple_set`` and ``key_groups`` were both provided and not empty,
             - it contains any multiple keypress sequences, and
             - KEY_SEQUENCES was included in ``key_groups``,
 
-            then all such entries in ``keys_tuples_set`` would be redundant since
+            then all such entries in ``keypress_tuple_set`` would be redundant since
             their occurrence would already be covered by the KEY_SEQUENCES
             key group.
 
@@ -649,16 +649,16 @@ class KeyBindingData:
             include_key_name_set = Unique list of accepted key
             names based on ``key_groups``.
 
-        If ``keypress_list`` was provided, ``keys_tuples_set`` is created from it.
+        If ``keypress_list`` was provided, ``keypress_tuple_set`` is created from it.
             The above conflict/overlap resolution removed anything already
             covered by other arguments.  If there is nothing left, then
-            ``keys_tuples_set`` is set to ``None``.
+            ``keypress_tuple_set`` is set to ``None``.
 
         Finally, all 3 of:
 
         - packages,
         - include_key_name_set, and
-        - keys_tuples_set are passed to
+        - keypress_tuple_set are passed to
 
         ``self._build_report_data()``.
 
@@ -714,37 +714,37 @@ class KeyBindingData:
         else:
             key_names_set = set(key_names)
 
-        keys_tuples_set = None
+        keypress_tuple_set = None
         if keypress_list:
             # Remember:  this is a Iterable of Iterables, e.g.
             # [["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]].
             # Lists cannot be used in sets or as dictionary keys.  So we need
             # to convert its items to tuples regardless of how many there are.
             # And we need to later assume ``keypress_list`` is a set.
-            # VITAL:  it's vital that `keys_tuples_set` contains TUPLES since
+            # VITAL:  it's vital that `keypress_tuple_set` contains TUPLES since
             # tuples can use operators like `==`, `!=`, `in` and be keys
             # in dictionaries!
-            keys_tuples_set = set()
+            keypress_tuple_set = set()
             for keypresses in keypress_list:
-                keys_tuples_set.add(tuple(keypresses))
+                keypress_tuple_set.add(tuple(keypresses))
 
         if limit_to_packages is None or type(limit_to_packages) is set:
             limit_to_packages_set = limit_to_packages
         else:
             limit_to_packages_set = set(limit_to_packages)
 
-        # All of limit_to_packages, key_groups_set, key_names_set, keys_tuples_set are now set objects.
+        # All of limit_to_packages, key_groups_set, key_names_set, keypress_tuple_set are now set objects.
 
         if debugging:
             print('After removing duplicates:')
             print(f'  {key_groups_set=}')
             print(f'  {key_names_set=}')
-            print(f'  {keys_tuples_set=}')
+            print(f'  {keypress_tuple_set=}')
             print(f'  {limit_to_packages_set=}')
 
         # ---------------------------------------------------------------------
         # Prepare ``include_key_name_set`` while removing overlap from
-        # ``key_groups_set`` and ``keys_tuples_set` if both are present, pursuant to:
+        # ``key_groups_set`` and ``keypress_tuple_set` if both are present, pursuant to:
         #
         # 2.  If both ``key_names_set`` and ``key_groups_set`` are provided and are
         #     not empty, the result is additive in a logical way:
@@ -798,21 +798,21 @@ class KeyBindingData:
 
         # -----------------------------------------------------------------
         # Remove possible overlap between ``include_key_name_set``
-        # and ``keys_tuples_set`` if both are present, pursuant to:
+        # and ``keypress_tuple_set`` if both are present, pursuant to:
         #
-        # 3.  If (include_key_name_set is not None and keys_tuples_set is not None),
-        #     this indicates the user has specified a ``keys_tuples_set`` which *may*
+        # 3.  If (include_key_name_set is not None and keypress_tuple_set is not None),
+        #     this indicates the user has specified a ``keypress_tuple_set`` which *may*
         #     have overlap with ``include_key_name_set``.  Since the latter
         #     means "report on all possible key combinations for these keys",
-        #     any keypress/keypress sequence present in ``keys_tuples_set`` which
+        #     any keypress/keypress sequence present in ``keypress_tuple_set`` which
         #     has one of those key names as the main key would be redundant and
-        #     is removed from ``keys_tuples_set``.
+        #     is removed from ``keypress_tuple_set``.
         #
         # Example:
         # [("ctrl+k", "ctrl+u"), ("ctrl+p"), ("ctrl+shift+p")]
         # -----------------------------------------------------------------
-        if include_key_name_set and keys_tuples_set:
-            keys_tuples_set_copy = keys_tuples_set.copy()
+        if include_key_name_set and keypress_tuple_set:
+            keys_tuples_set_copy = keypress_tuple_set.copy()
 
             print(f'{keys_tuples_set_copy=}')
 
@@ -824,24 +824,24 @@ class KeyBindingData:
                         # Overlap
                         if debugging:
                             print(f'Removing overlap with key {main_key_name} in {keypress_tuple}.')
-                        keys_tuples_set.remove(keypress_tuple)
+                        keypress_tuple_set.remove(keypress_tuple)
 
         if debugging:
             print('After removing arg overlap phase II:')
-            print(f'  {keys_tuples_set=}')
+            print(f'  {keypress_tuple_set=}')
             print(f'  {include_key_name_set=}')
 
         # -----------------------------------------------------------------
-        # Remove possible overlap between ``key_groups_set`` and ``keys_tuples_set``
+        # Remove possible overlap between ``key_groups_set`` and ``keypress_tuple_set``
         # if both are present, pursuant to:
         #
         # 4.  Finally, "overlap" may occur if:
         #
-        #     - ``keys_tuples_set`` and ``key_groups_set`` were both provided and not empty,
+        #     - ``keypress_tuple_set`` and ``key_groups_set`` were both provided and not empty,
         #     - it contains any multiple keypress sequences, and
         #     - KEY_SEQUENCES or ALL was included in ``key_groups_set``,
         #
-        #     then all such entries in ``keys_tuples_set`` would be redundant since
+        #     then all such entries in ``keypress_tuple_set`` would be redundant since
         #     their occurrence would already be covered by the KEY_SEQUENCES
         #     or ALL key group.
         # -----------------------------------------------------------------
@@ -858,8 +858,8 @@ class KeyBindingData:
                 and (sequences_in_key_groups or all_in_key_groups)
                 ))
 
-        if keys_tuples_set and incl_all_multi_key_seqs:
-            keys_tuples_set_copy = keys_tuples_set.copy()
+        if keypress_tuple_set and incl_all_multi_key_seqs:
+            keys_tuples_set_copy = keypress_tuple_set.copy()
 
             print(f'{keys_tuples_set_copy=}')
 
@@ -873,16 +873,16 @@ class KeyBindingData:
                             grp_name = 'ALL'
 
                         print(f'Removing {keypress_tuple} as overlap because {grp_name} already covers it.')
-                    keys_tuples_set.remove(keypress_tuple)
+                    keypress_tuple_set.remove(keypress_tuple)
 
-        # If there is nothing left in ``keys_tuples_set``, then it is set to ``None``.
-        if keys_tuples_set is not None and len(keys_tuples_set) == 0:
-            keys_tuples_set = None
+        # If there is nothing left in ``keypress_tuple_set``, then it is set to ``None``.
+        if keypress_tuple_set is not None and len(keypress_tuple_set) == 0:
+            keypress_tuple_set = None
 
         if debugging:
             print('After removing arg overlap phase III:')
             print(f'  {incl_all_multi_key_seqs=}')
-            print(f'  {keys_tuples_set=}')
+            print(f'  {keypress_tuple_set=}')
 
         # ---------------------------------------------------------------------
         # Build report data.
@@ -890,7 +890,7 @@ class KeyBindingData:
         self._build_report_data(
                 limit_to_packages_set,
                 include_key_name_set,
-                keys_tuples_set,
+                keypress_tuple_set,
                 incl_all_multi_key_seqs,
                 view
                 )
@@ -903,7 +903,7 @@ class KeyBindingData:
     def _build_report_data(self,
             limit_to_packages      : Set[str] | None,
             include_key_name_set   : Set[str] | None,
-            keys_tuples_set        : Set[tuple[str]] | None,
+            keypress_tuple_set     : Set[tuple[str]] | None,
             incl_all_multi_key_seqs: bool,
             view                   : sublime.View
             ):
@@ -929,11 +929,11 @@ class KeyBindingData:
                             keypress count == 1, to accept or reject key bindings
                             being read; ``None`` == no limits on key bindings.
 
-        :param keys_tuples_set:
+        :param keypress_tuple_set:
                             Optional:  Set of keypress tuples against which to
                             compare individual JSON key binding objects.  If the
                             keypress tuple is a match, then it is included in the
-                            input data.  VITAL:  it's vital that `keys_tuples_set`
+                            input data.  VITAL:  it's vital that `keypress_tuple_set`
                             contains TUPLES since tuples can use operators like
                             `==`, `!=` and `in`!  ``None`` == no specific
                             keypress/keypress sequences are added.
@@ -985,7 +985,7 @@ class KeyBindingData:
             print('In _build_report_data()')
             print(f'  {limit_to_packages=}')
             print(f'  {include_key_name_set=}')
-            print(f'  {keys_tuples_set=}')
+            print(f'  {keypress_tuple_set=}')
             print(f'  {view=}')
             print(f'  {incl_all_multi_key_seqs=}')
 
@@ -1059,7 +1059,7 @@ class KeyBindingData:
                     pkg_name,
                     file_name,
                     include_key_name_set,
-                    keys_tuples_set,
+                    keypress_tuple_set,
                     incl_all_multi_key_seqs,
                     view
                     )
@@ -1128,7 +1128,7 @@ class KeyBindingData:
             pkg_name               : str,
             file_name              : str,
             include_key_name_set   : Set[str] | None,
-            keys_tuples_set        : Set[tuple[str]] | None,
+            keypress_tuple_set        : Set[tuple[str]] | None,
             incl_all_multi_key_seqs: bool,
             view                   : sublime.View
             ):
@@ -1136,7 +1136,7 @@ class KeyBindingData:
         Add key bindings from ``path``, which key bindings are included in these args:
 
         - include_key_name_set   : Optional[Set[str]],
-        - keys_tuples_set        : Optional[Set[tuple[str]]],
+        - keypress_tuple_set        : Optional[Set[tuple[str]]],
         - incl_all_multi_key_seqs: bool,
         - view                   : sublime.View
 
@@ -1151,7 +1151,7 @@ class KeyBindingData:
                             reject key bindings being read; ``None`` == no
                             limits on key bindings.
 
-        :param keys_tuples_set:
+        :param keypress_tuple_set:
                             Optional:  Set of keypress tuples against which
                             to compare individual JSON key binding objects.
                             If the keypress tuple is a match, then it is
@@ -1185,7 +1185,7 @@ class KeyBindingData:
             print('In _conditionally_add_bindings_from_keymap()')
             print(f'  {path=}')
             print(f'  {include_key_name_set=}')
-            print(f'  {keys_tuples_set=}')
+            print(f'  {keypress_tuple_set=}')
             print(f'  {incl_all_multi_key_seqs=}')
             print(f'  {view=}')
 
@@ -1210,18 +1210,18 @@ class KeyBindingData:
                 #
                 # Exclude if not in either of:
                 # - ``include_key_name_set`` or
-                # - ``keys_tuples_set``.
+                # - ``keypress_tuple_set``.
                 #
-                # VITAL:  it's vital that `keys_tuples_set` contains TUPLES
+                # VITAL:  it's vital that `keypress_tuple_set` contains TUPLES
                 # since tuples can use operators like `==`, `!=` and `in`!
                 # ---------------------------------------------------------
                 keypress_str = keypress_tuple_bep[0]
                 main_key_name, mod_code = main_key_and_modifier_code(keypress_str)
 
                 is_in_keys_tuples_set = ((
-                            keys_tuples_set is not None
-                        and len(keys_tuples_set) > 0
-                        and keypress_tuple_bep in keys_tuples_set
+                            (keypress_tuple_set is not None)
+                        and (len(keypress_tuple_set) > 0)
+                        and (keypress_tuple_bep in keypress_tuple_set)
                         ))
 
                 if not is_in_keys_tuples_set:
@@ -1248,12 +1248,12 @@ class KeyBindingData:
                 # ---------------------------------------------------------
                 # 2+ keypresses
                 #
-                # Exclude if not incl_all_multi_key_seqs and not in ``keys_tuples_set``.
+                # Exclude if not incl_all_multi_key_seqs and not in ``keypress_tuple_set``.
                 # ---------------------------------------------------------
                 if not incl_all_multi_key_seqs:
-                    if keys_tuples_set:
-                        # Exclude if not in ``keys_tuples_set``.
-                        if keypress_tuple_bep not in keys_tuples_set:
+                    if keypress_tuple_set:
+                        # Exclude if not in ``keypress_tuple_set``.
+                        if keypress_tuple_bep not in keypress_tuple_set:
                             if debugging:
                                 print(f'  Excluding {keypress_tuple_bep} because:\n'
                                         f'    - KEY_SEQUENCES was not in `key_groups`,\n'
@@ -1261,7 +1261,7 @@ class KeyBindingData:
                                         )
                             continue
                     else:
-                        # ``keys_tuples_set`` not present, exclude.
+                        # ``keypress_tuple_set`` not present, exclude.
                         if debugging:
                             print(f'  Excluding {keypress_tuple_bep} because:\n'
                                     f'    - KEY_SEQUENCES was not in `key_groups`, and\n'
