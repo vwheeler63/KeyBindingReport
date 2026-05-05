@@ -1394,7 +1394,7 @@ class Context(list):
 
     def __str__(self):
         """
-        <Context [setting.auto_match_enabled, selection_empty, following_text, selector, eol_selector]>
+        Context [setting.auto_match_enabled, selection_empty, following_text, selector, eol_selector]
         """
         cond_name_list = []
 
@@ -1417,7 +1417,7 @@ class Context(list):
         """
         return f'{self.__class__.__name__}({self.formatted()})'
 
-    def formatted(self, indent_level: int = 0, raw: bool = True, english: bool = False) -> str:
+    def formatted(self, indent_level: int = 0, raw: bool = True, natural_language: bool = False) -> str:
         """
         Python representation of ``self`` (same structure as in
         .sublime-keymap files) such that the keys and values are in logical order.
@@ -1435,7 +1435,7 @@ class Context(list):
           { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": True }
         ]
 
-        english:
+        natural_language:
         --------
         "context": [
           English:  Description of ContextCondition,
@@ -1445,7 +1445,7 @@ class Context(list):
           English:  Description of ContextCondition
         ]
 
-        raw and english:
+        raw and natural_language:
         ----------------
         "context": [
           { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": True }
@@ -1461,7 +1461,7 @@ class Context(list):
         ]
 
         :param indent_level:  Level of indentation for output
-        :param english:       Include English description with raw condition repr?
+        :param natural_language:       Include English description with raw condition repr?
         """
         indent = '  ' * indent_level
         lines = [f'{indent}"context": [']
@@ -1484,7 +1484,7 @@ class Context(list):
             cond_lines = []
 
             for condition in self.conditions:
-                if raw and english:
+                if raw and natural_language:
                     # Raw and English
                     cond_str = condition.formatted(
                             longest_key_len,
@@ -1492,10 +1492,10 @@ class Context(list):
                             indent_level + 1
                             )
 
-                    cond_str += '\n' + condition.english(indent_level + 2)
-                elif english:
+                    cond_str += '\n' + condition.natural_language_repr(indent_level + 2)
+                elif natural_language:
                     # English only
-                    cond_str = condition.english(indent_level + 1)
+                    cond_str = condition.natural_language_repr(indent_level + 1)
                 else:
                     # Raw only
                     cond_str = condition.formatted(
