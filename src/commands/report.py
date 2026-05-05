@@ -1,4 +1,3 @@
-from enum import IntEnum, IntFlag
 from typing import Iterable, Optional
 import pprint
 from datetime import datetime
@@ -262,17 +261,18 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
         # Insert footnotes.
         for footnote in footnotes:
-            content_parts.append(footnote.formatted(flags))
+            content_parts.append(footnote.formatted())
 
         content_parts.append('')
         content = '\n'.join(content_parts)
 
-        output_view.output_to_view(
+        rpt_view = output_view.output_to_view(
                 None,
                 _cfg_report_title,
                 content,
                 current_view=view
                 )
+        rpt_view.window().bring_to_front()
         t3 = datetime.now()
 
         print('Time to generate data structures: ', str(t1 - t0))

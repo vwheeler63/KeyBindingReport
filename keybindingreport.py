@@ -15,6 +15,7 @@ See `README.md` and `src/core.py` for more details.
 import importlib
 import sys
 import os
+from datetime import datetime
 
 
 # *************************************************************************
@@ -23,17 +24,20 @@ import os
 
 module_path, _ = os.path.splitext(os.path.realpath(__file__))
 _, submodule_name = os.path.split(module_path)
-package_name = __package__
+if isinstance(__package__, str):
+    package_name = __package__
+else:
+    package_name = 'Unknown'
 this_module_name = f'{package_name}.{submodule_name}'
 del _, module_path, submodule_name
 _reload_indent_level = -1
 
 # Can't use `debugging = is_debugging(DebugBits.IMPORTING)` here because
 # the import required to support it causes a circular import.
+t0 = datetime.now()
+
 debugging = True
 if debugging:
-    from datetime import datetime
-    t0 = datetime.now()
     print(f'{this_module_name}  >>> module execution')
 
 
@@ -107,8 +111,12 @@ def reload(dotted_subpkg: str, submodules: tuple[str, ...] = ()):
 reload(package_name + '.lib')  # Recurse into .lib/ subpackage.
 reload(package_name + '.src')  # Recurse into .src/ subpackage.
 
-from .lib import *
-from .src import *
+# This needs to be BELOW the `reload()` definition above because the modules
+# imported here require `reload()` to already be defined because they both
+# import it and call it.
+from .lib import *     # noqa: E402, F403
+from .src import *     # noqa: E402, F403
+from .src import core  # noqa: E402
 
 
 

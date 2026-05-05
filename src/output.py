@@ -118,13 +118,12 @@ All input data goes away when the last reference to the created
 @version  1.0  22-Apr-2026 15:54  vw  - Created.
 ***************************************************************************"""
 
-from enum import IntFlag, IntEnum
-from typing import List, Set, Optional, Iterable
-from ..lib.debug import DebugBits, is_debugging
-from . import core
+from enum import IntFlag
+from typing import List
 from . import data
+from .data import KeyBindingData
 from ..lib.debug import DebugBits, is_debugging
-from ..lib import context
+from ..lib.context import Context
 from ..lib import ascii_table
 
 
@@ -179,32 +178,33 @@ class FlagBits(IntFlag):
 
 class Footnote:
     """ Containers for key-binding table footnotes """
-    __slots__ = ['number', 'context', 'fmt']
+    __slots__ = ['number', 'context', 'flags', 'format']
 
-    def __init__(self, number: int, context: context.Context, fmt: ascii_table.Format):
+    def __init__(self, number: int, context: Context, flags: FlagBits, format: ascii_table.Format):
         self.number = number
         self.context = context
-        self.fmt = fmt
+        self.flags = flags
+        self.format = format
 
     def __str__(self) -> str:
         return self.formatted()
 
     def formatted_reference(self) -> str:
-        """ Footnote reference appropriate for ``fmt`` """
-        if self.fmt == ascii_table.Format.RESTRUCTUREDTEXT:
+        """ Footnote reference appropriate for ``format`` """
+        if self.format == ascii_table.Format.RESTRUCTUREDTEXT:
             result = f'([{self.number}]_)'
         else:
             result = f'({self.number})'
 
         return result
 
-    def formatted(self, flags: FlagBits) -> str:
-        """ Footnote content appropriate for ``fmt`` """
-        raw     = bool(flags & FlagBits.INCLUDE_UNTRANSLATED_CONTEXTS)
-        english = bool(flags & FlagBits.INCLUDE_ENGLISH_CONTEXTS)
+    def formatted(self) -> str:
+        """ Footnote content appropriate for ``format`` """
+        raw     = bool(self.flags & FlagBits.INCLUDE_UNTRANSLATED_CONTEXTS)
+        english = bool(self.flags & FlagBits.INCLUDE_ENGLISH_CONTEXTS)
         footnote_str = self.context.formatted(2, raw=raw, english=english)
 
-        if self.fmt == ascii_table.Format.RESTRUCTUREDTEXT:
+        if self.format == ascii_table.Format.RESTRUCTUREDTEXT:
             result = f'.. [{self.number}]\n{footnote_str}'
         else:
             result = f'({self.number}):\n{footnote_str}'
@@ -216,7 +216,7 @@ class KeyBindingOutput:
     """ Managers of Key-Binding Report output """
     __slots__ = ['data', 'modifier_applies_symbol', 'comments_column_width']
 
-    def __init__(self, data: data.KeyBindingData):
+    def __init__(self, data: KeyBindingData):
         self.data = data
         self.modifier_applies_symbol = 'x'
         self.comments_column_width = 35
@@ -232,7 +232,7 @@ class KeyBindingOutput:
         self.comments_column_width = max(0, width)   # Non-negative only.
 
     def main_key_table(
-            self             : KeyBindingOutput,
+            self,
             flags            : FlagBits,
             fmt              : ascii_table.Format,
             footnotes        : List[Footnote]       = [],
@@ -344,7 +344,7 @@ class KeyBindingOutput:
                             if lboolContextRelevant:
                                 # User requested detailed context information
                                 footnote_num += 1
-                                footnote = Footnote(footnote_num, binding.smart_context, fmt)
+                                footnote = Footnote(footnote_num, binding.smart_context(), flags, fmt)
                                 footnotes.append(footnote)
                                 context_ref = footnote.formatted_reference()
                             else:

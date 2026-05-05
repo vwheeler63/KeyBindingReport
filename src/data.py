@@ -27,7 +27,7 @@ Each time ``key_data.generate()`` is called produces a new data set.
 No memory of the previous call remains.
 """
 import re
-from typing import List, Set, Optional, Iterable
+from typing import Set, Iterable
 from enum import IntEnum, IntFlag
 import sublime
 from . import core
@@ -101,12 +101,14 @@ key_name_groups = [
 
 # Generate ``all_key_names`` from ``key_name_groups``.
 count = 0
+grp = None      # Make LSP-pyright happy.
+key_name = None # Make LSP-pyright happy.
 
 for grp in key_name_groups:
     count += len(grp)
 
 # Pre-allocate array instead of 103 ``append()`` calls (inefficient).
-all_key_names = [None] * count
+all_key_names: list = [None] * count
 i = 0
 
 for grp in key_name_groups:
@@ -221,7 +223,7 @@ def modifier_repr(modifier_code: int) -> str:
     return '+'.join(modifiers)
 
 
-def keypress_repr(main_key_name: str, modifier_code: int) -> List[str]:
+def keypress_repr(main_key_name: str, modifier_code: int) -> str:
     """ This is the reverse of ``main_key_and_modifier_code(str)``. """
     if modifier_code:
         mod_repr = modifier_repr(modifier_code)
@@ -463,10 +465,10 @@ class KeyBindingData:
         return "{%s}" % ",\n ".join(components)
 
     def generate(self,
-            key_groups       : Optional[Iterable[KeyGroup]] = None,
-            key_names        : Optional[Iterable[str]] = None,
-            keypress_list    : Optional[Iterable[Iterable[str]]] = None,
-            limit_to_packages: Optional[Iterable[str]] = None,
+            key_groups       : Iterable[KeyGroup] | None = None,
+            key_names        : Iterable[str] | None = None,
+            keypress_list    : Iterable[Iterable[str]] | None = None,
+            limit_to_packages: Iterable[str] | None = None,
             view             : sublime.View = None
             ):
         r"""
@@ -691,7 +693,8 @@ class KeyBindingData:
                 raise TypeError(msg)
 
         # ---------------------------------------------------------------------
-        # Remove duplicates from limiting args, pursuant to:
+        # Remove duplicates (by converting iterables to sets) from limiting
+        # args, pursuant to:
         #
         # 1.  Each list provided has duplicates removed.  Part of doing that
         #     for ``keypress_list`` if present is converting its elements to
@@ -701,10 +704,15 @@ class KeyBindingData:
         # ---------------------------------------------------------------------
         debugging = self._debugging_removing_arg_overlap
 
-        if key_groups and type(key_groups) != set:
-            key_groups = set(key_groups)
-        if key_names and type(key_names) != set:
-            key_names = set(key_names)
+        if key_groups is None or type(key_groups) is set:
+            key_groups_set = key_groups
+        else:
+            key_groups_set = set(key_groups)
+
+        if key_names is None or type(key_names) is set:
+            key_names_set = key_names
+        else:
+            key_names_set = set(key_names)
 
         keys_tuples_set = None
         if keypress_list:
@@ -720,27 +728,29 @@ class KeyBindingData:
             for keypresses in keypress_list:
                 keys_tuples_set.add(tuple(keypresses))
 
-        if limit_to_packages and type(limit_to_packages) != set:
-            limit_to_packages = set(limit_to_packages)
+        if limit_to_packages is None or type(limit_to_packages) is set:
+            limit_to_packages_set = limit_to_packages
+        else:
+            limit_to_packages_set = set(limit_to_packages)
 
-        # All of limit_to_packages, key_groups, key_names, keys_tuples_set are now set objects.
+        # All of limit_to_packages, key_groups_set, key_names_set, keys_tuples_set are now set objects.
 
         if debugging:
             print('After removing duplicates:')
-            print(f'  {key_groups=}')
-            print(f'  {key_names=}')
+            print(f'  {key_groups_set=}')
+            print(f'  {key_names_set=}')
             print(f'  {keys_tuples_set=}')
-            print(f'  {limit_to_packages=}')
+            print(f'  {limit_to_packages_set=}')
 
         # ---------------------------------------------------------------------
         # Prepare ``include_key_name_set`` while removing overlap from
-        # ``key_groups`` and ``keys_tuples_set` if both are present, pursuant to:
+        # ``key_groups_set`` and ``keys_tuples_set` if both are present, pursuant to:
         #
-        # 2.  If both ``key_names`` and ``key_groups`` are provided and are
+        # 2.  If both ``key_names_set`` and ``key_groups_set`` are provided and are
         #     not empty, the result is additive in a logical way:
-        #     ``key_names`` only has an effect for the keys specified that
+        #     ``key_names_set`` only has an effect for the keys specified that
         #     fall *outside* any of the other key groups specified.  This is
-        #     accomplished by removing from ``key_names`` any "keys" items
+        #     accomplished by removing from ``key_names_set`` any "keys" items
         #     whose main key also appears in any of the specified key
         #     groups.
         #
@@ -751,39 +761,39 @@ class KeyBindingData:
         # ---------------------------------------------------------------------
         include_key_name_set = None   # None == no limits on key-names.
 
-        if key_groups or key_names:
+        if key_groups_set or key_names_set:
             include_key_name_set = set()
-            if key_groups:
+            if key_groups_set:
                 # Load it with key names from the specified groups.
-                if KeyGroup.ALL in key_groups:
+                if KeyGroup.ALL in key_groups_set:
                     include_key_name_set.update(all_key_names)
                 else:
-                    for key_grp_idx in key_groups:
+                    for key_grp_idx in key_groups_set:
                         if key_grp_idx >= 0:
                             key_grp_list = key_name_groups[key_grp_idx]
                             include_key_name_set.update(key_grp_list)
 
-            # Now ``include_key_name_set`` contains keys in ``key_groups``
-            # if ``key_groups`` was specified, or is empty if not.  If not empty,
+            # Now ``include_key_name_set`` contains keys in ``key_groups_set``
+            # if ``key_groups_set`` was specified, or is empty if not.  If not empty,
             # it gives us an intermediate list against which to check whether
-            # there is any overlap in ``key_names``, in case both were specified.
-            # Example ``key_names``:  ["k", "u", "f6", "enter"].
-            if key_names and include_key_name_set:
-                # Remove any overlap in ``key_names`` resulting from any items in
-                # ``key_names`` that also appear in ``include_key_name_set``.
-                key_names_copy = key_names.copy()
+            # there is any overlap in ``key_names_set``, in case both were specified.
+            # Example ``key_names_set``:  ["k", "u", "f6", "enter"].
+            if key_names_set and include_key_name_set:
+                # Remove any overlap in ``key_names_set`` resulting from any items in
+                # ``key_names_set`` that also appear in ``include_key_name_set``.
+                key_names_copy = key_names_set.copy()
 
                 for key_name in key_names_copy:
                     if key_name in include_key_name_set:
-                        key_names.remove(key_name)
+                        key_names_set.remove(key_name)
 
-            # Finally, add any names remaining in ``key_names`` into list.
-            if key_names:
-                include_key_name_set.update(key_names)
+            # Finally, add any names remaining in ``key_names_set`` into list.
+            if key_names_set:
+                include_key_name_set.update(key_names_set)
 
         if debugging:
             print('After removing arg overlap phase I:')
-            print(f'  {key_names=}')
+            print(f'  {key_names_set=}')
             print(f'  {include_key_name_set=}')
 
         # -----------------------------------------------------------------
@@ -822,29 +832,29 @@ class KeyBindingData:
             print(f'  {include_key_name_set=}')
 
         # -----------------------------------------------------------------
-        # Remove possible overlap between ``key_groups`` and ``keys_tuples_set``
+        # Remove possible overlap between ``key_groups_set`` and ``keys_tuples_set``
         # if both are present, pursuant to:
         #
         # 4.  Finally, "overlap" may occur if:
         #
-        #     - ``keys_tuples_set`` and ``key_groups`` were both provided and not empty,
+        #     - ``keys_tuples_set`` and ``key_groups_set`` were both provided and not empty,
         #     - it contains any multiple keypress sequences, and
-        #     - KEY_SEQUENCES or ALL was included in ``key_groups``,
+        #     - KEY_SEQUENCES or ALL was included in ``key_groups_set``,
         #
         #     then all such entries in ``keys_tuples_set`` would be redundant since
         #     their occurrence would already be covered by the KEY_SEQUENCES
         #     or ALL key group.
         # -----------------------------------------------------------------
-        if key_groups:
-            sequences_in_key_groups = (( KeyGroup.KEY_SEQUENCES in key_groups ))
-            all_in_key_groups = (( KeyGroup.ALL in key_groups ))
+        if key_groups_set:
+            sequences_in_key_groups = (( KeyGroup.KEY_SEQUENCES in key_groups_set ))
+            all_in_key_groups = (( KeyGroup.ALL in key_groups_set ))
         else:
             sequences_in_key_groups = False
             all_in_key_groups = False
 
         incl_all_multi_key_seqs = ((
-                key_groups is not None
-                and len(key_groups) > 0
+                    key_groups_set is not None
+                and len(key_groups_set) > 0
                 and (sequences_in_key_groups or all_in_key_groups)
                 ))
 
@@ -878,7 +888,7 @@ class KeyBindingData:
         # Build report data.
         # ---------------------------------------------------------------------
         self._build_report_data(
-                limit_to_packages,
+                limit_to_packages_set,
                 include_key_name_set,
                 keys_tuples_set,
                 incl_all_multi_key_seqs,
@@ -888,12 +898,12 @@ class KeyBindingData:
     def _is_list_tuple_or_set(self, obj) -> bool:
         """ Is passed class a list, set or tuple? """
         T = type(obj)
-        return (( T == list or T == tuple or T == set ))
+        return (( T is list or T is tuple or T is set ))
 
     def _build_report_data(self,
-            limit_to_packages      : Optional[Set[str]],
-            include_key_name_set   : Optional[Set[str]],
-            keys_tuples_set        : Optional[Set[tuple[str]]],
+            limit_to_packages      : Set[str] | None,
+            include_key_name_set   : Set[str] | None,
+            keys_tuples_set        : Set[tuple[str]] | None,
             incl_all_multi_key_seqs: bool,
             view                   : sublime.View
             ):
@@ -972,7 +982,7 @@ class KeyBindingData:
         """
         debugging = self._debugging_filtering_stage_i
         if debugging:
-            print(f'In _build_report_data()')
+            print('In _build_report_data()')
             print(f'  {limit_to_packages=}')
             print(f'  {include_key_name_set=}')
             print(f'  {keys_tuples_set=}')
@@ -1117,8 +1127,8 @@ class KeyBindingData:
             path                   : str,
             pkg_name               : str,
             file_name              : str,
-            include_key_name_set   : Optional[Set[str]],
-            keys_tuples_set        : Optional[Set[tuple[str]]],
+            include_key_name_set   : Set[str] | None,
+            keys_tuples_set        : Set[tuple[str]] | None,
             incl_all_multi_key_seqs: bool,
             view                   : sublime.View
             ):
@@ -1172,7 +1182,7 @@ class KeyBindingData:
         """
         debugging = self._debugging_filtering_stage_ii
         if debugging:
-            print(f'In _conditionally_add_bindings_from_keymap()')
+            print('In _conditionally_add_bindings_from_keymap()')
             print(f'  {path=}')
             print(f'  {include_key_name_set=}')
             print(f'  {keys_tuples_set=}')
@@ -1191,6 +1201,8 @@ class KeyBindingData:
             # -------------------------------------------------------------
             keypress_tuple_bep = tuple(decoded_binding['keys'])
             keypress_count_bep = len(keypress_tuple_bep)
+            main_key_name = '' # Make LSP-pyright happy.
+            mod_code = 0       # Make LSP-pyright happy.
 
             if keypress_count_bep == 1:
                 # ---------------------------------------------------------
@@ -1279,9 +1291,11 @@ class KeyBindingData:
             # ``view`` parameter, then exclude this key-binding if its
             # "context" entry does not match current context.
             # -------------------------------------------------------------
-            if view is not None and binding.has_context():
-                if not binding.smart_context.query(view):
-                    continue
+            if view is not None:
+                smart_context = binding.smart_context()
+                if smart_context is not None:
+                    if not smart_context.query(view):
+                        continue
 
             # -------------------------------------------------------------
             # When execution arrives here, it's okay to add.
@@ -1366,5 +1380,5 @@ class KeyBindingData:
 
         key_binding_list.append(rpt_binding)
         if debugging:
-            keypress_str = rpt_binding.keys()[0]
+            keypress_str = rpt_binding.keys_as_list()[0]
             print(f'  Added [{keypress_str}] rpt_binding to item [{key_mod_code}].')

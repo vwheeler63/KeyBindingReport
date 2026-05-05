@@ -134,7 +134,6 @@ return a Boolean value.
 import os
 import re
 import importlib
-import pprint
 from datetime import datetime
 from enum import IntFlag, IntEnum
 from typing import List
@@ -156,7 +155,13 @@ class Snippet:
     """
     __slots__ = ['path', 'tabTrigger', 'content', 'scope', 'description']
 
-    def __init__(self, path: str, content: str, tabTrigger: str, scope: str, desc: str):
+    def __init__(
+            self,
+            path      : str,
+            content   : str | None,
+            tabTrigger: str | None,
+            scope     : str | None,
+            desc      : str | None):
         self.path        = path
         self.content     = content
         self.tabTrigger  = tabTrigger
@@ -338,7 +343,7 @@ def _on_qry_context_listeners():
             modules_loaded_count += 1
             # if debugging:
             #     print(f'  Examining   :  {module.__name__}')
-        except:
+        except Exception:
             # if debugging:
             #     print(f'  Exception   :  {resource}')
             modules_skipped_due_to_loading_exception_count += 1
@@ -349,8 +354,7 @@ def _on_qry_context_listeners():
             attribute = getattr(module, attribute_name)
 
             is_event_listener = False
-            is_event_listener_subclass = False
-            is_view_event_listener_subclass = False
+            is_view_event_listener = False
 
             is_class_w_on_query_context = ((
                         isinstance(attribute, type)  # class
@@ -358,12 +362,13 @@ def _on_qry_context_listeners():
                     ))
 
             if is_class_w_on_query_context:
-                is_view_event_listener_subclass = \
+                is_view_event_listener = ((
                         issubclass(attribute, sublime_plugin.ViewEventListener)
+                        ))
 
                 is_event_listener = ((
                            issubclass(attribute, sublime_plugin.EventListener)
-                        or is_view_event_listener_subclass
+                        or is_view_event_listener
                         ))
 
             if not is_event_listener:
@@ -394,7 +399,7 @@ def _on_qry_context_listeners():
             listeners_instantiated_and_kept_count += 1
             if debugging:
                 print(f'  Keeping >>>>:  {resource}')
-            if is_view_event_listener_subclass:
+            if is_view_event_listener:
                 # These have to be instantiated with the current View.
                 # However, these Views are replaced if the current View has
                 # changed before running each Report so they have the
@@ -435,8 +440,6 @@ def _snippet_triggers_dictionary():
         print('In context._snippet_triggers_dictionary()...:')
 
     result_dict = {}
-    skip_packages = ["Default.", "Package Control.", "SublimeLinter."]
-    st_modules = [".sublime", ".sublime_plugin", ".sublime_types"]
 
     resources = sublime.find_resources("*.sublime-snippet")
     has_content_count = 0
@@ -460,10 +463,19 @@ def _snippet_triggers_dictionary():
             # content_elem = snippet_tree.find('content')
             # content = content_elem.text if hasattr(content_elem, 'text') else None
             content = None
+
             trigger_elem = snippet_tree.find('tabTrigger')
-            trigger = trigger_elem.text if hasattr(trigger_elem, 'text') else None
+            if trigger_elem and hasattr(trigger_elem, 'text'):
+                trigger = trigger_elem.text
+            else:
+                trigger = None
+
             scope_elem = snippet_tree.find('scope')
-            scope = scope_elem.text if hasattr(scope_elem, 'text') else None
+            if scope_elem and hasattr(scope_elem, 'text'):
+                scope = scope_elem.text
+            else:
+                scope = None
+
             # desc_elem = snippet_tree.find('description')
             # desc = desc_elem.text if hasattr(desc_elem, 'text') else None
             desc    = None
@@ -471,10 +483,14 @@ def _snippet_triggers_dictionary():
             # `scope` are important to the `has_snippet` test.
             snippet = Snippet(path, content, trigger, scope, desc)
 
-            if content is not None:  has_content_count += 1
-            if trigger is not None:  has_trigger_count += 1
-            if scope   is not None:  has_scope_count   += 1
-            if desc    is not None:  has_desc_count    += 1
+            if content is not None:
+                has_content_count += 1
+            if trigger is not None:
+                has_trigger_count += 1
+            if scope   is not None:
+                has_scope_count   += 1
+            if desc    is not None:
+                has_desc_count    += 1
 
             if trigger in result_dict:
                 # Append to list.
@@ -503,9 +519,9 @@ def _snippet_triggers_dictionary():
 
     return result_dict
 
-if debugging:  t0 = datetime.now()
+t0 = datetime.now()
 _on_query_context_listener_list, _on_query_context_file_list = _on_qry_context_listeners()
-if debugging:  t1 = datetime.now()
+t1 = datetime.now()
 _snippets_by_trigger = _snippet_triggers_dictionary()
 
 if debugging:
@@ -588,6 +604,7 @@ def _curr_word_for_snippet(view, rgn):
             # Walk backwards until BOL or blank char.
             # (range(idx_of_caret_in_line - 1, -1, -1) is a reversed sequence
             # of integers that ends after 0, like [5,4,3,2,1,0]
+            i = 0
             for i in range(idx_of_caret_in_line - 1, -1, -1):
                 c = line[i]
                 if c in blank_chars:
@@ -665,13 +682,13 @@ def _evaluate_test(test_val, operator, operand):
         elif operator == "not_equal":
             result = test_val != operand
         elif operator == "regex_match":
-            result = test_val != None and re.fullmatch(operand, test_val)  != None
+            result = test_val is not None and re.fullmatch(operand, test_val) is not None
         elif operator == "not_regex_match":
-            result = test_val == None or  re.fullmatch(operand, test_val)  == None
+            result = test_val is     None or  re.fullmatch(operand, test_val) is     None
         elif operator == "regex_contains":
-            result = test_val != None and re.search(operand, test_val) != None
+            result = test_val is not None and re.search(operand, test_val)    is not None
         elif operator == "not_regex_contains":
-            result = test_val == None or  re.search(operand, test_val) == None
+            result = test_val is     None or  re.search(operand, test_val)    is     None
         else:
             raise AssertionError(f'Operator not recognized:  {operator}.')
     except Exception as e:
@@ -701,7 +718,7 @@ def _test_selections(test_val_func, view, operator, operand, match_all):
     :param match_all:   Do all selections have to evaluate TRUE?
     """
     if debugging:
-        print(f'    In _test_selections()...')
+        print('    In _test_selections()...')
         print(f'      test_val_func={test_val_func.__name__}')
     result = False
     sel_list = view.sel()
@@ -719,12 +736,12 @@ def _test_selections(test_val_func, view, operator, operand, match_all):
                 if not match_all:
                     if debugging:
                         print('      Exiting sel loop early:  test passed and match_all == False.')
-                    break;
+                    break
             else:
                 if match_all:
                     if debugging:
                         print('      Exiting sel loop early:  test failed and match_all == True.')
-                    break;
+                    break
 
     if debugging:
         print(f'    {result=}')
@@ -745,7 +762,7 @@ def _test_selections_scope(selector_pt_func, view, operator, selector, match_all
     :param match_all:   Do all selections have to evaluate TRUE?
     """
     if debugging:
-        print(f'    In _test_selections_scope()...')
+        print('    In _test_selections_scope()...')
         print(f'      selector_pt_func={selector_pt_func.__name__}')
     result = False
     sel_list = view.sel()
@@ -771,13 +788,13 @@ def _test_selections_scope(selector_pt_func, view, operator, selector, match_all
                 if not match_all:
                     if debugging:
                         print('      Exiting sel loop early:  test passed and match_all == False.')
-                    break;
+                    break
             else:
                 # result == False
                 if match_all:
                     if debugging:
                         print('      Exiting sel loop early:  test failed and match_all == True.')
-                    break;
+                    break
 
     if debugging:
         print(f'    {result=}')
@@ -908,14 +925,14 @@ def _test_auto_complete_visible(view, operator, operand, match_all):
 def _test_last_command(view, operator, operand, match_all):
     test_val = view.command_history(0)[0]
     if debugging:
-        print(f'    last_command = [{cmd_name}]')
+        print(f'    last_command = [{test_val}]')
     return _evaluate_test(test_val, operator, operand)
 
 
 def _test_last_modifying_command(view, operator, operand, match_all):
     test_val = view.command_history(0, modifying_only = True)[0]
     if debugging:
-        print(f'    last_modifying_command = [{cmd_name}]')
+        print(f'    last_modifying_command = [{test_val}]')
     return _evaluate_test(test_val, operator, operand)
 
 
@@ -942,6 +959,7 @@ def _test_overlay_name(view, operator, operand, match_all):
     - { "key": "overlay_name", "operator": "not_equal", "operand" : "goto" }
     """
     result = False
+    test_val = None
     element = view.element()
 
     if element:
@@ -950,7 +968,8 @@ def _test_overlay_name(view, operator, operand, match_all):
         elif 'command_palette:' in element:
             test_val = 'command_palette'
 
-        result = _evaluate_test(test_val, operator, operand)
+        if test_val:
+            result = _evaluate_test(test_val, operator, operand)
 
     return result
 
@@ -1051,7 +1070,7 @@ def _test_has_snippet(view, operator, operand, match_all):
 # Window Logic
 # -------------------------------------------------------------------------
 
-def _group_for_view(view) -> int:
+def _group_for_view(view) -> int | None:
     """ Group number for view.
 
     :return:  None if view not in group.
@@ -1094,7 +1113,7 @@ def _test_panel(view, operator, operand, match_all):
     result = False
     operand_type = type(operand)
 
-    if operand_type != str:
+    if operand_type is not str:
         print(f'_test_panel:  expected operand to be a string, got {operand_type} instead.')
     else:
         win = view.window()
@@ -1279,9 +1298,10 @@ class Context(list):
     It has:
         +   list of ContextCondition objects
     It can be asked:
-        +   query(self, view, path: str)
+        +   query(self, view)
         +   str(self)
         +   repr(self)
+        +   format(self)
     t can be requested to change context objects as follows:
         +   ...
             +   ...
@@ -1311,7 +1331,7 @@ class Context(list):
 
         self.extend(condition_list)
 
-        conditions = None
+        conditions: List[ContextCondition] | None = None
         if len(condition_list) > 0:
             conditions = []
             for condition_dict in condition_list:
@@ -1326,8 +1346,9 @@ class Context(list):
         """
         cond_name_list = []
 
-        for cond in self.conditions:
-            cond_name_list.append(cond["key"])
+        if self.conditions is not None and len(self.conditions) > 0:
+            for cond in self.conditions:
+                cond_name_list.append(cond["key"])
 
         short_test_name_list = ', '.join(cond_name_list)
         return f'{self.__class__.__name__}({short_test_name_list})'
@@ -1440,7 +1461,7 @@ class Context(list):
 
         return '\n'.join(lines)
 
-    def _condition_test(self, view, condition: ContextCondition, debugging: bool) -> bool:
+    def _condition_test(self, view, condition: ContextCondition, debugging: int) -> bool:
         """
         :param view:       Current View (used to test if key context is applicable)
         :param condition:  Single condition dictionary from key-binding context.
@@ -1491,7 +1512,7 @@ class Context(list):
                             view, key, operator_code, operand, match_all
                             )
 
-                if query_result == None:
+                if query_result is None:
                     if debugging:
                         print(f'  No knowledge of [{key}] by {listener}.')
                     continue
@@ -1531,10 +1552,11 @@ class Context(list):
         all_tests_passed = True
 
         # Do all conditions pass?
-        for condition in self.conditions:
-            if not self._condition_test(view, condition, debugging):
-                all_tests_passed = False
-                break
+        if self.conditions is not None and len(self.conditions) > 0:
+            for condition in self.conditions:
+                if not self._condition_test(view, condition, debugging):
+                    all_tests_passed = False
+                    break
 
         if debugging:
             indent = ' '

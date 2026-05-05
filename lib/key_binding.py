@@ -1,6 +1,107 @@
-from typing import List, Optional
-from . import context
+"""************************************************************************
+KeyBinding
+**********
 
+
+
+key_binding Terminology
+=============================
+
+These KeyBindings are objects from the lists in `.sublime-keymap` files,
+so all terminology related to those key binding objects is used herein.
+
+
+key_binding Design
+========================
+
+A.  There is a concept of a key_binding object.
+
+    1.  It has:
+        +   source
+            +   PackageName/Default ($platform).sublime-keymap, or
+            +   PackageName/Default.sublime-keymap
+        +   _smart_context
+            +   Context objects
+        +   ...
+    2.  It can be asked:
+        +   ...
+            +   ...
+            +   ...
+        +   ...
+            +   ...
+            +   ...
+        +   ...
+            +   ...
+            +   ...
+    3.  It can be requested to change key_binding objects as follows:
+        +   ...
+            +   ...
+            +   ...
+        +   ...
+            +   ...
+            +   ...
+        +   ...
+            +   ...
+            +   ...
+
+
+key_binding Data Flow
+===========================
+
+KeyBinding is in the inheritance tree to ReportKeyBinding class.
+ReportKeyBinding objects are used to populate 2 data structures
+used to generate reports and to provide data for utilities that
+deal with Sublime Text Key Bindings.
+
+
+
+@version  Current revision:  @(#) v1.0  04-May-2026 18:11
+@version  1.0  04-May-2026 18:11  vw  - Created.
+***************************************************************************"""
+
+from typing import List
+from .context import Context
+
+
+
+# *************************************************************************
+# Configuration
+# *************************************************************************
+
+
+
+# *************************************************************************
+# Constants
+# *************************************************************************
+
+_keys_key    = 'keys'
+_command_key = 'command'
+_args_key    = 'args'
+_context_key = 'context'
+
+
+
+# *************************************************************************
+# Data
+# *************************************************************************
+
+
+
+# *************************************************************************
+# Utilities
+# *************************************************************************
+
+
+
+# *************************************************************************
+# Function Definitions
+# *************************************************************************
+
+
+
+# *************************************************************************
+# Classes
+# *************************************************************************
 
 class KeyBinding(dict):
     """
@@ -18,7 +119,7 @@ class KeyBinding(dict):
     }
     """
     # __slots__ = [
-    #     'context',
+    #     '_smart_context',
     #     'source',
     # ]
 
@@ -28,11 +129,10 @@ class KeyBinding(dict):
         :param path:                 for improved debug output
         """
         self.update(decoded_key_binding)
+        self._smart_context: Context | None = None
 
-        if 'context' in decoded_key_binding:
-            self.smart_context = context.Context(self)
-        else:
-            self.smart_context = None
+        if _context_key in decoded_key_binding:
+            self._smart_context = Context(self)
 
         self.source = source
 
@@ -88,8 +188,8 @@ class KeyBinding(dict):
         cmd_as_func = self.command_as_function_repr()
         result += f'{indent}{{ {repr(self["keys"])}, {cmd_as_func}'
 
-        if self.smart_context:
-            result += '\n' + self.smart_context.formatted(indent_level + 1)
+        if self._smart_context:
+            result += '\n' + self._smart_context.formatted(indent_level + 1)
             result += f'\n{indent}}}'
         else:
             result += ' }'
@@ -100,59 +200,59 @@ class KeyBinding(dict):
         """
         Number of keypresses in binding.
         """
-        return len(self['keys'])
+        return len(self[_keys_key])
 
-    def keys(self) -> list:
-        return self['keys']
+    def keys_as_list(self) -> list:
+        return self[_keys_key]
 
     def keys_as_tuple(self) -> tuple:
-        return tuple(self['keys'])
+        return tuple(self[_keys_key])
 
     def command(self) -> str:
-        return self['command']
+        return self[_command_key]
 
     def has_args(self) -> bool:
-        return (( 'args' in self ))
+        return (( _args_key in self ))
 
-    def args(self) -> Optional[dict]:
+    def args(self) -> dict | None:
         result = None
 
-        if 'args' in self:
-            result = self['args']
+        if _args_key in self:
+            result = self[_args_key]
 
         return result
 
     def args_repr(self) -> str:
         result = ''
 
-        if 'args' in self:
-            result = repr(self['args'])
+        if _args_key in self:
+            result = repr(self[_args_key])
 
         return result
 
     def command_as_function_repr(self) -> str:
-        command = self['command']
+        command = self[_command_key]
         args_repr = self.args_repr()
         return f'{command}({args_repr})'
 
     def has_context(self) -> bool:
-        return (( self.smart_context is not None ))
+        return (( self._smart_context is not None ))
 
-    def decoded_context(self) -> Optional[list]:
+    def decoded_context(self) -> list | None:
         result = None
 
-        if 'context' in self:
-            result = self['context']
+        if _context_key in self:
+            result = self[_context_key]
 
         return result
 
-    def smart_context(self) -> Optional[list]:
-        return self.smart_context
+    def smart_context(self) -> Context | None:
+        return self._smart_context
 
     def source_file(self) -> str:
         return self.source
 
-    def parts(self) -> tuple[List[str], str, dict, List[dict]]:
+    def parts(self) -> tuple[tuple, str, dict | None, List[dict] | None]:
         """
         Parts of JSON Key-Binding object, extracted as:
 
@@ -176,18 +276,18 @@ class KeyBinding(dict):
         },
         """
         json_binding = self
-        keys = tuple(json_binding['keys'])
-        cmd  = json_binding['command']
+        keypress_tuple = tuple(json_binding[_keys_key])
+        cmd  = json_binding[_command_key]
 
-        if 'args' in json_binding:
-            args = json_binding['args']
+        if _args_key in json_binding:
+            args = json_binding[_args_key]
         else:
             args = None
 
-        if 'context' in json_binding:
-            ctxt = json_binding['context']
+        if _context_key in json_binding:
+            ctxt = json_binding[_context_key]
         else:
             ctxt = None
 
-        return keys, cmd, args, ctxt, self.source
+        return keypress_tuple, cmd, args, ctxt, self.source
 

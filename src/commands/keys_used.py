@@ -1,15 +1,10 @@
-from enum import IntEnum, IntFlag
-from typing import Iterable, Optional
-import pprint
 from datetime import datetime
 import sublime_plugin
 import sublime
 from ...lib.debug import DebugBits, is_debugging
 from ...lib import ascii_table
 from ...lib import output_view
-from .. import core
 from .. import data
-from .. import output
 
 
 # *************************************************************************
@@ -170,12 +165,11 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
         content_parts.append('')
         content = '\n'.join(content_parts)
 
-        active_window = sublime.active_window()
-        view = active_window.active_view()
+        active_view = sublime.active_window().active_view()
 
         output_view.output_to_view(
-                active_window,
+                None,
                 _cfg_report_title,
                 content,
-                current_view=view
+                current_view=active_view
                 )

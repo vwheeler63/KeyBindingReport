@@ -335,7 +335,7 @@ See ``KeyBindingReportCommand`` docstring for details.
 """
 
 from datetime import datetime
-from typing import List, Dict, Set, Optional
+from typing import List, Dict, Set
 import re
 import os
 import sys

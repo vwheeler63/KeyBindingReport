@@ -46,7 +46,6 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
             print('>\n>\n>\n>')
 
         print(f"It's me.... {__name__}")
-        from ...lib import context
         # context._snippet_triggers_dictionary()
         print(self.view)
         print(self.view.element())

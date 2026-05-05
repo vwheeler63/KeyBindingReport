@@ -1,4 +1,4 @@
-from typing import List, Iterable
+from typing import List, Sequence
 from enum import IntEnum
 
 
@@ -25,7 +25,7 @@ class AsciiTable():
             'debugging'
             ]
 
-    def __init__(self, table: List[Iterable[str]]):
+    def __init__(self, table: List[Sequence[str]]):
         if table is None:
             msg = '`table` must be a list of iterables elements.  Got `None` instead.'
             raise AssertionError(msg)
@@ -49,7 +49,7 @@ class AsciiTable():
             # Keep max in ``column_count`` and extend ``max_column_widths`` when needed.
             if (col_count := len(row)) > self.column_count:
                 self.column_count = col_count
-                while (curr_cols := len(self.max_column_widths)) < col_count:
+                while (len(self.max_column_widths)) < col_count:
                     self.max_column_widths.append(1)
 
             for i, field in enumerate(row):
@@ -59,7 +59,7 @@ class AsciiTable():
         self.column_alignments = [''] * self.column_count
         self.tight_columns = [False] * self.column_count
 
-    def set_column_alignments(self, alignment_list: Iterable[str]):
+    def set_column_alignments(self, alignment_list: Sequence[str]):
         """
         Align Specifiers
         ----------------
@@ -79,7 +79,7 @@ class AsciiTable():
             raise AssertionError(msg)
         self.column_alignments = alignment_list
 
-    def set_tight_columns(self, tight_col_list: Iterable[bool]):
+    def set_tight_columns(self, tight_col_list: Sequence[bool]):
         """
         Set whether each column is considered "tight".
 
@@ -158,11 +158,10 @@ class AsciiTable():
         line_parts = []
         col_sep = '   '
         tight_col_sep = '  '
-        last_i = self.column_count - 1
 
         for row in self.table:
             line_parts.clear()
-            last_col_idx = len(row) - 1
+            last_i = len(row) - 1
 
             for i, col in enumerate(row):
                 col_repr = f'{col:{self.column_alignments[i]}{self.max_column_widths[i]}}'
@@ -204,7 +203,6 @@ class AsciiTable():
         """
         lines = []
         line_parts = []
-        last_i = self.column_count - 1
         row_sep = self._single_line_row_separator(with_col_seps)
 
         lines.append(row_sep)
@@ -223,6 +221,7 @@ class AsciiTable():
         for row in self.table:
             line_parts.clear()
             line_parts.append('|')
+            last_i = len(row) - 1
 
             for i, col in enumerate(row):
                 col_repr = f'{col:{self.column_alignments[i]}{self.max_column_widths[i]}}'
@@ -266,7 +265,6 @@ class AsciiTable():
         title_sep = self._double_line_row_separator()
 
         lines.append(row_sep)
-        last_row_idx = self.row_count - 1
 
         for ri, row in enumerate(self.table):
             line_parts.clear()
@@ -313,7 +311,7 @@ if __name__ == '__main__':
         rows.append(fields)
 
     # ---------------------------------------------------------------------
-    # ``rows`` is now a List[Iterable[str]] needed by ``AsciiTable``.
+    # ``rows`` is now a List[Sequence[str]] needed by ``AsciiTable``.
     # ---------------------------------------------------------------------
     table = AsciiTable(rows)
     # table.set_column_alignments(['', '^', '^', '^'])
