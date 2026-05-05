@@ -60,7 +60,7 @@ deal with Sublime Text Key Bindings.
 ***************************************************************************"""
 
 from typing import List
-from .context import Context
+from . import context
 
 
 
@@ -129,10 +129,10 @@ class KeyBinding(dict):
         :param path:                 for improved debug output
         """
         self.update(decoded_key_binding)
-        self._smart_context: Context | None = None
+        self._smart_context: context.Context | None = None
 
         if _context_key in decoded_key_binding:
-            self._smart_context = Context(self)
+            self._smart_context = context.Context(self)
 
         self.source = source
 
@@ -246,7 +246,7 @@ class KeyBinding(dict):
 
         return result
 
-    def smart_context(self) -> Context | None:
+    def smart_context(self) -> context.Context | None:
         return self._smart_context
 
     def source_file(self) -> str:
