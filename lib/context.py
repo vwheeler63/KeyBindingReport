@@ -72,7 +72,7 @@ A.  Context module.
         +   _on_query_context_listener_list  (list)
         +   _on_query_context_file_list      (list)
         +   _snippets_by_trigger             (dict)
-        +   _context_tests_by_key            (dict)
+        +   _context_tests_by_name            (dict)
         +   _operator_codes_by_name          (dict)
 
 B.  ContextCondition Object.
@@ -178,7 +178,7 @@ _on_query_context_file_list = []
 _snippets_by_trigger = []
 
 # Context test functions by key; populated after test functions below.
-_context_tests_by_key = {}
+_context_tests_by_name = {}
 
 # Regex to extract setting name from a "settings.xxxx" condition.
 _setting_name_from_condition = re.compile(r'^setting\.(.+)$')
@@ -1154,53 +1154,53 @@ def _test_unimplemented(view, operator, operand, match_all):
 
 
 # -------------------------------------------------------------------------
-# Populate ``_context_tests_by_key``.  This is done here because at module
+# Populate ``_context_tests_by_name``.  This is done here because at module
 # load time, the function definitions are first available at this point.
 # This is somewhat more efficient than 27 assignments.
 # -------------------------------------------------------------------------
-_context_tests_by_key = {
-    # Selections
-    'num_selections'           : _test_num_selections,
-    'selection_empty'          : _test_selection_empty,
+_context_tests_by_name = {                                          # Operator Group
+    # Selections                                                    # --------------
+    'num_selections'           : _test_num_selections,              # equality group
+    'selection_empty'          : _test_selection_empty,             # equality group
 
     # Scope
-    'eol_selector'             : _test_eol_selector,
-    'is_javadoc'               : _test_is_javadoc,
-    'selector'                 : _test_selector,
+    'eol_selector'             : _test_eol_selector,                # equality group
+    'is_javadoc'               : _test_is_javadoc,                  # equality group
+    'selector'                 : _test_selector,                    # equality group
 
     # Text
-    'following_text'           : _test_following_text,
-    'indented_block'           : _test_indented_block,
-    'preceding_text'           : _test_preceding_text,
-    'text'                     : _test_text,
+    'following_text'           : _test_following_text,              # regex group
+    'indented_block'           : _test_indented_block,              # equality group
+    'preceding_text'           : _test_preceding_text,              # regex group
+    'text'                     : _test_text,                        # regex group
 
     # View
-    'auto_complete_visible'    : _test_auto_complete_visible,
-    'last_command'             : _test_last_command,
-    'last_modifying_command'   : _test_last_modifying_command,
-    'overlay_has_focus'        : _test_overlay_has_focus,
-    'overlay_name'             : _test_overlay_name,
+    'auto_complete_visible'    : _test_auto_complete_visible,       # equality group
+    'last_command'             : _test_last_command,                # equality group
+    'last_modifying_command'   : _test_last_modifying_command,      # equality group
+    'overlay_has_focus'        : _test_overlay_has_focus,           # equality group
+    'overlay_name'             : _test_overlay_name,                # equality group
     'overlay_visible'          : _test_overlay_has_focus,  # Kludge, but no other option appears possible.
-    'panel_has_focus'          : _test_panel_has_focus,
-    'panel_type'               : _test_panel_type,
-    'popup_visible'            : _test_popup_visible,
-    'read_only'                : _test_read_only,
-    # setting.xxxx  is implemented in `_condition_test()` since its test
-    # pattern is different from all the other tests.
+    'panel_has_focus'          : _test_panel_has_focus,             # equality group
+    'panel_type'               : _test_panel_type,                  # equality group
+    'popup_visible'            : _test_popup_visible,               # equality group
+    'read_only'                : _test_read_only,                   # equality group
+    # setting.xxxx  is implemented in `_condition_test()` since     # equality group
+    # its test pattern is different from all the other tests.
 
     # Snippet (examines text around caret)
-    'has_next_field'           : _test_unimplemented,
-    'has_prev_field'           : _test_unimplemented,
-    'has_snippet'              : _test_has_snippet,
+    'has_next_field'           : _test_unimplemented,               # equality group
+    'has_prev_field'           : _test_unimplemented,               # equality group
+    'has_snippet'              : _test_has_snippet,                 # equality group
 
     # Window
-    'group_has_multiselect'    : _test_group_has_multiselect,
-    'group_has_transient_sheet': _test_group_has_transient_sheet,
-    'panel'                    : _test_panel,
-    'panel_visible'            : _test_panel_visible,
+    'group_has_multiselect'    : _test_group_has_multiselect,       # equality group
+    'group_has_transient_sheet': _test_group_has_transient_sheet,   # equality group
+    'panel'                    : _test_panel,                       # equality group
+    'panel_visible'            : _test_panel_visible,               # equality group
 
     # Application
-    'is_recording_macro'       : _test_unimplemented,
+    'is_recording_macro'       : _test_unimplemented,               # equality group
 }
 
 
@@ -1212,6 +1212,54 @@ class ContextCondition(dict):
     """
     Sublime Text Key-Binding Context Conditions
 
+    Each instantiated ContextCondition represents one Boolean condition of a
+    Sublime Text key-binding context.
+
+    It has:
+        +   "key" entry (test name); str value:  one of the keys in `_context_tests_by_name`.
+            The test indicates the value of the LHS (left-hand-side) of the
+            Boolean expression this condition forms.
+
+        +   optional "operator" entry; str value:  (Default:  "equal") a
+            Boolean operator which must be from one or the other of the
+            following 2 groups, depending on the test.  Which group is
+            noted in comments to the right of each entry in the
+            `_context_tests_by_name` dictionary above.
+
+            + equality-operator group:  "equal", "not_equal"
+            + regex-operator group   :  "regex_match", "not_regex_match", "regex_contains", "not_regex_contains"
+
+            Hint:  all tests use operators from the quality-operator group
+            except 3 that use operators from the regex-operator group:
+            "test", "preceding_text", and "following_text".
+
+        +   optional "operand"; str | bool | int value:  (Default: true);
+            this value provides the RHS (right-hand-side) of the Boolean
+            expression formed by this condition.
+
+        +   optional "match_all" entry; bool value:  (Default: false).
+            If specified with a `true` value, the context of ALL selections
+            must satisfy this condition for it to evaluate TRUE.  If omitted
+            or specified `false`, only ONE of the selections must satisfy
+            this condition for it to result in a TRUE test result.
+
+    It can be asked:
+        +   formatted(self, longest_key_len, longest_op_len, indent_level)
+            +   The parameters assist with giving a table-like representation,
+                to enhance readability.
+        +   str(self)
+        +   repr(self)
+        +   natural_language_repr(self)
+            +   An English translation of the Boolean condition
+    t can be requested to change context objects as follows:
+        +   Creation passes the condition dictionary from the `.sublime-keymap`
+            key-binding context.
+            +   ...
+            +   ...
+        +   set_language(language_code)
+            +   Default:  'en'
+            +   Determines language used by `natural_language_repr()` method.
+
     Examples:
     { "key": "setting.auto_match_enabled", "operator": "equal", "operand": true },
     { "key": "selection_empty", "operator": "equal", "operand": true, "match_all": true },
@@ -1219,8 +1267,12 @@ class ContextCondition(dict):
     { "key": "preceding_text", "operator": "not_regex_contains", "operand": "[\"a-zA-Z0-9_]$", "match_all": true },
     { "key": "eol_selector", "operator": "not_equal", "operand": "string.quoted.double - punctuation.definition.string.end", "match_all": true }
     """
-    def __init__(self, condition_dict: dict):
+    def __init__(self, condition_dict: dict, language_code: str = 'en'):
         self.update(condition_dict)
+        self.language = language_code
+
+    def set_language(self, language: str = 'en'):
+        self.language = language
 
     def __str__(self):
         return self.formatted()
@@ -1241,7 +1293,7 @@ class ContextCondition(dict):
                 result = 'false'
         else:
             # We THINK this is a number, based on survey of existing keymap files.
-            result = repr(value)
+            result = str(value)
 
         return result
 
@@ -1285,7 +1337,7 @@ class ContextCondition(dict):
 
         return result
 
-    def english(self, indent_level: int = 0) -> str:
+    def natural_language_repr(self, indent_level: int = 0) -> str:
         indent = '  ' * indent_level
         return f'{indent}English:  Description of ContextCondition'
 
@@ -1301,7 +1353,7 @@ class Context(list):
         +   query(self, view)
         +   str(self)
         +   repr(self)
-        +   format(self)
+        +   ...
     t can be requested to change context objects as follows:
         +   ...
             +   ...
@@ -1485,9 +1537,9 @@ class Context(list):
             if debugging:
                 print(f'    Setting name {setting_name}:')
             result = _evaluate_test(value, operator, operand)
-        elif key in _context_tests_by_key:
+        elif key in _context_tests_by_name:
             # Is one of the standard standard context tests.
-            test_func = _context_tests_by_key[key]
+            test_func = _context_tests_by_name[key]
             result = test_func(view, operator, operand, match_all)
         else:
             # Is NOT one of the standard standard context tests.

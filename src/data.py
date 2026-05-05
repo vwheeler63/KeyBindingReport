@@ -558,17 +558,17 @@ class KeyBindingData:
 
         class FlagBits(IntFlag):
             # Output Flags
-            INCLUDE_UNBOUND_KEY_COMBINATIONS = 0b00000001  #   1
-            INCLUDE_UNTRANSLATED_CONTEXTS    = 0b00000010  #   2
-            INCLUDE_ENGLISH_CONTEXTS         = 0b00000100  #   4
-            ADD_SOURCE_COLUMN                = 0b00001000  #   8
-            ADD_COMMENTS_COLUMN              = 0b00010000  #  16
+            INCLUDE_UNBOUND_KEY_COMBINATIONS  = 0b0000_0001  #   1
+            INCLUDE_UNTRANSLATED_CONTEXTS     = 0b0000_0010  #   2
+            INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0b0000_0100  #   4
+            ADD_SOURCE_COLUMN                 = 0b0000_1000  #   8
+            ADD_COMMENTS_COLUMN               = 0b0001_0000  #  16
 
             # Utility Bits
-            ANY_CONTEXT                      = 0b00000010 | 0b00000100
-            NONE                             = 0b00000000  #   0
-            ALL                              = 0b11111111  # 255
-            ANY                              = 0b11111111  # 255
+            ANY_CONTEXT                       = 0b0000_0010 | 0b0000_0100
+            NONE                              = 0b0000_0000  #   0
+            ALL                               = 0b1111_1111  # 255
+            ANY                               = 0b1111_1111  # 255
 
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
         | Description                   |packages   |key_groups   |key_names | keypress_list                          |

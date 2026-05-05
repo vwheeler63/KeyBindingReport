@@ -141,11 +141,11 @@ class KeyBinding(dict):
 
     def __repr__(self):
         """
-        <KeyBinding pkg=Default { ['right'], move({'by': 'characters', 'forward': True}) }>
+        KeyBinding({ ['right'], move({'by': 'characters', 'forward': True}) })
 
         or if there is a "context" entry:
 
-        <KeyBinding pkg=Default { ['"'], move({'by': 'characters', 'forward': True})
+        KeyBinding({ ['"'], move({'by': 'characters', 'forward': True})
           "context": [
             { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": True }
             { "key": "selection_empty"           , "operator": "equal"         , "operand": True, "match_all": True }
@@ -153,7 +153,7 @@ class KeyBinding(dict):
             { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": True }
             { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": True }
           ]
-        }>
+        })
 
         """
         return f'{self.__class__.__name__}({self.formatted()})'
