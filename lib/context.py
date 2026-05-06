@@ -135,7 +135,6 @@ import os
 import re
 import importlib
 from datetime import datetime
-from typing import List
 from xml.etree import ElementTree as ET
 import sublime
 from sublime import QueryOperator
@@ -646,7 +645,7 @@ def _curr_word_for_snippet(view, rgn):
     return result
 
 
-def _view_element_found_in_list(view, test_list: List[str]):
+def _view_element_found_in_list(view, test_list: list[str]):
     """ Do any of ``test_list`` strings appear in ``view.element()``? """
     result   = False
     element  = view.element()
@@ -1382,7 +1381,7 @@ class Context(list):
 
         self.extend(condition_list)
 
-        conditions: List[ContextCondition] | None = None
+        conditions: list[ContextCondition] | None = None
         if len(condition_list) > 0:
             conditions = []
             for condition_dict in condition_list:

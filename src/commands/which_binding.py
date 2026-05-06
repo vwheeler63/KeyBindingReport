@@ -7,7 +7,6 @@ command at the end of this file.  The details of the algorithm are in
 the docstring for that command.
 """
 from datetime import datetime
-from typing import List
 import sublime_plugin
 import sublime
 from sublime import Region, View
@@ -23,7 +22,7 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
     def run(
             self         : sublime_plugin.TextCommand,
             edit         : sublime.Edit,
-            keypress_list: List[List[str]] = [["f2"]],
+            keypress_list: list[list[str]] = [["f2"]],
             fmt          : Format = Format.OUTLINED
             ):
         """

@@ -119,7 +119,6 @@ All input data goes away when the last reference to the created
 ***************************************************************************"""
 
 from enum import IntFlag
-from typing import List
 from . import data
 from .data import KeyBindingData
 from ..lib.debug import DebugBits, is_debugging
@@ -235,9 +234,9 @@ class KeyBindingOutput:
             self,
             flags            : FlagBits,
             fmt              : ascii_table.Format,
-            footnotes        : List[Footnote]       = [],
+            footnotes        : list[Footnote]       = [],
             prev_footnote_num: int                  = 0
-            ) -> tuple[List[List[str]], List[Footnote], int]:
+            ) -> tuple[list[list[str]], list[Footnote], int]:
         """
         Generate and return main-key table based on contents of:
 

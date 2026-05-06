@@ -1,4 +1,4 @@
-from typing import List, Sequence
+from typing import Sequence
 from enum import IntEnum
 
 
@@ -25,7 +25,7 @@ class AsciiTable():
             'debugging'
             ]
 
-    def __init__(self, table: List[Sequence[str]]):
+    def __init__(self, table: list[Sequence[str]]):
         if table is None:
             msg = '`table` must be a list of iterables elements.  Got `None` instead.'
             raise AssertionError(msg)
@@ -311,7 +311,7 @@ if __name__ == '__main__':
         rows.append(fields)
 
     # ---------------------------------------------------------------------
-    # ``rows`` is now a List[Sequence[str]] needed by ``AsciiTable``.
+    # ``rows`` is now a list[Sequence[str]] needed by ``AsciiTable``.
     # ---------------------------------------------------------------------
     table = AsciiTable(rows)
     # table.set_column_alignments(['', '^', '^', '^'])

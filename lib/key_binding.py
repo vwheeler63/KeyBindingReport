@@ -59,7 +59,6 @@ deal with Sublime Text Key Bindings.
 @version  1.0  04-May-2026 18:11  vw  - Created.
 ***************************************************************************"""
 
-from typing import List
 from . import context
 
 
@@ -252,7 +251,7 @@ class KeyBinding(dict):
     def source_file(self) -> str:
         return self.source
 
-    def parts(self) -> tuple[tuple, str, dict | None, List[dict] | None]:
+    def parts(self) -> tuple[tuple, str, dict | None, list[dict] | None, str]:
         """
         Parts of JSON Key-Binding object, extracted as:
 
