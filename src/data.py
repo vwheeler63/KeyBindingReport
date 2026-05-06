@@ -397,7 +397,7 @@ class ReportKeyBinding(key_binding.KeyBinding):
 
         """
         binding_str = self.formatted()
-        return f'{self.__class__.__name__}(source={self._source} {binding_str})'
+        return f'{self.__class__.__name__}(source={self._source}\n{binding_str})'
 
 
 class KeyBindingData:
