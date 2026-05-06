@@ -94,7 +94,12 @@ key_name_groups = [
             # These need to be here for KeyBindingReport to find and report on them
             # in the various keymaps where they occur.
     # NAMED_KEYS  == 4
-    ['up','down','left','right','insert','delete','home','end','pageup','pagedown','backspace','tab','enter','pause','escape','space','break','context_menu'],
+    ['up','down','left','right','insert','delete','home','end','pageup','pagedown',
+        'backspace','tab','enter','pause','break','space','escape','context_menu',
+        'backquote','equals','forward_slash','minus','plus','close','copy','cut',
+        'find','open','paste','redo','save','sysreq','undo','browser_back',
+        'browser_favorites','browser_forward','browser_home','browser_refresh',
+        'browser_search','browser_stop'],
     # KEYPAD_KEYS == 5
     ['keypad0','keypad1','keypad2','keypad3','keypad4','keypad5','keypad6','keypad7','keypad8','keypad9','keypad_period','keypad_divide','keypad_multiply','keypad_minus','keypad_plus','keypad_enter','clear'],
 ]
