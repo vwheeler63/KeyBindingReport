@@ -241,6 +241,28 @@ class KeyBindingOutput:
         """ Set new comments-column width. """
         self.comments_column_width = max(1, width)   # Non-negative only.
 
+    def _heading_row(self, flags: FlagBits) -> list[str]:
+        result = [
+                'Key',
+                data.cmd_col_hdg,
+                data.alt_col_hdg,
+                data.ctrl_col_hdg,
+                data.shift_col_hdg,
+                'Command',
+                'Args',
+                'Context'
+                ]
+
+        if len(result) != self.min_column_count:
+            raise AssertionError('KeyBindingOutput.main_key_table():  length of `result` and `min_col_count` must match.')
+
+        if flags & FlagBits.ADD_SOURCE_COLUMN:
+            result.append('Source')
+        if flags & FlagBits.ADD_COMMENTS_COLUMN:
+            result.append('Comments')
+
+        return result
+
     def _append_rows_to_table_for_one_keypress(self,
             table              : list[list],
             main_key_name      : str,
@@ -363,26 +385,7 @@ class KeyBindingOutput:
 
         include_unbound_keypresses = flags & FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
         footnote_num = prev_footnote_num
-
-        heading_row = [
-                'Key',
-                data.cmd_col_hdg,
-                data.alt_col_hdg,
-                data.ctrl_col_hdg,
-                data.shift_col_hdg,
-                'Command',
-                'Args',
-                'Context'
-                ]
-
-        if len(heading_row) != self.min_column_count:
-            raise AssertionError('KeyBindingOutput.main_key_table():  length of `heading_row` and `min_col_count` must match.')
-
-        if flags & FlagBits.ADD_SOURCE_COLUMN:
-            heading_row.append('Source')
-        if flags & FlagBits.ADD_COMMENTS_COLUMN:
-            heading_row.append('Comments')
-
+        heading_row = self._heading_row(flags)
         table = [heading_row]
 
         by_main_key_dict = self.data.mdictByMainKey
@@ -496,31 +499,11 @@ class KeyBindingOutput:
         if len(leading_main_key_name_set) > 0:
             # Generate 1 table for each leading make key name.
             footnote_num = prev_footnote_num
-
-            heading_row = [
-                    'Key',
-                    data.cmd_col_hdg,
-                    data.alt_col_hdg,
-                    data.ctrl_col_hdg,
-                    data.shift_col_hdg,
-                    'Command',
-                    'Args',
-                    'Context'
-                    ]
-
-            if len(heading_row) != self.min_column_count:
-                raise AssertionError('KeyBindingOutput.main_key_table():  length of `heading_row` and `min_col_count` must match.')
-
-            if flags & FlagBits.ADD_SOURCE_COLUMN:
-                heading_row.append('Source')
-            if flags & FlagBits.ADD_COMMENTS_COLUMN:
-                heading_row.append('Comments')
-
-            table = [heading_row]
-
+            heading_row = self._heading_row(flags)
             by_key_seq_dict = self.data.mdictByKeySquence
 
             for leading_main_key_name in leading_main_key_name_set:
+                table = [heading_row]
                 # TODO:  Build table, footnotes, footnote_num
                 table_list.append((table, footnotes, footnote_num))
 
