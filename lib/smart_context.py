@@ -1,6 +1,6 @@
 """************************************************************************
 Sublime Text Key-Binding Contexts
-=================================
+*********************************
 
 About to:
 
@@ -10,8 +10,8 @@ About to:
   key binding applies to the current context (circumstances).
 
 
-How Context Works:
-==================
+How SmartContext Works:
+=======================
 
 See http://crystal-clear-research.com/docs/quickrefs/sublime_text/key_bindings.html#context
 for terminology and understandings required to use this module.
@@ -47,7 +47,7 @@ a specific format:
 Design
 ======
 
-A.  Context module.
+A.  SmartContext module.
 
     1.  It has:
         +   a full live collection of `on_query_context()` listeners
@@ -86,7 +86,7 @@ B.  ContextCondition Object.
         +   repr(self)
             +   Debug representation
 
-C.  Context Object.
+C.  SmartContext Object.
 
     1.  It has:
         +   list of ContextCondition objects
@@ -99,7 +99,7 @@ C.  Context Object.
             +   Debug representation
     3.  It can be requested to change context objects as follows:
         +   Change only happens at instantiation when the newly-created
-            Context object extracts its condition list from the
+            SmartContext object extracts its condition list from the
             passed-in binding.
 
 
@@ -111,8 +111,8 @@ from the Sublime Text environment (on_query_context() listeners and
 Snippet triggers and scopes).
 
 Various parts of this package (e.g. reporting) build data structures of key
-bindings used to do their job.  As these are built, ``Context`` objects are
-created from the content of the key bindings, and can later be asked
+bindings used to do their job.  As these are built, ``SmartContext`` objects
+are created from the content of the key bindings, and can later be asked
 whether they are a match for the current circumstances with the current
 View, window, application, etc..  This is done by:
 
@@ -1324,7 +1324,7 @@ class ContextCondition(dict):
         return f'{indent}English:  Description of ContextCondition'
 
 
-class Context(list):
+class SmartContext(list):
     """
     Sublime Text Key-Binding Contexts --- lists of conditions required
     for Sublime Text to select a key binding.
@@ -1376,7 +1376,7 @@ class Context(list):
 
     def __str__(self):
         """
-        Context [setting.auto_match_enabled, selection_empty, following_text, selector, eol_selector]
+        SmartContext(setting.auto_match_enabled, selection_empty, following_text, selector, eol_selector)
         """
         cond_name_list = []
 
@@ -1389,13 +1389,13 @@ class Context(list):
 
     def __repr__(self):
         """
-        <Context "context": [
+        SmartContext("context": [
           { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": true }
           { "key": "selection_empty"           , "operator": "equal"         , "operand": true, "match_all": true }
           { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": true }
           { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": true }
           { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": true }
-        ]>
+        ])
         """
         return f'{self.__class__.__name__}({self.formatted()})'
 

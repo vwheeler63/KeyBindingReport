@@ -21,7 +21,7 @@ A.  There is a concept of a key_binding object.
             +   PackageName/Default ($platform).sublime-keymap, or
             +   PackageName/Default.sublime-keymap
         +   _smart_context
-            +   Context objects
+            +   SmartContext objects
         +   ...
     2.  It can be asked:
         +   ...
@@ -61,7 +61,7 @@ deal with Sublime Text Key Bindings.
 
 import json
 from sublime_types import CommandArgs
-from . import context
+from . import smart_context
 
 
 
@@ -130,10 +130,10 @@ class KeyBinding(dict):
         :param path:                 for improved debug output
         """
         self.update(decoded_key_binding)
-        self._smart_context: context.Context | None = None
+        self._smart_context: smart_context.SmartContext | None = None
 
         if _context_key in decoded_key_binding:
-            self._smart_context = context.Context(self)
+            self._smart_context = smart_context.SmartContext(self)
 
         self._source = source
 
@@ -284,7 +284,7 @@ class KeyBinding(dict):
 
         return result
 
-    def smart_context(self) -> context.Context | None:
+    def smart_context(self) -> smart_context.SmartContext | None:
         return self._smart_context
 
     def readable_context_repr(self, indent_level: int = 0) -> str:

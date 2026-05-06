@@ -122,7 +122,7 @@ from enum import IntFlag
 from . import data
 from .data import KeyBindingData
 from ..lib.debug import DebugBits, is_debugging
-from ..lib.context import Context
+from ..lib.smart_context import SmartContext
 from ..lib import ascii_table
 
 
@@ -179,7 +179,7 @@ class Footnote:
     """ Containers for key-binding table footnotes """
     __slots__ = ['number', 'context', 'flags', 'format']
 
-    def __init__(self, number: int, context: Context, flags: FlagBits, format: ascii_table.Format):
+    def __init__(self, number: int, context: SmartContext, flags: FlagBits, format: ascii_table.Format):
         self.number = number
         self.context = context
         self.flags = flags
