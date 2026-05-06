@@ -133,6 +133,7 @@ return a Boolean value.
 
 import os
 import re
+import json
 import importlib
 from datetime import datetime
 from xml.etree import ElementTree as ET
@@ -141,6 +142,7 @@ from sublime import QueryOperator
 import sublime_plugin
 from ..lib.debug import DebugBits, is_debugging
 from ..lib import key_binding
+
 
 
 # *************************************************************************
@@ -1278,23 +1280,6 @@ class ContextCondition(dict):
     def __repr__(self):
         return f'{self.__class__.__name__}({self.formatted()})'
 
-    def _json_value_repr(self, value: str | bool | int) -> str:
-        if isinstance(value, str):
-            if '"' in value:
-                value = value.replace('"', '\\"')
-            result = f'"{value}"'  # Force double quotes to be JSON compatible
-        elif isinstance(value, bool):
-            # Remove capital letter to be JSON compatible.
-            if value:
-                result = 'true'
-            else:
-                result = 'false'
-        else:
-            # We THINK this is a number, based on survey of existing keymap files.
-            result = str(value)
-
-        return result
-
     def formatted(self,
             longest_key_len: int = 0,
             longest_op_len: int = 0,
@@ -1320,15 +1305,14 @@ class ContextCondition(dict):
         result = f'{indent}{{ "key": {field:{longest_key_len + 2}}'
 
         if 'operator' in self:
-            op_name = self["operator"]
-            field = f'"{op_name}"'
+            field = json.dumps(self["operator"])
             result += f', "operator": {field:{longest_op_len + 2}}'
         if 'operand' in self:
             # This value can be str, bool or int, so we use `repr()`.
-            val_repr = self._json_value_repr(self["operand"])
+            val_repr = json.dumps(self["operand"])
             result += f', "operand": {val_repr}'
         if 'match_all' in self:
-            val_repr = self._json_value_repr(self["match_all"])
+            val_repr = json.dumps(self["match_all"])
             result += f', "match_all": {val_repr}'
 
         result += ' }'
@@ -1375,7 +1359,7 @@ class Context(list):
         :param binding:  for better debug output
         :param path:     for better debug output
         """
-        condition_list = binding.decoded_context()
+        condition_list = binding.context_list()
         if condition_list is None:
             raise AssertionError('`binding` "context" entry not present.')
 
@@ -1406,11 +1390,11 @@ class Context(list):
     def __repr__(self):
         """
         <Context "context": [
-          { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": True }
-          { "key": "selection_empty"           , "operator": "equal"         , "operand": True, "match_all": True }
-          { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": True }
-          { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": True }
-          { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": True }
+          { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": true }
+          { "key": "selection_empty"           , "operator": "equal"         , "operand": true, "match_all": true }
+          { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": true }
+          { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": true }
+          { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": true }
         ]>
         """
         return f'{self.__class__.__name__}({self.formatted()})'
@@ -1426,11 +1410,11 @@ class Context(list):
         raw:
         ----
         "context": [
-          { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": True },
-          { "key": "selection_empty"           , "operator": "equal"         , "operand": True, "match_all": True },
-          { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": True },
-          { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": True },
-          { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": True }
+          { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": true },
+          { "key": "selection_empty"           , "operator": "equal"         , "operand": true, "match_all": true },
+          { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": true },
+          { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": true },
+          { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": true }
         ]
 
         natural_language:
@@ -1446,15 +1430,15 @@ class Context(list):
         raw and natural_language:
         ----------------
         "context": [
-          { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": True }
+          { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": true }
             English:  Description of ContextCondition,
-          { "key": "selection_empty"           , "operator": "equal"         , "operand": True, "match_all": True }
+          { "key": "selection_empty"           , "operator": "equal"         , "operand": true, "match_all": true }
             English:  Description of ContextCondition,
-          { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": True }
+          { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": true }
             English:  Description of ContextCondition,
-          { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": True }
+          { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": true }
             English:  Description of ContextCondition,
-          { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": True }
+          { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": true }
             English:  Description of ContextCondition
         ]
 
@@ -1579,8 +1563,8 @@ class Context(list):
             if not found:
                 msg = (
                         f'  {self.__class__.__name__}:  key [{key}] not recognized.\n'
-                        f'  keymap={self.binding.source}\n'
-                        f'{self.binding.formatted(1, include_extra = True)}'
+                        f'  keymap={self.binding.source()}\n'
+                        f'{self.binding.formatted(1, include_source = True)}'
                       )
                 print(msg)
 
@@ -1597,7 +1581,7 @@ class Context(list):
         debugging = is_debugging(DebugBits.FILTERING_ON_CONTEXT)
         if debugging:
             print(f'In {self.__class__.__name__}.query()...')
-            print(f'{self.binding.formatted(1, include_extra = True)}')
+            print(f'{self.binding.formatted(1, include_source = True)}')
 
         all_tests_passed = True
 

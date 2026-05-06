@@ -68,8 +68,8 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
 
                 for keypress_str in keypress_tuple_bep:
                     main_key_name, modifier_list = data.main_key_and_modifier_list(keypress_str)
-                    # if main_key_name in ['altl', '<character>', ' ']:
-                    #     print(f'  {main_key_name=} {path=} {keypress_str=}')
+                    if main_key_name in [' ']:
+                        print(f'  {main_key_name=} {path=} {keypress_str=}')
 
                     if main_key_name in main_key_counts:
                         main_key_counts[main_key_name] += 1
@@ -78,8 +78,8 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
                         main_key_reported[main_key_name] = False
 
                     for mod_key in modifier_list:
-                        # if mod_key in ['altl', '<character>', ' ']:
-                        #     print(f'  {mod_key=} {path=} {keypress_str=}')
+                        if mod_key in [' ']:
+                            print(f'  {mod_key=} {path=} {keypress_str=}')
                         if mod_key in mod_key_counts:
                             mod_key_counts[mod_key] += 1
                         else:

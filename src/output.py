@@ -337,7 +337,7 @@ class KeyBindingOutput:
                         row[3] = C              # Ctrl
                         row[4] = S              # Shift
                         row[5] = binding.command()
-                        row[6] = binding.args_repr() if binding.has_args() else ' '
+                        row[6] = binding.args_json() if binding.has_args() else ' '
 
                         if binding.has_context():
                             if lboolContextRelevant:
@@ -356,7 +356,7 @@ class KeyBindingOutput:
                         # Remaining optional columns.
                         next_col_i = min_col_count
                         if lboolInclSourceCol:
-                            row[next_col_i] = binding.source_file()
+                            row[next_col_i] = binding.source()
                             next_col_i += 1
                         if lboolInclCommentsCol:
                             row[next_col_i] = empty_comments

@@ -354,7 +354,7 @@ class ReportKeyBinding(key_binding.KeyBinding):
     - package name
     - ``.sublime-keymap`` file name
     """
-    __slots__ = ['json_binding', 'source']
+    # __slots__ = ['_smart_context', '_source']
 
     def __init__(self, decoded_key_binding: dict, source: str):
         # Incorporate contents of `decoded_key_binding` into `self`.
@@ -376,23 +376,23 @@ class ReportKeyBinding(key_binding.KeyBinding):
 
         Produces:
         ---------
-        <ReportKeyBinding pkg=Default { ['"'], move(({'by': 'characters', 'forward': True}))
+        <ReportKeyBinding pkg=Default { ['"'], move(({'by': 'characters', 'forward': true}))
           "context": [
-            { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": True }
-            { "key": "selection_empty"           , "operator": "equal"         , "operand": True, "match_all": True }
-            { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": True }
-            { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": True }
-            { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": True }
+            { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": true }
+            { "key": "selection_empty"           , "operator": "equal"         , "operand": true, "match_all": true }
+            { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": true }
+            { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": true }
+            { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": true }
           ]
         }>
 
         or if there is no "context" entry:
 
-        <ReportKeyBinding pkg=Default { ['right'], move({'by': 'characters', 'forward': True}) }>
+        <ReportKeyBinding pkg=Default { ['right'], move({'by': 'characters', 'forward': true}) }>
 
         """
         binding_str = self.formatted()
-        return f'{self.__class__.__name__}(source={self.source} {binding_str})'
+        return f'{self.__class__.__name__}(source={self._source} {binding_str})'
 
 
 class KeyBindingData:
@@ -1324,7 +1324,7 @@ class KeyBindingData:
             print('In _add_binding_to_key_seq_dict()...')
             print(f'  rpt_binding={rpt_binding.formatted(1)}')
 
-        keys_tuple = rpt_binding.keys_as_tuple()
+        keys_tuple = rpt_binding.keys_tuple()
 
         if keys_tuple not in self.mdictByKeySquence:
             # Lazy creation.
@@ -1380,5 +1380,5 @@ class KeyBindingData:
 
         key_binding_list.append(rpt_binding)
         if debugging:
-            keypress_str = rpt_binding.keys_as_list()[0]
+            keypress_str = rpt_binding.keys_list()[0]
             print(f'  Added [{keypress_str}] rpt_binding to item [{key_mod_code}].')
