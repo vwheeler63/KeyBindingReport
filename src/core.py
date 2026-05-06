@@ -222,7 +222,7 @@ contains it.
 .. code-block:: text
 
     by_main_key_dict
-        "a": [  <-- modifier_list
+        "a": [  <-- binding_lists_by_mod_code
                 None,   # binding list for unmodified 'a' key
                 None,   # binding list for [Shift-a]
                 [...],  # binding list for [Ctrl-a]       <-- binding_list
@@ -288,9 +288,9 @@ contains it.
     by_key_seq_dict
         ("ctrl+k", "ctrl+up"):
             [
-                Key-Binding object,
-                Key-Binding object,
-                Key-Binding object,
+                ReportKeyBinding object,
+                ReportKeyBinding object,
+                ReportKeyBinding object,
                 ...
             ]
 

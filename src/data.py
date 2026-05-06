@@ -32,7 +32,7 @@ from enum import IntEnum, IntFlag
 import sublime
 from . import core
 from ..lib.debug import DebugBits, is_debugging
-from ..lib import context
+from ..lib import smart_context
 from ..lib import key_binding
 
 
@@ -169,14 +169,14 @@ def main_key_and_modifier_code(keypress_str: str) -> tuple[str, int]:
     modifier_code = 0
 
     if keypress_str.endswith('++'):
-        main_key_name = '+'
-        modifier_list = keypress_str[:-2].split('+')
+        main_key_name             = '+'
+        binding_lists_by_mod_code = keypress_str[:-2].split('+')
     else:
-        key_list      = keypress_str.split('+')
-        main_key_name = key_list.pop()
-        modifier_list = key_list
+        key_list                  = keypress_str.split('+')
+        main_key_name             = key_list.pop()
+        binding_lists_by_mod_code = key_list
 
-    for mod_key in modifier_list:
+    for mod_key in binding_lists_by_mod_code:
         if mod_key == 'shift':
             modifier_code |= ModifierKeyBits.SHIFT
         elif mod_key in ['ctrl', 'control']:
@@ -198,7 +198,7 @@ def main_key_and_modifier_code(keypress_str: str) -> tuple[str, int]:
     return main_key_name, modifier_code
 
 
-def main_key_and_modifier_list(keypress_str: str) -> tuple[str, list[str]]:
+def main_key_and_bindings_by_mod_code(keypress_str: str) -> tuple[str, list[str]]:
     """
     Main key and modifier-key list
 
@@ -207,14 +207,14 @@ def main_key_and_modifier_list(keypress_str: str) -> tuple[str, list[str]]:
                             Example:  "ctrl+shift+p"
     """
     if keypress_str.endswith('++'):
-        main_key_name = '+'
-        modifier_list = keypress_str[:-2].split('+')
+        main_key_name             = '+'
+        binding_lists_by_mod_code = keypress_str[:-2].split('+')
     else:
-        key_list = keypress_str.split('+')
-        main_key_name = key_list.pop()
-        modifier_list = key_list
+        key_list                  = keypress_str.split('+')
+        main_key_name             = key_list.pop()
+        binding_lists_by_mod_code = key_list
 
-    return main_key_name, modifier_list
+    return main_key_name, binding_lists_by_mod_code
 
 
 def modifier_repr(modifier_code: int) -> str:
@@ -359,19 +359,19 @@ class ReportKeyBinding(key_binding.KeyBinding):
     - main_key_names
     - modifier_codes
     """
-    # __slots__ = ['_smart_context', '_source', 'main_key_names', 'modifier_codes']
+    # __slots__ = ['_smart_context', '_source', '_main_key_names', '_modifier_codes']
 
     def __init__(self, decoded_key_binding: dict, source: str):
         # Incorporate contents of `decoded_key_binding` into `self`.
         super().__init__(decoded_key_binding, source)
 
-        self.main_key_names = []
-        self.modifier_codes = []
+        self._main_key_names = []
+        self._modifier_codes = []
 
         for keypress_str in self.keypress_list():
             main_key_name, mod_code = main_key_and_modifier_code(keypress_str)
-            self.main_key_names.append(main_key_name)
-            self.modifier_codes.append(mod_code)
+            self._main_key_names.append(main_key_name)
+            self._modifier_codes.append(mod_code)
 
     def __repr__(self):
         """
@@ -406,6 +406,28 @@ class ReportKeyBinding(key_binding.KeyBinding):
         """
         binding_str = self.formatted()
         return f'{self.__class__.__name__}(source={self._source}\n{binding_str})'
+
+    def main_key_names(self) -> list[str]:
+        return self._main_key_names
+
+    def leading_key_name(self) -> str:
+        if self._main_key_names:
+            result = self._main_key_names[0]
+        else:
+            result = '?'
+
+        return result
+
+    def modifier_codes(self) -> list[int]:
+        return self._modifier_codes
+
+    def leading_modifier_code(self) -> int:
+        if self._modifier_codes:
+            result = self._modifier_codes[0]
+        else:
+            result = 0
+
+        return result
 
 
 class KeyBindingData:
@@ -578,7 +600,7 @@ class KeyBindingData:
             ADD_COMMENTS_COLUMN               = 0b0001_0000  #  16
 
             # Utility Bits
-            ANY_CONTEXT                       = 0b0000_0010 | 0b0000_0100
+            ANY_CONTEXT_REQUESTED             = 0b0000_0010 | 0b0000_0100
             NONE                              = 0b0000_0000  #   0
             ALL                               = 0b1111_1111  # 255
             ANY                               = 0b1111_1111  # 255
@@ -1083,7 +1105,7 @@ class KeyBindingData:
         populated, but must be fully represented with its empty parts.
 
         by_main_key_dict
-            "a": [  <-- modifier_list
+            "a": [  <-- binding_lists_by_mod_code
                     None,   # binding list for unmodified 'a' key
                     None,   # binding list for [Shift-a]
                     [...],  # binding list for [Ctrl-a]       <-- binding_list
@@ -1124,9 +1146,9 @@ class KeyBindingData:
         by_key_seq_dict
             ("ctrl+k", "ctrl+up"):
                 [
-                    Key-Binding object,
-                    Key-Binding object,
-                    Key-Binding object,
+                    ReportKeyBinding object,
+                    ReportKeyBinding object,
+                    ReportKeyBinding object,
                     ...
                 ]
         """
@@ -1329,9 +1351,9 @@ class KeyBindingData:
         by_key_seq_dict
             ("ctrl+k", "ctrl+up"):
                 [
-                    Key-Binding object,
-                    Key-Binding object,
-                    Key-Binding object,
+                    ReportKeyBinding object,
+                    ReportKeyBinding object,
+                    ReportKeyBinding object,
                     ...
                 ]
         """
@@ -1357,7 +1379,7 @@ class KeyBindingData:
     def _add_binding_to_main_key_dict(self, rpt_binding: ReportKeyBinding, main_key_name: str, key_mod_code: int):
         """
         by_main_key_dict
-            "a": [  <-- modifier_list
+            "a": [  <-- binding_lists_by_mod_code
                     None,   # binding list for unmodified 'a' key
                     None,   # binding list for [Shift-a]
                     [...],  # binding list for [Ctrl-a]       <-- binding_list

@@ -54,7 +54,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         return '\n'.join(parts)
 
     def run(
-            self             : sublime_plugin.ApplicationCommand,
+            self,
             edit             : sublime.Edit,
             key_groups       : Optional[Iterable[data.KeyGroup]] = None,
             key_names        : Optional[Iterable[str]] = None,
