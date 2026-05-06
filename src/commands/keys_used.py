@@ -31,10 +31,9 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         parts = ['']
         parts.append(title)
-        parts.append('=' * len(title))
+        parts.append('*' * len(title))
         parts.append('')
         parts.append(f'Report generated:  {timestamp}')
-        parts.append('')
 
         return '\n'.join(parts)
 
@@ -156,6 +155,7 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
         other_key_table.set_column_alignments(['^', '>'])
 
         content_parts = [self._heading(_cfg_report_title)]
+        content_parts.append('')
         content_parts.append('Modifier Keys:')
         content_parts.append( mod_key_table.as_string(ascii_table.Format.OUTLINED) )
         content_parts.append('')

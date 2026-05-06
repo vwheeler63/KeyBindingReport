@@ -29,17 +29,25 @@ _cfg_report_title = 'Key-Binding Report'
 # *************************************************************************
 
 class KeyBindingReportCommand(sublime_plugin.TextCommand):
-    """ Generate Key-Binding Report in specified format. """
+    """
+    Generate Key-Binding Report in specified format.
+
+    Inheriting from TextCommand is needed because this is the only
+    way to get Views that may not be part of a sheet, but may
+    instead be part of the UI (e.g. Find textbox).  This is needed
+    to feed into the context-query engine when the user has called
+    the Command with ``limit_to_context == True``, in which case
+    the context of the View received is what is used.
+    """
 
     def _heading(self, title: str) -> str:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         parts = []
         parts.append('')
         parts.append(title)
-        parts.append('=' * len(title))
+        parts.append('*' * len(title))
         parts.append('')
         parts.append(f'Report generated:  {timestamp}')
-        parts.append('')
 
         return '\n'.join(parts)
 
@@ -52,6 +60,10 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         parts.append(f'  {data.shift_col_hdg} = {data.shift_key_name}')
 
         return '\n'.join(parts)
+
+    def _key_sequence_table_title(self, keypress_str: str) -> str:
+        # Example:  'ctrl+k'
+        return keypress_str.replace('+', '-').title()
 
     def run(
             self,
@@ -236,34 +248,99 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             f.write(pprint.pformat(key_data.mdictByKeySquence))
         t2 = datetime.now()
 
+        # =================================================================
         # Generate report.
+        # =================================================================
         footnotes = []
         last_footnote_num = 0
         title = f'{core.package_name}:  Specified Key-Bindings'
-
-        out = output.KeyBindingOutput(key_data)
-        out.set_comments_column_width(60)
-        main_key_table, footnotes, last_footnote_num = out.main_key_table(flags, fmt, footnotes, last_footnote_num)
-        # pprint.pp(main_key_table)
-
-        mk_asc_table = ascii_table.AsciiTable(main_key_table)
-        #                                    Key    W      A     C     S   Cmd  Args  Ctxt   Src
-        mk_asc_table.set_tight_columns(    [True, True, True, True, True, True, True, True, False])
-        mk_asc_table.set_column_alignments(['^',    '',   '',   '',   '',   '',   '',  '^',    ''])
+        table_key = self._table_key()
 
         content_parts = []
         content_parts.append(self._heading(title))
         content_parts.append('')
-        content_parts.append( mk_asc_table.as_string(fmt) )
-        content_parts.append('')
-        content_parts.append(self._table_key())
-        content_parts.append('')
 
-        # Insert footnotes.
-        for footnote in footnotes:
-            content_parts.append(footnote.formatted())
+        out = output.KeyBindingOutput(key_data)
+        out.set_comments_column_width(60)
 
-        content_parts.append('')
+        # -----------------------------------------------------------------
+        # Add Main-Key table parts.
+        # -----------------------------------------------------------------
+        table, footnotes, last_footnote_num = \
+                out.main_key_table(flags, fmt, footnotes, last_footnote_num)
+
+        if table:
+            mk_asc_tbl = ascii_table.AsciiTable(table)
+            #                                      Key    W     A     C     S    Cmd  Args  Ctxt   Src
+            mk_asc_tbl.set_tight_columns(    [True, True, True, True, True, True, True, True, False])
+            mk_asc_tbl.set_column_alignments([ '^',   '',   '',   '',   '',   '',   '',  '^',    ''])
+            title = 'Single-Keypress Table'
+            underline = '=' * len(title)
+            content_parts.append('')
+            content_parts.append('')
+            content_parts.append(title)
+            content_parts.append(underline)
+            content_parts.append('')
+            content_parts.append( mk_asc_tbl.as_string(fmt) )
+            content_parts.append('')
+            content_parts.append(table_key)
+            content_parts.append('')
+
+            # Insert footnotes.
+            for footnote in footnotes:
+                content_parts.append(footnote.formatted())
+
+            content_parts.append('')
+
+        # -----------------------------------------------------------------
+        # Add Key-Sequence table(s) parts.
+        # -----------------------------------------------------------------
+        tuple_list = out.key_seq_tables(flags, fmt, footnotes, last_footnote_num)
+        #     list[tuple] each tuple containing:
+        #         (lead_keypr_str, table, footnotes, last_footnote_num)
+
+        if tuple_list:
+            plural_suffix = 's' if len(tuple_list) > 1 else ''
+            title = f'Multi-Keypress Table{plural_suffix}'
+            underline = '=' * len(title)
+            content_parts.append('')
+            content_parts.append('')
+            content_parts.append(title)
+            content_parts.append(underline)
+            content_parts.append('')
+
+            for pkg in tuple_list:
+                lead_keypr_str, table, footnotes, last_footnote_num = pkg
+
+                if table:
+                    kseq_asc_tbl = ascii_table.AsciiTable(table)
+                    #                                      Key    W     A     C     S    Cmd  Args  Ctxt   Src
+                    kseq_asc_tbl.set_tight_columns(    [True, True, True, True, True, True, True, True, False])
+                    kseq_asc_tbl.set_column_alignments([ '^',   '',   '',   '',   '',   '',   '',  '^',    ''])
+                    title = self._key_sequence_table_title(lead_keypr_str)
+                    content_parts.append('')
+                    underline = '-' * len(title)
+                    content_parts.append(title)
+                    content_parts.append(underline)
+                    content_parts.append('')
+                    content_parts.append( kseq_asc_tbl.as_string(fmt) )
+                    content_parts.append('')
+                    content_parts.append(table_key)
+                    content_parts.append('')
+
+                    # Insert footnotes.
+                    if footnotes:
+                        for footnote in footnotes:
+                            content_parts.append(footnote.formatted())
+
+                        content_parts.append('')
+
+        # This leaves `last_footnote_num` containing the last-used footnote
+        # number in case we should need to add more content below.
+
+        # -----------------------------------------------------------------
+        # Finally, assemble parts into 1 string, and push to report View.
+        # -----------------------------------------------------------------
         content = '\n'.join(content_parts)
 
         rpt_view = output_view.output_to_view(
@@ -272,6 +349,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                 content,
                 current_view=view
                 )
+
         rpt_view.window().bring_to_front()
         t3 = datetime.now()
 

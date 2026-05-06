@@ -409,7 +409,7 @@ class KeyBindingOutput:
                             flags,
                             fmt,
                             footnotes,
-                            prev_footnote_num,
+                            footnote_num,
                             )
                 elif include_unbound_keypresses and key_has_bindings:
                     # The following are all True:
@@ -435,11 +435,12 @@ class KeyBindingOutput:
             fmt              : ascii_table.Format,
             footnotes        : list[Footnote]       = [],
             prev_footnote_num: int                  = 0
-            ) -> list[    tuple[  tuple[list[list[str]], list[Footnote], int]  ]    ]:
+            ) -> list[    tuple[str, list[list[str]], list[Footnote], int]    ]:
         """
-        Generate and return LIST of key-sequence tables, one result per
-        UNIQUE LEADING KEY, where result is:
+        Generate and return LIST of tuples, one per UNIQUE LEADING KEYPRESS,
+        each containing:
 
+        - leading keypress string (e.g. "ctrl+k"; can be used to form title for table)
         - table of key bindings by secondary key,
         - footnotes,
         - last_used_footnote_num (in case caller needs to append more output
@@ -470,41 +471,79 @@ class KeyBindingOutput:
         :param prev_footnote_num:  one-based last-footnote number;
                                      0 = first footnote has not yet been generated.
 
-        :return:  tuple:  table, footnotes, last_footnote_num
+        :return:  list[tuple] each tuple containing:
+                    (lead_keypr_str, table, footnotes, last_footnote_num)
         """
         debugging = is_debugging(DebugBits.OUTPUT)
         if debugging:
             print('In KeyBindingOutput.key_seq_tables()...')
             print(f'  {flags =:#8b}')
 
-        # -----------------------------------------------------------------
-        # Discover set of leading keys.
-        # -----------------------------------------------------------------
-        leading_main_key_name_set = set()
+        by_key_seq_dict = self.data.mdictByKeySquence
 
-        for keypress_tuple in self.data.mdictByKeySquence:
-            keypress_str = keypress_tuple[0]
-            main_key_name, _ = main_key_and_bindings_by_mod_code(keypress_str)
-            #     More efficient than `main_key_and_modifier_code()`.
-            leading_main_key_name_set.add(main_key_name)
+        # -----------------------------------------------------------------
+        # Discover set of leading keypresses.
+        # -----------------------------------------------------------------
+        lead_keypr_str_set = set()
 
-        # `leading_main_key_name_set` now contains the list of unique
-        # leading main key names.
+        for keypress_tuple_bep in by_key_seq_dict:
+            leading_keypress_str = keypress_tuple_bep[0]
+            lead_keypr_str_set.add(leading_keypress_str)
+
+        # `lead_keypr_str_set` now contains the list of unique
+        # leading keypress strings.  Example:
+        # - "ctrl+j"
+        # - "ctrl+k"
+        # - "alt+k"
+        # - "ctrl+t"
 
         # -----------------------------------------------------------------
         # Create top-level list.
         # -----------------------------------------------------------------
         table_list = []
 
-        if len(leading_main_key_name_set) > 0:
-            # Generate 1 table for each leading make key name.
+        if len(lead_keypr_str_set) > 0:
             footnote_num = prev_footnote_num
             heading_row = self._heading_row(flags)
-            by_key_seq_dict = self.data.mdictByKeySquence
 
-            for leading_main_key_name in leading_main_key_name_set:
+            for lead_keypr_str in lead_keypr_str_set:
+                # Generate new table and new footnotes list for each
+                # unique leading keypress.
                 table = [heading_row]
-                # TODO:  Build table, footnotes, footnote_num
-                table_list.append((table, footnotes, footnote_num))
+                footnotes = []
+
+                # ---------------------------------------------------------
+                # Pass through `by_key_seq_dict` selecting only bindings
+                # whose leading keypress matches `lead_keypr_str`.
+                # ---------------------------------------------------------
+                for keypress_tuple_bep in by_key_seq_dict:
+                    leading_keypress_str = keypress_tuple_bep[0]
+                    if leading_keypress_str == lead_keypr_str:
+                        # Add rows to table (and potentially add footnotes)
+                        # for this binding list, using secondary keypress.
+                        second_keypress_str = keypress_tuple_bep[1]
+
+                        second_main_key_name, second_mod_code = \
+                                data.main_key_and_modifier_code(second_keypress_str)
+
+                        mod_key_applies_tpl = data.modifier_characters(
+                                second_mod_code,
+                                self.modifier_applies_symbol
+                                )
+
+                        binding_list = by_key_seq_dict[keypress_tuple_bep]
+
+                        footnote_num = self._append_rows_to_table_for_one_keypress(
+                                table,
+                                second_main_key_name,
+                                mod_key_applies_tpl,
+                                binding_list,
+                                flags,
+                                fmt,
+                                footnotes,
+                                footnote_num,
+                                )
+
+                table_list.append((lead_keypr_str, table, footnotes, footnote_num))
 
         return table_list
