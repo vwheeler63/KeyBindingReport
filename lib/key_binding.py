@@ -60,6 +60,7 @@ deal with Sublime Text Key Bindings.
 ***************************************************************************"""
 
 import json
+from sublime_types import CommandArgs
 from . import context
 
 
@@ -186,8 +187,8 @@ class KeyBinding(dict):
             result = ''
 
         cmd_as_func = self.command_as_function_repr()
-        keys_json = json.dumps(self["keys"])
-        result += f'{indent}{{ {keys_json}, {cmd_as_func}'
+        keypresses_json = json.dumps(self["keys"])
+        result += f'{indent}{{ {keypresses_json}, {cmd_as_func}'
 
         if self._smart_context:
             result += '\n' + self.readable_context_repr(indent_level + 1)
@@ -203,16 +204,16 @@ class KeyBinding(dict):
         """
         return len(self[_keys_key])
 
-    def keys_list(self) -> list:
+    def keypress_list(self) -> list[str]:
         return self[_keys_key]
 
-    def keys_tuple(self) -> tuple:
+    def keypress_tuple(self) -> tuple[str]:
         return tuple(self[_keys_key])
 
-    def keys_json(self) -> str:
+    def keypresses_json(self) -> str:
         return json.dumps(self[_keys_key])
 
-    def keys_repr(self) -> str:
+    def keypresses_repr(self) -> str:
         return repr(self[_keys_key])
 
     def command(self) -> str:
@@ -227,7 +228,7 @@ class KeyBinding(dict):
     def has_args(self) -> bool:
         return (( _args_key in self ))
 
-    def args_dict(self) -> dict | None:
+    def args_dict(self) -> CommandArgs:
         result = None
 
         if _args_key in self:
@@ -297,7 +298,7 @@ class KeyBinding(dict):
     def source(self) -> str:
         return self._source
 
-    def parts(self) -> tuple[tuple, str, dict | None, list[dict] | None, str]:
+    def parts(self) -> tuple[tuple, str, CommandArgs, list[dict] | None, str]:
         """
         Parts of JSON Key-Binding object, extracted as:
 
@@ -320,7 +321,7 @@ class KeyBinding(dict):
             ]
         },
         """
-        keypress_tuple = self.keys_tuple()
+        keypress_tuple = self.keypress_tuple()
         cmd            = self.command()
         args           = self.args_dict()
         ctxt           = self.context_list()

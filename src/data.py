@@ -356,14 +356,22 @@ class ReportKeyBinding(key_binding.KeyBinding):
     """
     Representation of a KeyBinding plus some additional data needed for reporting:
 
-    - package name
-    - ``.sublime-keymap`` file name
+    - main_key_names
+    - modifier_codes
     """
-    # __slots__ = ['_smart_context', '_source']
+    # __slots__ = ['_smart_context', '_source', 'main_key_names', 'modifier_codes']
 
     def __init__(self, decoded_key_binding: dict, source: str):
         # Incorporate contents of `decoded_key_binding` into `self`.
         super().__init__(decoded_key_binding, source)
+
+        self.main_key_names = []
+        self.modifier_codes = []
+
+        for keypress_str in self.keypress_list():
+            main_key_name, mod_code = main_key_and_modifier_code(keypress_str)
+            self.main_key_names.append(main_key_name)
+            self.modifier_codes.append(mod_code)
 
     def __repr__(self):
         """
@@ -474,7 +482,7 @@ class KeyBindingData:
             key_names        : Iterable[str] | None = None,
             keypress_list    : Iterable[Iterable[str]] | None = None,
             limit_to_packages: Iterable[str] | None = None,
-            view             : sublime.View = None
+            view             : sublime.View | None = None
             ):
         r"""
         Generate Key-Binding data, based on argument values provided, if any.
@@ -1197,6 +1205,12 @@ class KeyBindingData:
         keymap_resource_str = sublime.load_resource(path)
         decoded_key_bindings = sublime.decode_value(keymap_resource_str)
 
+        if (   decoded_key_bindings is None
+            or isinstance(decoded_key_bindings, bool)
+            or isinstance(decoded_key_bindings, int)
+            or isinstance(decoded_key_bindings, float) ):
+            decoded_key_bindings = []
+
         for decoded_binding in decoded_key_bindings:
             # -------------------------------------------------------------
             # First, look for reasons to exclude key binding.
@@ -1329,16 +1343,16 @@ class KeyBindingData:
             print('In _add_binding_to_key_seq_dict()...')
             print(f'  rpt_binding={rpt_binding.formatted(1)}')
 
-        keys_tuple = rpt_binding.keys_tuple()
+        keypress_tuple = rpt_binding.keypress_tuple()
 
-        if keys_tuple not in self.mdictByKeySquence:
+        if keypress_tuple not in self.mdictByKeySquence:
             # Lazy creation.
-            self.mdictByKeySquence[keys_tuple] = []
+            self.mdictByKeySquence[keypress_tuple] = []
 
-        binding_list = self.mdictByKeySquence[keys_tuple]
+        binding_list = self.mdictByKeySquence[keypress_tuple]
         binding_list.append(rpt_binding)
         if debugging:
-            print(f'  Added rpt_binding for {keys_tuple}.')
+            print(f'  Added rpt_binding for {keypress_tuple}.')
 
     def _add_binding_to_main_key_dict(self, rpt_binding: ReportKeyBinding, main_key_name: str, key_mod_code: int):
         """
@@ -1385,5 +1399,5 @@ class KeyBindingData:
 
         key_binding_list.append(rpt_binding)
         if debugging:
-            keypress_str = rpt_binding.keys_list()[0]
+            keypress_str = rpt_binding.keypress_list()[0]
             print(f'  Added [{keypress_str}] rpt_binding to item [{key_mod_code}].')

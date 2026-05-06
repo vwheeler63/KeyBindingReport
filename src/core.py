@@ -109,6 +109,7 @@ files can be found, the "keys" entry (e.g. ``"keys": ["alt+shift+up"]``) in each
 JSON key-binding object has a specific order of modifier-key strings among the '+'
 characters, and it is always in this sequence:
 
+- command
 - ctrl
 - alt
 - shift
@@ -221,15 +222,23 @@ contains it.
 .. code-block:: text
 
     by_main_key_dict
-        "a": [
+        "a": [  <-- modifier_list
                 None,   # binding list for unmodified 'a' key
                 None,   # binding list for [Shift-a]
-                [...],  # binding list for [Ctrl-a]
-                [...],  # binding list for [Ctrl-Shift-a]
+                [...],  # binding list for [Ctrl-a]       <-- binding_list
+                [...],  # binding list for [Ctrl-Shift-a] <-- binding_list
                 None,   # binding list for [Alt-a]
                 None,   # binding list for [Alt-Shift-a]
                 None,   # binding list for [Alt-Ctrl-a]
                 None,   # binding list for [Alt-Ctrl-Shift-a]
+                None,   # binding list for [Command-a]
+                None,   # binding list for [Command-Shift-a]
+                [...],  # binding list for [Command-Ctrl-a]       <-- binding_list
+                [...],  # binding list for [Command-Ctrl-Shift-a] <-- binding_list
+                None,   # binding list for [Command-Alt-a]
+                None,   # binding list for [Command-Alt-Shift-a]
+                None,   # binding list for [Command-Alt-Ctrl-a]
+                None,   # binding list for [Command-Alt-Ctrl-Shift-a]
             ]
 
 

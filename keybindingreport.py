@@ -2,9 +2,9 @@
 Key Binding Report
 ******************
 
-KeyBindingReport is a Sublime Text Package that produces reports about
-the current state of Sublime Text key bindings, using any of a number
-of output formats.
+KeyBindingReport is a Sublime Text Package that produces a wide variety of
+reports about the current state of Sublime Text key bindings on the system
+it is running on, with a choice of output formats.
 
 See `README.md` and `src/core.py` for more details.
 
