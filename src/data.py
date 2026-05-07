@@ -27,12 +27,11 @@ Each time ``key_data.generate()`` is called produces a new data set.
 No memory of the previous call remains.
 """
 import re
-from typing import Set, Iterable
+from typing import Set, Iterable, Sequence
 from enum import IntEnum, IntFlag
 import sublime
 from . import core
 from ..lib.debug import DebugBits, is_debugging
-from ..lib import smart_context
 from ..lib import key_binding
 
 
@@ -496,7 +495,7 @@ class ReportKeyBinding(key_binding.KeyBinding):
 
         """
         binding_str = self.formatted(1)
-        return f'{self.__class__.__name__}(source={self._source}\n{binding_str})'
+        return f'{self.__class__.__name__}( source: {self._source}\n{binding_str})'
 
     def main_key_names(self) -> list[str]:
         return self._main_key_names
@@ -589,6 +588,91 @@ class KeyBindingData:
             append("%s: %s" % (krepr, vrepr))
 
         return "{%s}" % ",\n ".join(components)
+
+    def which_binding(self,
+                keypress_list: Sequence[str],
+                view: sublime.View
+                ) -> ReportKeyBinding | None:
+        r"""
+        Locate the key binding this ``keypress_list`` would hit (if any),
+        based on data already gathered.
+
+        :param self:            Instance of ``KeyBindingData``; all data is
+                                connected to this instance.
+
+        :param keypress_list:   "keys" list ("keys" element from JSON key binding).
+
+        :param view:            View to use for current context.
+
+        :return:  ReportKeyBinding selected, or None if none found.
+        """
+        if keypress_list is None or len(keypress_list) == 0:
+            raise AssertionError('keypress_list must have at least one keypress in it.')
+        if view is None:
+            raise AssertionError('view must be a valid View object (self.view) from a TextCommand.')
+
+        result = None
+
+        if len(keypress_list) > 1:
+            # by_key_seq_dict
+            #     ("ctrl+k", "ctrl+up"):
+            #         [
+            #             ReportKeyBinding object,
+            #             ReportKeyBinding object,
+            #             ReportKeyBinding object,
+            #             ...
+            #         ]
+            keypress_tuple = tuple(keypress_list)
+            if keypress_tuple in self.mdictByKeySquence:
+                binding_list = self.mdictByKeySquence[keypress_tuple]
+                # In a bottom-up search, return first binding whose context is a match.
+                for binding in reversed(binding_list):
+                    smart_context = binding.smart_context()
+                    if smart_context is None:
+                        # This is the binding.
+                        result = binding
+                        break
+                    else:
+                        if smart_context.query(view):
+                            result = binding
+                            break
+        else:
+            # by_main_key_dict
+            #     "a": [  <-- binding_lists_by_mod_code
+            #             None,   # binding list for unmodified 'a' key
+            #             None,   # binding list for [Shift-a]
+            #             [...],  # binding list for [Ctrl-a]       <-- binding_list
+            #             [...],  # binding list for [Ctrl-Shift-a] <-- binding_list
+            #             None,   # binding list for [Alt-a]
+            #             None,   # binding list for [Alt-Shift-a]
+            #             None,   # binding list for [Alt-Ctrl-a]
+            #             None,   # binding list for [Alt-Ctrl-Shift-a]
+            #             None,   # binding list for [Command-a]
+            #             None,   # binding list for [Command-Shift-a]
+            #             [...],  # binding list for [Command-Ctrl-a]       <-- binding_list
+            #             [...],  # binding list for [Command-Ctrl-Shift-a] <-- binding_list
+            #             None,   # binding list for [Command-Alt-a]
+            #             None,   # binding list for [Command-Alt-Shift-a]
+            #             None,   # binding list for [Command-Alt-Ctrl-a]
+            #             None,   # binding list for [Command-Alt-Ctrl-Shift-a]
+            #         ]
+            main_key_name, mod_code = main_key_and_modifier_code(keypress_list[0])
+            if main_key_name in self.mdictByMainKey:
+                binding_lists_by_mod_code = self.mdictByMainKey[main_key_name]
+                binding_list = binding_lists_by_mod_code[mod_code]
+                if binding_list:
+                    for binding in reversed(binding_list):
+                        smart_context = binding.smart_context()
+                        if smart_context is None:
+                            # This is the binding.
+                            result = binding
+                            break
+                        else:
+                            if smart_context.query(view):
+                                result = binding
+                                break
+
+        return result
 
     def generate(self,
             key_groups       : Iterable[KeyGroup] | None = None,
@@ -1122,7 +1206,7 @@ class KeyBindingData:
             # the latter is inside an inner loop (which can in some reports
             # iterate thousands of times), and this would be unacceptably
             # inefficient.
-            context.update_view_event_listeners(view)
+            smart_context.update_view_event_listeners(view)
 
         # Start fresh.
         self._build_empty_main_key_dict()

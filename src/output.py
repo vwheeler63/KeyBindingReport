@@ -119,6 +119,7 @@ All input data goes away when the last reference to the created
 ***************************************************************************"""
 
 from enum import IntFlag
+from datetime import datetime
 from . import data
 from .data import KeyBindingData
 from ..lib.debug import DebugBits, is_debugging
