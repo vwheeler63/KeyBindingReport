@@ -18,11 +18,6 @@ from .. import output
 _cfg_report_title = 'Key-Binding Report'
 
 
-# *************************************************************************
-# Constants
-# *************************************************************************
-
-
 
 # *************************************************************************
 # Classes
@@ -263,11 +258,11 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             #                                      Key    W     A     C     S    Cmd  Args  Ctxt   Src
             mk_asc_tbl.set_tight_columns(    [True, True, True, True, True, True, True, True, False])
             mk_asc_tbl.set_column_alignments([ '^',   '',   '',   '',   '',   '',   '',  '^',    ''])
-            title = 'Single-Keypress Table'
-            underline = '=' * len(title)
+            heading = 'Single-Keypress Table'
+            underline = '=' * len(heading)
             content_parts.append('')
             content_parts.append('')
-            content_parts.append(title)
+            content_parts.append(heading)
             content_parts.append(underline)
             content_parts.append('')
             content_parts.append( mk_asc_tbl.as_string(fmt) )
@@ -290,11 +285,11 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
         if tuple_list:
             plural_suffix = 's' if len(tuple_list) > 1 else ''
-            title = f'Multi-Keypress Table{plural_suffix}'
-            underline = '=' * len(title)
+            heading = f'Multi-Keypress Table{plural_suffix}'
+            underline = '=' * len(heading)
             content_parts.append('')
             content_parts.append('')
-            content_parts.append(title)
+            content_parts.append(heading)
             content_parts.append(underline)
             content_parts.append('')
 
@@ -306,10 +301,10 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                     #                                      Key    W     A     C     S    Cmd  Args  Ctxt   Src
                     kseq_asc_tbl.set_tight_columns(    [True, True, True, True, True, True, True, True, False])
                     kseq_asc_tbl.set_column_alignments([ '^',   '',   '',   '',   '',   '',   '',  '^',    ''])
-                    title = self._key_sequence_table_title(lead_keypr_str)
+                    heading = self._key_sequence_table_title(lead_keypr_str)
                     content_parts.append('')
-                    underline = '-' * len(title)
-                    content_parts.append(title)
+                    underline = '-' * len(heading)
+                    content_parts.append(heading)
                     content_parts.append(underline)
                     content_parts.append('')
                     content_parts.append( kseq_asc_tbl.as_string(fmt) )
@@ -334,7 +329,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
         rpt_view = output_view.output_to_view(
                 None,
-                _cfg_report_title,
+                _cfg_report_heading,
                 content,
                 current_view=view
                 )
