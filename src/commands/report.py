@@ -40,17 +40,6 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
     the context of the View received is what is used.
     """
 
-    def _heading(self, title: str) -> str:
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        parts = []
-        parts.append('')
-        parts.append(title)
-        parts.append('*' * len(title))
-        parts.append('')
-        parts.append(f'Report generated:  {timestamp}')
-
-        return '\n'.join(parts)
-
     def _table_key(self) -> str:
         parts = []
         parts.append('Key:')
@@ -257,7 +246,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         table_key = self._table_key()
 
         content_parts = []
-        content_parts.append(self._heading(title))
+        content_parts.append(output.heading(title))
         content_parts.append('')
 
         out = output.KeyBindingOutput(key_data)
