@@ -120,7 +120,7 @@ All input data goes away when the last reference to the created
 
 from enum import IntFlag
 from . import data
-from .data import KeyBindingData, main_key_and_bindings_by_mod_code
+from .data import KeyBindingData
 from ..lib.debug import DebugBits, is_debugging
 from ..lib.smart_context import SmartContext
 from ..lib import ascii_table
@@ -381,7 +381,7 @@ class KeyBindingOutput:
         debugging = is_debugging(DebugBits.OUTPUT)
         if debugging:
             print('In KeyBindingOutput.main_key_table()...')
-            print(f'  {flags =:#8b}')
+            print(f'  {flags =:#011_b}')
 
         include_unbound_keypresses = flags & FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
         footnote_num = prev_footnote_num
@@ -477,7 +477,7 @@ class KeyBindingOutput:
         debugging = is_debugging(DebugBits.OUTPUT)
         if debugging:
             print('In KeyBindingOutput.key_seq_tables()...')
-            print(f'  {flags =:#8b}')
+            print(f'  {flags =:#011_b}')
 
         by_key_seq_dict = self.data.mdictByKeySquence
 
@@ -516,33 +516,44 @@ class KeyBindingOutput:
                 # Pass through `by_key_seq_dict` selecting only bindings
                 # whose leading keypress matches `lead_keypr_str`.
                 # ---------------------------------------------------------
-                for keypress_tuple_bep in sorted(by_key_seq_dict):
+                # `sorted()` doesn't do well for `by_key_seq_dict` because
+                # it mixes the key groups up.  So we take another approach:
+                # by key group in sequence.
+                # ---------------------------------------------------------
+                # Extract keypress_tuples by `lead_keypr_str` into a list.
+                sortable_list = []
+                for keypress_tuple_bep in by_key_seq_dict:
                     leading_keypress_str = keypress_tuple_bep[0]
                     if leading_keypress_str == lead_keypr_str:
-                        # Add rows to table (and potentially add footnotes)
-                        # for this binding list, using secondary keypress.
-                        second_keypress_str = keypress_tuple_bep[1]
+                        sortable_list.append(keypress_tuple_bep)
 
-                        second_main_key_name, second_mod_code = \
-                                data.main_key_and_modifier_code(second_keypress_str)
+                # Sort list by special sort routine that uses the key
+                # groups and sorts by:
+                # - secondary-keypress main key
+                # - mod_code
+                sorted_tuple_list = data.sort_keypress_tuple_list_by_secondary_key(sortable_list)
 
-                        mod_key_applies_tpl = data.modifier_characters(
-                                second_mod_code,
-                                self.modifier_applies_symbol
-                                )
+                # Finally, iterate through sorted list, pull and build
+                # tables by that sequence.
+                for scored_keypress_tuple_bep in sorted_tuple_list:
+                    mod_key_applies_tpl = data.modifier_characters(
+                            scored_keypress_tuple_bep.mod_code,
+                            self.modifier_applies_symbol
+                            )
 
-                        binding_list = by_key_seq_dict[keypress_tuple_bep]
+                    keypress_tuple = scored_keypress_tuple_bep.keypress_tuple
+                    binding_list = by_key_seq_dict[keypress_tuple]
 
-                        footnote_num = self._append_rows_to_table_for_one_keypress(
-                                table,
-                                second_main_key_name,
-                                mod_key_applies_tpl,
-                                binding_list,
-                                flags,
-                                fmt,
-                                footnotes,
-                                footnote_num,
-                                )
+                    footnote_num = self._append_rows_to_table_for_one_keypress(
+                            table,
+                            scored_keypress_tuple_bep.second_main_key_name,
+                            mod_key_applies_tpl,
+                            binding_list,
+                            flags,
+                            fmt,
+                            footnotes,
+                            footnote_num,
+                            )
 
                 table_list.append((lead_keypr_str, table, footnotes, footnote_num))
 

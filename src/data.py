@@ -143,6 +143,96 @@ del i, count, grp, key_name
 # Utilities
 # *************************************************************************
 
+class ScoredKeySequence:
+    """
+    sort_score == integer organized like this:
+
+                byte 3            byte 2       byte 1    byte 0
+        +--------------------+--------------+----------+--------+
+        | key_name_group idx | idx_in_group | mod_code | seq_no |
+        +--------------------+--------------+----------+--------+
+    """
+    __slots__ = ['keypress_tuple', 'second_main_key_name', 'mod_code', 'seq_no', '_score']
+
+    def __init__(self, keypress_tuple: tuple[str, str], seq_no: int):
+        if keypress_tuple is None or len(keypress_tuple) < 2:
+            raise AssertionError('`keypress_tuple` must have at least 2 elements.')
+
+        debugging = is_debugging(DebugBits.OUTPUT)
+        if debugging:
+            print('In ScoredKeySequence.__init__()...')
+            print(f'  {keypress_tuple=}')
+        self.keypress_tuple = keypress_tuple
+        main_key_name, mod_code = main_key_and_modifier_code(keypress_tuple[1])
+        self.second_main_key_name = main_key_name
+        self.mod_code = mod_code
+        self.seq_no = seq_no
+        self._score = 0
+        found = False
+        i = -1  # Make LSP-pyright happy.
+
+        for i, key_name_group in enumerate(key_name_groups):
+            if main_key_name in key_name_group:
+                found = True
+                break
+
+        if found:
+            key_name_group = key_name_groups[i]
+            idx_in_group = key_name_group.index(main_key_name)
+            self._score = (i << 24) | (idx_in_group << 16) | (mod_code << 8) | seq_no
+            if debugging:
+                print(f'  {i            = }')
+                print(f'  {idx_in_group = }')
+                print(f'  {mod_code     = }')
+                print(f'  {self._score  = :#08x}')
+
+    def __repr__(self) -> str:
+        descr = f'{self.keypress_tuple}, 2nd_key={self.second_main_key_name}, mod_code={self.mod_code:04b}, score=0x{self._score:08X}'
+        return f'{self.__class__.__name__}({descr})'
+
+    def score(self) -> int:
+        return self._score
+
+
+def sort_keypress_tuple_list_by_secondary_key(
+        keypress_tuple_list: list[tuple[str, str]]
+        ) -> list[ScoredKeySequence]:
+    """
+    [
+        ("ctrl+k", "ctrl+t"),
+        ("ctrl+k", "ctrl+q"),
+        ("ctrl+k", "ctrl+s"),
+        ("ctrl+k", "ctrl+z"),
+        ("ctrl+k", "ctrl+a"),
+        ("ctrl+k", "ctrl+up"),
+        ("ctrl+k", "ctrl+down"),
+        ("ctrl+k", "ctrl+backspace"),
+        ("ctrl+k", "ctrl+0"),
+    ]              ^^^^^^^^^
+                      |
+                      +-- sort by main key per ``key_name_groups``.
+
+    To do this, we assign a "sort_score" with each tuple and then sort
+    by that score, where:
+
+        sort_score == integer:
+
+                byte 3            byte 2       byte 1    byte 0
+        +--------------------+--------------+----------+--------+
+        | key_name_group idx | idx_in_group | mod_code | seq_no |
+        +--------------------+--------------+----------+--------+
+    """
+    sortable_list = []
+
+    for i, keypress_tuple in enumerate(keypress_tuple_list):
+        sks = ScoredKeySequence(keypress_tuple, i)
+        sortable_list.append(sks)
+
+    sorted_list = sorted(sortable_list, key=ScoredKeySequence.score)
+
+    return sorted_list
+
+
 def main_key_and_modifier_code(keypress_str: str) -> tuple[str, int]:
     """
     Key-modifier code from `keypress_str` (e.g. "ctrl+alt+shift+p").
