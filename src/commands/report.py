@@ -1,4 +1,4 @@
-from typing import Iterable, Optional
+from typing import Iterable
 import pprint
 from datetime import datetime
 import sublime_plugin
@@ -33,7 +33,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
     Generate Key-Binding Report in specified format.
 
     Inheriting from TextCommand is needed because this is the only
-    way to get Views that may not be part of a sheet, but may
+    way to get Views that may not be part of a Sheet, but may
     instead be part of the UI (e.g. Find textbox).  This is needed
     to feed into the context-query engine when the user has called
     the Command with ``limit_to_context == True``, in which case
@@ -57,11 +57,11 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
     def run(
             self,
             edit             : sublime.Edit,
-            key_groups       : Optional[Iterable[data.KeyGroup]] = None,
-            key_names        : Optional[Iterable[str]] = None,
-            keypress_list    : Optional[Iterable[Iterable[str]]] = None,
-            limit_to_packages: Optional[Iterable[str]] = None,
-            limit_to_context : Optional[bool] = False,
+            key_groups       : Iterable[data.KeyGroup] | None = None,
+            key_names        : Iterable[str]           | None = None,
+            keypress_list    : Iterable[Iterable[str]] | None = None,
+            limit_to_packages: Iterable[str]           | None = None,
+            limit_to_context : bool = False,
             fmt              : ascii_table.Format = ascii_table.Format.OUTLINED,
             flags            : output.FlagBits = output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
             ):
