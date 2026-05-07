@@ -11,7 +11,7 @@ from .. import data
 # Configuration
 # *************************************************************************
 
-_cfg_report_title = 'Keys Used Report'
+_cfg_report_title = 'Keys Used in All Keymaps'
 
 
 # *************************************************************************
@@ -25,7 +25,7 @@ _cfg_report_title = 'Keys Used Report'
 # *************************************************************************
 
 class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
-    """ Generate Key-Binding Keys-Used Report. """
+    """ Report Keys-Used-In-All-Keymaps Report. """
 
     def _heading(self, title: str) -> str:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -61,6 +61,12 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
         for path in keymap_paths:
             keymap_resource_str = sublime.load_resource(path)
             decoded_key_bindings = sublime.decode_value(keymap_resource_str)
+
+            if (   decoded_key_bindings is None
+                or isinstance(decoded_key_bindings, bool)
+                or isinstance(decoded_key_bindings, int)
+                or isinstance(decoded_key_bindings, float) ):
+                decoded_key_bindings = []
 
             for decoded_binding in decoded_key_bindings:
                 keypress_tuple_bep = tuple(decoded_binding['keys'])

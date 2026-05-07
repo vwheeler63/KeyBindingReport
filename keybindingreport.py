@@ -45,7 +45,7 @@ if debugging:
 # Load / Reload
 # *************************************************************************
 
-def reload(dotted_subpkg: str, submodules: tuple[str, ...] = ()):
+def reload(dotted_subpkg: str | None, submodules: tuple[str, ...] = ()):
     """
     Reload each module in `submodules` only if previously loaded.  This is a
     precondition of calling ``importlib.reload()`` but is also for efficiency:
@@ -84,21 +84,22 @@ def reload(dotted_subpkg: str, submodules: tuple[str, ...] = ()):
             print('vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv')
         print(f'{indent}reload():  >>> {dotted_subpkg=} {submodules=}')
 
-    if not submodules:
-        # Called from top-level Plugin.
-        module_name = dotted_subpkg
-        if module_name in sys.modules:
-            if debugging:
-                print(f'{indent}Reloading({module_name})')
-            importlib.reload(sys.modules[module_name])
-    else:
-        # Called from subpackage.
-        for submodule in submodules:
-            module_name = f'{dotted_subpkg}.{submodule}'
+    if dotted_subpkg:
+        if not submodules:
+            # Called from top-level Plugin.
+            module_name = dotted_subpkg
             if module_name in sys.modules:
                 if debugging:
                     print(f'{indent}Reloading({module_name})')
                 importlib.reload(sys.modules[module_name])
+        else:
+            # Called from subpackage.
+            for submodule in submodules:
+                module_name = f'{dotted_subpkg}.{submodule}'
+                if module_name in sys.modules:
+                    if debugging:
+                        print(f'{indent}Reloading({module_name})')
+                    importlib.reload(sys.modules[module_name])
 
     if debugging:
         print(f'{indent}reload():  <<<')

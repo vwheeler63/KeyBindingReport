@@ -33,6 +33,8 @@ import sublime
 from . import core
 from ..lib.debug import DebugBits, is_debugging
 from ..lib import key_binding
+from ..lib import smart_context
+
 
 
 # *************************************************************************

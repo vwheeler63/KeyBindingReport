@@ -329,7 +329,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
         rpt_view = output_view.output_to_view(
                 None,
-                _cfg_report_heading,
+                _cfg_report_title,
                 content,
                 current_view=view
                 )
