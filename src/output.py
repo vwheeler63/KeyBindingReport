@@ -506,7 +506,7 @@ class KeyBindingOutput:
             footnote_num = prev_footnote_num
             heading_row = self._heading_row(flags)
 
-            for lead_keypr_str in lead_keypr_str_set:
+            for lead_keypr_str in sorted(lead_keypr_str_set):
                 # Generate new table and new footnotes list for each
                 # unique leading keypress.
                 table = [heading_row]
@@ -516,7 +516,7 @@ class KeyBindingOutput:
                 # Pass through `by_key_seq_dict` selecting only bindings
                 # whose leading keypress matches `lead_keypr_str`.
                 # ---------------------------------------------------------
-                for keypress_tuple_bep in by_key_seq_dict:
+                for keypress_tuple_bep in sorted(by_key_seq_dict):
                     leading_keypress_str = keypress_tuple_bep[0]
                     if leading_keypress_str == lead_keypr_str:
                         # Add rows to table (and potentially add footnotes)
