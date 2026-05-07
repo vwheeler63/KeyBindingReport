@@ -69,9 +69,9 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
                 decoded_key_bindings = []
 
             for decoded_binding in decoded_key_bindings:
-                keypress_tuple_bep = tuple(decoded_binding['keys'])
+                keypress_tuple = tuple(decoded_binding['keys'])
 
-                for keypress_str in keypress_tuple_bep:
+                for keypress_str in keypress_tuple:
                     main_key_name, binding_lists_by_mod_code = \
                             data.main_key_and_bindings_by_mod_code(keypress_str)
 
