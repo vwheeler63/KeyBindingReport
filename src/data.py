@@ -158,7 +158,7 @@ class ScoredKeySequence:
         if keypress_tuple is None or len(keypress_tuple) < 2:
             raise AssertionError('`keypress_tuple` must have at least 2 elements.')
 
-        debugging = is_debugging(DebugBits.OUTPUT)
+        debugging = False # is_debugging(DebugBits.OUTPUT)
         if debugging:
             print('In ScoredKeySequence.__init__()...')
             print(f'  {keypress_tuple=}')
