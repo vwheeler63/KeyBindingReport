@@ -303,19 +303,19 @@ the key, or a key name:
 
 .. code-block:: text
 
-    a   n   0   f1    ,   up           keypad0
-    b   o   1   f2    .   down         keypad1
-    c   p   2   f3    \   left         keypad2
-    d   q   3   f4    /   right        keypad3
-    e   r   4   f5    ;   insert       keypad4
-    f   s   5   f6    '   delete       keypad5
-    g   t   6   f7    `   home         keypad6
-    h   u   7   f8    +   end          keypad7
-    i   v   8   f9    -   pageup       keypad8
-    j   w   9   f10   =   pagedown     keypad9
-    k   x       f11   [   backspace    keypad_period
-    l   y       f12   ]   tab          keypad_divide
-    m   z       f13       enter        keypad_multiply
+    0   a   n   f1    ,   up           keypad0
+    1   b   o   f2    .   down         keypad1
+    2   c   p   f3    \   left         keypad2
+    3   d   q   f4    /   right        keypad3
+    4   e   r   f5    ;   insert       keypad4
+    5   f   s   f6    '   delete       keypad5
+    6   g   t   f7    `   home         keypad6
+    7   h   u   f8    +   end          keypad7
+    8   i   v   f9    -   pageup       keypad8
+    9   j   w   f10   =   pagedown     keypad9
+        k   x   f11   [   backspace    keypad_period
+        l   y   f12   ]   tab          keypad_divide
+        m   z   f13       enter        keypad_multiply
                 f14       pause        keypad_minus
                 f15       escape       keypad_plus
                 f16       space        keypad_enter
@@ -323,14 +323,14 @@ the key, or a key name:
                 f18       context_menu
                 f19
                 f20
-    \___/   ^    ^    ^     ^            ^
-      |     |    |    |     |            |
-      |     |    |    |     |            +-- KEYPAD_KEYS
-      |     |    |    |     +-- NAMED_KEYS
-      |     |    |    +-- SYMBOL_KEYS
-      |     |    +-- F_KEYS
-      |     +-- NUMBER_KEYS
-      +-- LETTER_KEYS
+      ^ \___/    ^    ^     ^            ^
+      |   |      |    |     |            |
+      |   |      |    |     |            +-- KEYPAD_KEYS
+      |   |      |    |     +-- NAMED_KEYS
+      |   |      |    +-- SYMBOL_KEYS
+      |   |      +-- F_KEYS
+      |   +-- LETTER_KEYS
+      +-- NUMBER_KEYS
 
     The above enumerator names are from the ``KeyGroup`` class.
     Note that identify lists of key names that are mutually exclusive.

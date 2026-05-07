@@ -76,10 +76,10 @@ platform_name_from_file_name_re = re.compile(r'^Default \((.*)\)\.sublime-keymap
 
 # Key Name Groups, indexed by class ``KeyGroup``.
 key_name_groups = [
-    # LETTER_KEYS == 0
-    ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'],
-    # NUMBER_KEYS == 1
+    # NUMBER_KEYS == 0
     ['0','1','2','3','4','5','6','7','8','9'],
+    # LETTER_KEYS == 1
+    ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'],
     # F_KEYS      == 2
     ['f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12','f13','f14','f15','f16','f17','f18','f19','f20'],
     # SYMBOL_KEYS == 3
@@ -423,8 +423,8 @@ class KeyGroup(IntEnum):
     ALL            = -2  # Equivalent to specifying all groups >= 0.
     KEY_SEQUENCES  = -1  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
 
-    LETTER_KEYS    =  0  # \
-    NUMBER_KEYS    =  1  #  \
+    NUMBER_KEYS    =  0  # \
+    LETTER_KEYS    =  1  #  \
     F_KEYS         =  2  #   \__ These index into ``key_name_groups``.
     SYMBOL_KEYS    =  3  #   /
     NAMED_KEYS     =  4  #  /

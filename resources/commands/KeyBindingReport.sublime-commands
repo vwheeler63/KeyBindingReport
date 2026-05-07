@@ -231,8 +231,8 @@
 //     ALL            = -2  # Equivalent to specifying all groups >= 0.
 //     KEY_SEQUENCES  = -1  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
 
-//     LETTER_KEYS    =  0  # \
-//     NUMBER_KEYS    =  1  #  \
+//     NUMBER_KEYS    =  0  # \
+//     LETTER_KEYS    =  1  #  \
 //     F_KEYS         =  2  #   \__ These index into ``key_name_groups``.
 //     SYMBOL_KEYS    =  3  #   /
 //     NAMED_KEYS     =  4  #  /
