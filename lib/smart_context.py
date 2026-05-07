@@ -1,13 +1,13 @@
 """************************************************************************
-Sublime Text Key-Binding Contexts
-*********************************
+Sublime Text Key-Binding Contexts...
+************************************
 
-About to:
+...that can:
 
 - represent contexts as a part of KeyBinding objects, and
 
-- do system-wide context queries to determine if a particular
-  key binding applies to the current context (circumstances).
+- do system-wide context queries to determine if a particular key
+  binding applies to the current context (editing circumstances).
 
 
 How SmartContext Works:
@@ -53,17 +53,17 @@ A.  SmartContext module.
         +   a full live collection of `on_query_context()` listeners
             +   Called when one of the "key" values (condition names) is not
                 among the recognized set.  This list is called until a
-                ``True`` or ``False`` is returned (value not ``None``)
-                and that result is the valid test result.
+                ``True`` or ``False`` is returned (value not ``None``).
+                That result is the test result.
 
                 These are loaded when this module is loaded.  Avg time:  0.09 sec.
 
-        +   a full live collection of Snippets triggers in a dictionary
-            +   There are 3 "key" (condition) names that have to do with
+        +   a full live collection of Snippet triggers in a dictionary
+            +   There are 3 context conditions that have to do with
                 Snippets and 1 of them (has_snippet) requires parsing the
                 actual snippet files and collecting triggers to determine
                 whether the condition tests TRUE or not.  This collection
-                is used when that context key (condition name) shows up.
+                is used when that context condition shows up.
 
                 These are loaded when this module is loaded.  Avg time:  0.11 sec.
 
@@ -72,7 +72,7 @@ A.  SmartContext module.
         +   _on_query_context_listener_list  (list)
         +   _on_query_context_file_list      (list)
         +   _snippets_by_trigger             (dict)
-        +   _context_tests_by_name            (dict)
+        +   _context_tests_by_name           (dict)
         +   _operator_codes_by_name          (dict)
 
 B.  ContextCondition Object.
@@ -85,6 +85,11 @@ B.  ContextCondition Object.
             +   String representation
         +   repr(self)
             +   Debug representation
+        +   hash(self)
+            +   Value used in determining if one ContextCondition equals another.
+        +   self == other?
+            +   Is `other` functionally equivalent to `self`?
+        +
 
 C.  SmartContext Object.
 
@@ -97,6 +102,10 @@ C.  SmartContext Object.
             +   String representation
         +   repr(self)
             +   Debug representation
+        +   is_functionally_equivalent(self, other)
+            +   Whether the sum of all contained ContextCondition objects
+                are functionally equivalent with the sum of `other`s
+                contained ContextCondition objects.
     3.  It can be requested to change context objects as follows:
         +   Change only happens at instantiation when the newly-created
             SmartContext object extracts its condition list from the
@@ -134,6 +143,7 @@ return a Boolean value.
 import os
 import re
 import json
+from enum import IntEnum
 import importlib
 from datetime import datetime
 from xml.etree import ElementTree as ET
@@ -1203,10 +1213,31 @@ _context_tests_by_name = {                                          # Operator G
     'is_recording_macro'       : _test_unimplemented,               # equality group
 }
 
+_context_entry_numbers_by_name = {}
+_context_entry_numbers_by_name['setting.'] = 0
+
+for i, key in enumerate(_context_tests_by_name, 1):
+    _context_entry_numbers_by_name[key] = i
+
+
+
 
 # *************************************************************************
 # Context Classes
 # *************************************************************************
+
+class OperandTypeCode(IntEnum):
+    """
+    An integer value for operand types;
+    helps with detecting functionally-equivalent ContextCondition objects.
+    """
+    STR   = 0
+    BOOL  = 1
+    INT   = 2
+    FLOAT = 3   # As of 07-May-2026 this type doesn't exist in an operand yet,
+                # but this is here since it feels like it is only a matter of
+                # time before this type is accepted.
+
 
 class ContextCondition(dict):
     """
@@ -1249,6 +1280,7 @@ class ContextCondition(dict):
                 to enhance readability.
         +   str(self)
         +   repr(self)
+        +   hash(self)
         +   natural_language_repr(self)
             +   An English translation of the Boolean condition
     t can be requested to change context objects as follows:
@@ -1268,17 +1300,87 @@ class ContextCondition(dict):
     { "key": "eol_selector", "operator": "not_equal", "operand": "string.quoted.double - punctuation.definition.string.end", "match_all": true }
     """
     def __init__(self, condition_dict: dict, language_code: str = 'en'):
-        self.update(condition_dict)
-        self.language = language_code
+        """
+        To detect 2 functionally-equivalent context conditions, the approach
+        taken is to make each condition have a "hash value" that is computed
+        and stored at instantiation time.  It encapsulates:
 
-    def set_language(self, language: str = 'en'):
-        self.language = language
+        +----------------------------------+------+-------------------------+
+        | Description                      | Bits | Source                  |
+        +==================================+======+=========================+
+        | key (test) name (28 tests with   | 5    | Condition's entry # in  |
+        | "setting.xxx" counting as 1)     |      | _context_tests_by_name  |
+        +----------------------------------+------+-------------------------+
+        | operator (there are 6 operators) | 3    | _operator_codes_by_name |
+        +----------------------------------+------+-------------------------+
+        | operand type (str, bool, int)    | 2    | OperandTypeCode         |
+        +----------------------------------+------+-------------------------+
+        | match_all value                  | 1    | 0 == False, 1 == True   |
+        +----------------------------------+------+-------------------------+
+
+        To make it easy for humans to read in hex while debugging, each of the 4
+        values above could simply occupy a byte in a 32-bit integer.  The smaller
+        ones could occupy a nibble if needed.
+
+        Each ContextCondition has a "setting_name" attribute which is an empty
+        string by default.  If its test name begins with "setting.", then the
+        condition name is copied into it.  Then two ContextCondition objects
+        would be functionally equivalent if:
+
+        - they have the same hash value (ensuring the operands are of the same type)
+        - cond1.setting_name == cond2.setting_name.
+        - cond1.operand == cond2.operand, and
+
+        Note that this would also require the ContextCondition (at instantiation
+        time) to assume the default values for operator, operand and match_all
+        when they were not specified.
+        """
+        self.update(condition_dict)
+        self.key           = condition_dict['key']
+        self.operator      = condition_dict.get('operator', 'equal')
+        self.operand       = condition_dict.get('operand', True)
+        self.match_all     = condition_dict.get('match_all', False)
+        self.language      = language_code
+        self._hashcode     = -1
+        self._setting_name = ''
 
     def __str__(self):
         return self.formatted()
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.formatted()})'
+
+    def __hash__(self):
+        if self._hashcode == -1:
+            test_entry_num = _context_entry_numbers_by_name[self.key]
+            operator_code  = _operator_codes_by_name[self.operator]
+            match_all_val  = 1 if self.match_all else 0
+
+            if isinstance(self.operand, str):
+                operand_type_code = OperandTypeCode.STR
+            elif isinstance(self.operand, bool):
+                operand_type_code = OperandTypeCode.BOOL
+            elif isinstance(self.operand, int):
+                operand_type_code = OperandTypeCode.INT
+            elif isinstance(self.operand, float):
+                operand_type_code = OperandTypeCode.FLOAT
+            else:
+                msg = f'{self.__class__.__name__}.__hash__():  operand type not recognized: {type(self.operand)}'
+                raise AssertionError(msg)
+
+            self._hashcode = (test_entry_num << 24) | (operator_code << 16) | (operand_type_code << 8) | match_all_val
+
+        return self._hashcode
+
+    def set_language(self, language: str = 'en'):
+        self.language = language
+
+    def is_functionally_equivalent(self, other):
+        """ Is ``other`` functionally equivalent to ``self``? """
+        return (    (hash(other) == hash(self))
+                and (other._setting_name == self._setting_name)
+                and (other.operand == self.operand)
+                )
 
     def formatted(self,
             longest_key_len: int = 0,
@@ -1399,6 +1501,28 @@ class SmartContext(list):
         """
         return f'{self.__class__.__name__}({self.formatted()})'
 
+    def condition_list_copy(self) -> list[ContextCondition] | None:
+        """
+        Copy of ``self.conditions``
+
+        :return:  list[ContextCondition] or None if context had no conditions.
+        """
+        result: list[ContextCondition] | None = None
+
+        if self.conditions:
+            result = []
+            for cond in self.conditions:
+                result.append(cond)
+
+        return result
+
+    def is_functionally_equivalent(self, other):
+        """ Is ``other`` functionally equivalent to ``self``? """
+        return (    (hash(other) == hash(self))
+                and (other._setting_name == self._setting_name)
+                and (other.operand == self.operand)
+                )
+
     def formatted(self, indent_level: int = 0, raw: bool = True, natural_language: bool = False) -> str:
         """
         Python representation of ``self`` (same structure as in
@@ -1507,10 +1631,10 @@ class SmartContext(list):
             print(f'    {repr(condition)}')
 
         result    = False
-        key       = condition['key']
-        operator  = condition.get('operator', 'equal')
-        operand   = condition.get('operand', True)
-        match_all = condition.get('match_all', False)
+        key       = condition.key
+        operator  = condition.operator
+        operand   = condition.operand
+        match_all = condition.match_all
 
         if key.startswith('setting.'):
             # Query on setting.

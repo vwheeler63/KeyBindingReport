@@ -4,17 +4,17 @@ KeyBinding
 
 
 
-key_binding Terminology
-=============================
+KeyBinding Terminology
+======================
 
 These KeyBindings are objects from the lists in `.sublime-keymap` files,
 so all terminology related to those key binding objects is used herein.
 
 
-key_binding Design
-========================
+KeyBinding Design
+=================
 
-A.  There is a concept of a key_binding object.
+A.  There is a concept of a KeyBinding object.
 
     1.  It has:
         +   source
@@ -33,7 +33,7 @@ A.  There is a concept of a key_binding object.
         +   ...
             +   ...
             +   ...
-    3.  It can be requested to change key_binding objects as follows:
+    3.  It can be requested to change KeyBinding objects as follows:
         +   ...
             +   ...
             +   ...
@@ -45,13 +45,81 @@ A.  There is a concept of a key_binding object.
             +   ...
 
 
-key_binding Data Flow
-===========================
+KeyBinding Data Flow
+====================
 
 KeyBinding is in the inheritance tree to ReportKeyBinding class.
 ReportKeyBinding objects are used to populate 2 data structures
-used to generate reports and to provide data for utilities that
+used to generate reports, and to provide data for utilities that
 deal with Sublime Text Key Bindings.
+
+
+Detecting Potentially-Conflicting Key Bindings
+==============================================
+
+To be potentially conflicting, 2 key bindings must:
+
+- involve the same keypress or keypress sequence, i.e.
+  ``(binding1.keypress_tuple() == binding2.keypress_tuple()``
+
+  and
+
+- have a functionally-equivalent context condition.
+
+
+Testing for Functionally-Equivalent Context Conditions
+------------------------------------------------------
+To detect 2 functionally-equivalent context conditions, the approach
+taken is to make each condition have a "hash value" that is computed
+and stored at instantiation time.  It encapsulates:
+
++----------------------------------+------+-------------------------+
+| Description                      | Bits | Source                  |
++==================================+======+=========================+
+| key (test) name (28 tests with   | 5    | Condition's entry # in  |
+| "setting.xxx" counting as 1)     |      | _context_tests_by_name  |
++----------------------------------+------+-------------------------+
+| operator (there are 6 operators) | 3    | _operator_codes_by_name |
++----------------------------------+------+-------------------------+
+| operand type (str, bool, int)    | 2    | OperandTypeCode         |
++----------------------------------+------+-------------------------+
+| match_all value                  | 1    | 0 == False, 1 == True   |
++----------------------------------+------+-------------------------+
+
+To make it easy for humans to read in hex while debugging, each of the 4
+values above could simply occupy a byte in a 32-bit integer.  The smaller
+ones could occupy a nibble if needed.
+
+Each ContextCondition has a "setting_name" attribute which is an empty
+string by default.  If its test name begins with "setting.", then the
+condition name is copied into it.  Then two ContextCondition objects
+would be functionally equivalent if:
+
+- they have the same hash value (ensuring the operands are of the same type)
+- cond1.setting_name == cond2.setting_name.
+- cond1.operand == cond2.operand, and
+
+Note that this would also require the ContextCondition (at instantiation
+time) to assume the default values for operator, operand and match_all
+when they were not specified.
+
+
+Testing for Functionally-Equivalent Contexts
+--------------------------------------------
+Over and above having context conditions that are functionally equivalent,
+the order they may appear in another context is random, so there has to be
+a way of:
+
+- detecting if a condition is a functional equivalent of any number of
+  other conditions, and then
+- if true, preventing that "other" condition from being used in a
+  subsequent functional-equivalence tests until the overall test is
+  concluded.
+
+The latter can be done by creating a local list of references to
+the list of other conditions being tested, and when paired and tested,
+can be eliminated from the local list so it is not used again in other
+functional-equivalence tests.
 
 
 
