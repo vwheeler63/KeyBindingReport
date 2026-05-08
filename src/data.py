@@ -1026,8 +1026,6 @@ class KeyBindingData:
         if include_key_name_set and keypress_tuple_set:
             keys_tuples_set_copy = keypress_tuple_set.copy()
 
-            print(f'{keys_tuples_set_copy=}')
-
             for keypress_tuple in keys_tuples_set_copy:
                 if len(keypress_tuple) == 1:
                     keypress = keypress_tuple[0]
@@ -1072,8 +1070,6 @@ class KeyBindingData:
 
         if keypress_tuple_set and incl_all_multi_key_seqs:
             keys_tuples_set_copy = keypress_tuple_set.copy()
-
-            print(f'{keys_tuples_set_copy=}')
 
             for keypress_tuple in keys_tuples_set_copy:
                 if len(keypress_tuple) > 1:

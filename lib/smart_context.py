@@ -77,19 +77,7 @@ A.  SmartContext module.
 
 B.  ContextCondition Object.
 
-    1.  It has:
-        +   condition-definition dictionary directly from key binding
-
-    2.  It can be asked:
-        +   str(self)
-            +   String representation
-        +   repr(self)
-            +   Debug representation
-        +   hash(self)
-            +   Value used in determining if one ContextCondition equals another.
-        +   self == other?
-            +   Is `other` functionally equivalent to `self`?
-        +
+    See ContextCondition docstring.
 
 C.  SmartContext Object.
 
@@ -189,9 +177,6 @@ _snippets_by_trigger = []
 
 # Context test functions by key; populated after test functions below.
 _context_tests_by_name = {}
-
-# Regex to extract setting name from a "settings.xxxx" condition.
-_setting_name_from_condition = re.compile(r'^setting\.(.+)$')
 
 # on_query_context() operator code look-up dictionary.
 _operator_codes_by_name = {
@@ -1214,7 +1199,7 @@ _context_tests_by_name = {                                          # Operator G
 }
 
 _context_entry_numbers_by_name = {}
-_context_entry_numbers_by_name['setting.'] = 0
+_context_entry_numbers_by_name['setting'] = 0
 
 for i, key in enumerate(_context_tests_by_name, 1):
     _context_entry_numbers_by_name[key] = i
@@ -1239,7 +1224,7 @@ class OperandTypeCode(IntEnum):
                 # time before this type is accepted.
 
 
-class ContextCondition(dict):
+class ContextCondition:
     """
     Sublime Text Key-Binding Context Conditions
 
@@ -1247,32 +1232,59 @@ class ContextCondition(dict):
     Sublime Text key-binding context.
 
     It has:
-        +   "key" entry (test name); str value:  one of the keys in `_context_tests_by_name`.
-            The test indicates the value of the LHS (left-hand-side) of the
-            Boolean expression this condition forms.
+        +   "key" entry (test name); str value:  (no default value).
+            One of the keys in `_context_tests_by_name`.
+            The test indicates the value of the LHS (left-hand-side)
+            of the Boolean expression this condition forms.
 
-        +   optional "operator" entry; str value:  (Default:  "equal") a
-            Boolean operator which must be from one or the other of the
-            following 2 groups, depending on the test.  Which group is
-            noted in comments to the right of each entry in the
-            `_context_tests_by_name` dictionary above.
+        +   operator; str:  (Default:  "equal").
+            One of the Boolean operators in one of these groups:
 
-            + equality-operator group:  "equal", "not_equal"
-            + regex-operator group   :  "regex_match", "not_regex_match", "regex_contains", "not_regex_contains"
+            + equality-operator group:
+
+                + "equal",
+                + "not_equal"
+
+            + regex-operator group:
+
+                + "regex_match",
+                + "not_regex_match",
+                + "regex_contains",
+                + "not_regex_contains"
 
             Hint:  all tests use operators from the quality-operator group
-            except 3 that use operators from the regex-operator group:
-            "test", "preceding_text", and "following_text".
+            except these 3:
 
-        +   optional "operand"; str | bool | int value:  (Default: true);
-            this value provides the RHS (right-hand-side) of the Boolean
+            +   "text",
+            +   "preceding_text", and
+            +   "following_text".
+
+        +   operand; str | bool | int:  (Default: true).
+            This value provides the RHS (right-hand-side) of the Boolean
             expression formed by this condition.
 
-        +   optional "match_all" entry; bool value:  (Default: false).
+        +   match_all; bool:  (Default: false).
             If specified with a `true` value, the context of ALL selections
             must satisfy this condition for it to evaluate TRUE.  If omitted
             or specified `false`, only ONE of the selections must satisfy
             this condition for it to result in a TRUE test result.
+
+        +   language:  language code, e.g. 'en' (features that use this
+            are not yet implemented).
+
+    1.  It has:
+        +   condition-definition dictionary directly from key binding
+
+    2.  It can be asked:
+        +   str(self)
+            +   String representation
+        +   repr(self)
+            +   Debug representation
+        +   hash(self)
+            +   Value used in determining if one ContextCondition equals another.
+        +   self == other?
+            +   Is `other` functionally equivalent to `self`?
+
 
     It can be asked:
         +   formatted(self, longest_key_len, longest_op_len, indent_level)
@@ -1281,26 +1293,101 @@ class ContextCondition(dict):
         +   str(self)
         +   repr(self)
         +   hash(self)
-        +   natural_language_repr(self)
-            +   An English translation of the Boolean condition
+        +   natural_language_repr(self)  (translation of Boolean condition)
+        +   self.is_functionally_equivalent(other)?
     t can be requested to change context objects as follows:
         +   Creation passes the condition dictionary from the `.sublime-keymap`
             key-binding context.
-            +   ...
-            +   ...
         +   set_language(language_code)
             +   Default:  'en'
             +   Determines language used by `natural_language_repr()` method.
 
     Examples:
-    { "key": "setting.auto_match_enabled", "operator": "equal", "operand": true },
-    { "key": "selection_empty", "operator": "equal", "operand": true, "match_all": true },
-    { "key": "following_text", "operator": "regex_contains", "operand": "^(?:\t| |\\)|]|\\}|>|$)", "match_all": true },
-    { "key": "preceding_text", "operator": "not_regex_contains", "operand": "[\"a-zA-Z0-9_]$", "match_all": true },
-    { "key": "eol_selector", "operator": "not_equal", "operand": "string.quoted.double - punctuation.definition.string.end", "match_all": true }
+    { "key": "setting.auto_match_enabled", "operator": "equal"             ,                    "operand": true },
+    { "key": "selection_empty"           , "operator": "equal"             , "match_all": true, "operand": true },
+    { "key": "following_text"            , "operator": "regex_contains"    , "match_all": true, "operand": "^(?:\t| |\\)|]|\\}|>|$)" },
+    { "key": "preceding_text"            , "operator": "not_regex_contains", "match_all": true, "operand": "[\"a-zA-Z0-9_]$" },
+    { "key": "eol_selector"              , "operator": "not_equal"         , "match_all": true, "operand": "string.quoted.double - punctuation.definition.string.end" },
     """
+    __slots__ = [
+        'key',
+        'setting_name',
+        'operator',
+        'operand',
+        'match_all',
+        'language',
+        '_hashcode',
+    ]
+
     def __init__(self, condition_dict: dict, language_code: str = 'en'):
+        key = condition_dict['key']
+        if key.startswith('setting.'):
+            self.key          = 'setting'
+            self.setting_name = key[8:]
+        else:
+            self.key          = key
+            self.setting_name = ''
+
+        self.operator  = condition_dict.get('operator', 'equal')
+        self.operand   = condition_dict.get('operand', True)
+        self.match_all = bool(condition_dict.get('match_all', False))
+        self.language  = language_code
+        self._hashcode = -1
+
+        debugging = is_debugging(DebugBits.CONTEXT_CONDITION)
+        if debugging:
+            print(f'In {self.__class__.__name__}.__init__()....')
+            print(f'  {self.key          = }')
+            print(f'  {self.setting_name = }')
+            print(f'  {self.operator     = }')
+            print(f'  {self.operand      = }')
+            print(f'  {self.match_all    = }')
+            print(f'  {self.language     = }')
+            print(f'  {hash(self)        = :09_x}')
+
+    def __str__(self):
+        return self.formatted()
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.formatted()})'
+
+    def __hash__(self):
+        if self._hashcode == -1:
+            # Lazy calculation; only once when the value is required.
+            test_entry_num = _context_entry_numbers_by_name[self.key]
+            operator_code  = _operator_codes_by_name[self.operator]
+            match_all_val  = int(self.match_all)
+
+            if isinstance(self.operand, str):
+                operand_type_code = OperandTypeCode.STR
+            elif isinstance(self.operand, bool):
+                operand_type_code = OperandTypeCode.BOOL
+            elif isinstance(self.operand, int):
+                operand_type_code = OperandTypeCode.INT
+            elif isinstance(self.operand, float):
+                operand_type_code = OperandTypeCode.FLOAT
+            else:
+                msg = f'{self.__class__.__name__}.__hash__():  operand type not recognized: {type(self.operand)}'
+                raise AssertionError(msg)
+
+            self._hashcode = (
+                      (test_entry_num    << 24)
+                    | (operator_code     << 16)
+                    | (operand_type_code <<  8)
+                    | match_all_val
+                    )
+
+        return self._hashcode
+
+    def set_language(self, language: str = 'en'):
+        self.language = language
+
+    def is_functionally_equivalent(self, other):
         """
+        Is ``other`` functionally equivalent to ``self``?
+
+        Testing for Functionally-Equivalent ContextCondition Objects
+        ------------------------------------------------------------
         To detect 2 functionally-equivalent context conditions, the approach
         taken is to make each condition have a "hash value" that is computed
         and stored at instantiation time.  It encapsulates:
@@ -1335,50 +1422,8 @@ class ContextCondition(dict):
         time) to assume the default values for operator, operand and match_all
         when they were not specified.
         """
-        self.update(condition_dict)
-        self.key           = condition_dict['key']
-        self.operator      = condition_dict.get('operator', 'equal')
-        self.operand       = condition_dict.get('operand', True)
-        self.match_all     = condition_dict.get('match_all', False)
-        self.language      = language_code
-        self._hashcode     = -1
-        self._setting_name = ''
-
-    def __str__(self):
-        return self.formatted()
-
-    def __repr__(self):
-        return f'{self.__class__.__name__}({self.formatted()})'
-
-    def __hash__(self):
-        if self._hashcode == -1:
-            test_entry_num = _context_entry_numbers_by_name[self.key]
-            operator_code  = _operator_codes_by_name[self.operator]
-            match_all_val  = 1 if self.match_all else 0
-
-            if isinstance(self.operand, str):
-                operand_type_code = OperandTypeCode.STR
-            elif isinstance(self.operand, bool):
-                operand_type_code = OperandTypeCode.BOOL
-            elif isinstance(self.operand, int):
-                operand_type_code = OperandTypeCode.INT
-            elif isinstance(self.operand, float):
-                operand_type_code = OperandTypeCode.FLOAT
-            else:
-                msg = f'{self.__class__.__name__}.__hash__():  operand type not recognized: {type(self.operand)}'
-                raise AssertionError(msg)
-
-            self._hashcode = (test_entry_num << 24) | (operator_code << 16) | (operand_type_code << 8) | match_all_val
-
-        return self._hashcode
-
-    def set_language(self, language: str = 'en'):
-        self.language = language
-
-    def is_functionally_equivalent(self, other):
-        """ Is ``other`` functionally equivalent to ``self``? """
         return (    (hash(other) == hash(self))
-                and (other._setting_name == self._setting_name)
+                and (other.setting_name == self.setting_name)
                 and (other.operand == self.operand)
                 )
 
@@ -1401,21 +1446,25 @@ class ContextCondition(dict):
                       +-- longest_key_len                     +-- longest_op_len
         }
         """
-        cond_name = self['key']
+        key = self.key
+        if key == 'setting':
+            cond_name = f'{key}.{self.setting_name}'
+        else:
+            cond_name = key
         field = f'"{cond_name}"'
         indent = '  ' * indent_level
         result = f'{indent}{{ "key": {field:{longest_key_len + 2}}'
 
-        if 'operator' in self:
-            field = json.dumps(self["operator"])
-            result += f', "operator": {field:{longest_op_len + 2}}'
-        if 'operand' in self:
-            # This value can be str, bool or int, so we use `repr()`.
-            val_repr = json.dumps(self["operand"])
-            result += f', "operand": {val_repr}'
-        if 'match_all' in self:
-            val_repr = json.dumps(self["match_all"])
-            result += f', "match_all": {val_repr}'
+        # operator
+        field = json.dumps(self.operator)
+        result += f', "operator": {field:{longest_op_len + 2}}'
+        # operand
+        # This value can be str, bool or int, so we use `json.dumps()`.
+        val_repr = json.dumps(self.operand)
+        result += f', "operand": {val_repr}'
+        # match_all
+        val_repr = json.dumps(self.match_all)
+        result += f', "match_all": {val_repr}'
 
         result += ' }'
 
@@ -1484,7 +1533,7 @@ class SmartContext(list):
 
         if self.conditions is not None and len(self.conditions) > 0:
             for cond in self.conditions:
-                cond_name_list.append(cond["key"])
+                cond_name_list.append(cond.key)
 
         short_test_name_list = ', '.join(cond_name_list)
         return f'{self.__class__.__name__}({short_test_name_list})'
@@ -1516,12 +1565,57 @@ class SmartContext(list):
 
         return result
 
+    def _equivalent_to_any_condition(self, self_cond, other_cond_list) -> tuple[int, bool]:
+        result = False
+        i = -1
+
+        for i, other_cond in enumerate(other_cond_list):
+            if other_cond.is_functionally_equivalent(self_cond):
+                result = True
+                break
+
+        return i, result
+
     def is_functionally_equivalent(self, other):
-        """ Is ``other`` functionally equivalent to ``self``? """
-        return (    (hash(other) == hash(self))
-                and (other._setting_name == self._setting_name)
-                and (other.operand == self.operand)
-                )
+        """
+        Is ``other`` functionally equivalent to ``self``?
+
+        Testing for Functionally-Equivalent Contexts
+        --------------------------------------------
+        Over and above having context conditions that are functionally equivalent,
+        the order they may appear in another context is random, so a SmartContext
+        Could be considered the functional equivalent of another SmartContext
+        if and only if:
+
+        - number of conditions in both contexts match;
+        - each ``self.conditions`` item can be paired with an item in
+          ``other.conditions`` that it is functionally equivalent to, and
+          thereafter both paired conditions no longer participate in any other
+          function-equivalence tests.
+
+        If all conditions found an equivalent condition in the other context,
+        then the two contexts are functionally equivalent.
+        """
+        result = False
+
+        if len(other.conditions) == len(self.conditions):
+            working_other_cond_list = other.condition_list_copy()
+
+            for self_cond in self.conditions:
+                i, test_result = self._equivalent_to_any_condition(self_cond, working_other_cond_list)
+                if test_result:
+                    # Okay so far.  Remove element 'i' from working list.
+                    del working_other_cond_list[i]
+                    if len(working_other_cond_list) == 0:
+                        # Equivalent conditions in other were found for
+                        # each condition in self.conditions.
+                        result = True
+                        break
+                else:
+                    # result is already False, just break out of loop.
+                    break
+
+        return result
 
     def formatted(self, indent_level: int = 0, raw: bool = True, natural_language: bool = False) -> str:
         """
@@ -1578,13 +1672,13 @@ class SmartContext(list):
 
             # Compute length of widest `key` and `operator` fields.
             for condition in self.conditions:
-                key_len = len(condition['key'])
+                key_len = len(condition.key)
                 if key_len > longest_key_len:
                     longest_key_len = key_len
-                if 'operator' in condition:
-                    op_len  = len(condition['operator'])
-                    if op_len > longest_op_len:
-                        longest_op_len = op_len
+
+                op_len  = len(condition.operator)
+                if op_len > longest_op_len:
+                    longest_op_len = op_len
 
             # Now generate indented formatted strings.
             cond_lines = []
@@ -1636,12 +1730,11 @@ class SmartContext(list):
         operand   = condition.operand
         match_all = condition.match_all
 
-        if key.startswith('setting.'):
+        if key == 'setting':
             # Query on setting.
-            setting_name = key[8:]
-            value = view.settings().get(setting_name, None)
+            value = view.settings().get(condition.setting_name, None)
             if debugging:
-                print(f'    Setting name {setting_name}:')
+                print(f'    Setting name {condition.setting_name}:')
             result = _evaluate_test(value, operator, operand)
         elif key in _context_tests_by_name:
             # Is one of the standard standard context tests.
@@ -1718,7 +1811,7 @@ class SmartContext(list):
 
         if debugging:
             indent = ' '
-            msg = f'{self.__class__.__name__}.query() result:  {all_tests_passed}'
+            msg = f'{self.__class__.__name__}.query():  {all_tests_passed}'
             underline = '-' * len(msg)
             print(indent, msg)
             print(indent, underline)

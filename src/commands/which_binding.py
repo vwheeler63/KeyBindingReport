@@ -139,6 +139,6 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
         t3 = datetime.now()
 
         print('Time to generate data structures: ', str(t1 - t0))
-        print('Time write files                : ', str(t2 - t1))
+        print('Time to write files             : ', str(t2 - t1))
         print('Time to generate report         : ', str(t3 - t2))
         print('Total                           : ', str(t3 - t0))

@@ -203,9 +203,10 @@ class DebugBits(IntFlag):
     FILTERING_STAGE_I      = 0x0080
     FILTERING_STAGE_II     = 0x0100
     FILTERING_ON_CONTEXT   = 0x0200
-    BUILDING_MAIN_KEY_DICT = 0x0400
-    BUILDING_KEY_SEQ_DICT  = 0x0800
-    OUTPUT                 = 0x1000
+    CONTEXT_CONDITION      = 0x0400
+    BUILDING_MAIN_KEY_DICT = 0x0800
+    BUILDING_KEY_SEQ_DICT  = 0x1000
+    OUTPUT                 = 0x2000
 
     # ---------------------------------------------------------------------
     # Load/Reload/Import-Time Bits

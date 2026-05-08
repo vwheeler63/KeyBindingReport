@@ -393,7 +393,7 @@ class KeyBindingOutput:
         debugging = is_debugging(DebugBits.OUTPUT)
         if debugging:
             print('In KeyBindingOutput.main_key_table()...')
-            print(f'  {flags =:#011_b}')
+            print(f'  {flags = :#011_b}')
 
         include_unbound_keypresses = flags & FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
         footnote_num = prev_footnote_num
@@ -489,7 +489,7 @@ class KeyBindingOutput:
         debugging = is_debugging(DebugBits.OUTPUT)
         if debugging:
             print('In KeyBindingOutput.key_seq_tables()...')
-            print(f'  {flags =:#011_b}')
+            print(f'  {flags = :#011_b}')
 
         by_key_seq_dict = self.data.mdictByKeySquence
 
