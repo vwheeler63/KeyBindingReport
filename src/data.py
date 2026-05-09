@@ -27,6 +27,7 @@ Each time ``key_data.generate()`` is called produces a new data set.
 No memory of the previous call remains.
 """
 import re
+import pprint
 from typing import Set, Iterable, Sequence
 from enum import IntEnum, IntFlag
 import sublime
@@ -535,6 +536,7 @@ class KeyBindingData:
     __slots__ = [
         'mdictByMainKey',
         'mdictByKeySquence',
+        'mdictByKeySquenceLeadingKeys',
         '_debugging_removing_arg_overlap',
         '_debugging_filtering_stage_i',
         '_debugging_filtering_stage_ii',
@@ -545,6 +547,7 @@ class KeyBindingData:
     def __init__(self):
         self.mdictByMainKey = {}
         self.mdictByKeySquence = {}
+        self.mdictByKeySquenceLeadingKeys = {}
         self._debugging_removing_arg_overlap   = is_debugging(DebugBits.REMOVING_ARG_OVERLAP)
         self._debugging_filtering_stage_i      = is_debugging(DebugBits.FILTERING_STAGE_I)
         self._debugging_filtering_stage_ii     = is_debugging(DebugBits.FILTERING_STAGE_II)
@@ -630,6 +633,17 @@ class KeyBindingData:
         dict_repr = f',\n{indent}'.join(components)
         return f'{{\n{indent}{dict_repr}\n}}'
 
+    def leading_keys_repr(self) -> str:
+        """
+        self.mdictByKeySquenceLeadingKeys
+        {
+            "ctrl+j": 8
+            "ctrl+k": 41
+            "ctrl+t": 7
+        }
+        """
+        return pprint.pformat(self.mdictByKeySquenceLeadingKeys)
+
     def dump_main_key_data(self, by_main_key_path: str):
         with open(by_main_key_path, 'w', encoding='utf-8') as f:
             f.write(self.main_key_repr())
@@ -637,6 +651,10 @@ class KeyBindingData:
     def dump_key_seq_data(self, by_key_seq_path: str):
         with open(by_key_seq_path, 'w', encoding='utf-8') as f:
             f.write(self.key_seq_repr())
+
+    def dump_leading_keys_data(self, leading_keys_path: str):
+        with open(leading_keys_path, 'w', encoding='utf-8') as f:
+            f.write(self.leading_keys_repr())
 
     def dump_to_files(self, by_main_key_path: str, by_key_seq_path: str):
         with open(by_main_key_path, 'w', encoding='utf-8') as f:
@@ -652,7 +670,7 @@ class KeyBindingData:
     def binding_overrides(self,
                 view: sublime.View | None = None
                 ) -> list[list[ReportKeyBinding]]:
-        r"""
+        """
         Locate key binding overrides defined as:
 
             two or more key bindings involve the same keypresses
@@ -768,7 +786,7 @@ class KeyBindingData:
                 keypress_list: Sequence[str],
                 view: sublime.View
                 ) -> ReportKeyBinding | None:
-        r"""
+        """
         Locate the key binding this ``keypress_list`` would hit (if any),
         based on data already gathered.
 
@@ -797,6 +815,11 @@ class KeyBindingData:
             #             ReportKeyBinding object,
             #             ...
             #         ]
+            key_groups        = None
+            key_names         = None
+            limit_to_packages = None
+            self.generate(key_groups, key_names, [keypress_list], limit_to_packages, view)
+
             keypress_tuple = tuple(keypress_list)
             if keypress_tuple in self.mdictByKeySquence:
                 binding_list = self.mdictByKeySquence[keypress_tuple]
@@ -831,6 +854,11 @@ class KeyBindingData:
             #             None,   # binding list for [Command-Alt-Ctrl-a]
             #             None,   # binding list for [Command-Alt-Ctrl-Shift-a]
             #         ]
+            key_groups        = [KeyGroup.KEY_SEQUENCES]
+            key_names         = None
+            limit_to_packages = None
+            self.generate(key_groups, key_names, [keypress_list], limit_to_packages, view)
+
             main_key_name, mod_code = main_key_and_modifier_code(keypress_list[0])
             if main_key_name in self.mdictByMainKey:
                 binding_lists_by_mod_code = self.mdictByMainKey[main_key_name]
@@ -846,6 +874,32 @@ class KeyBindingData:
                             if smart_context.query(view):
                                 result = binding
                                 break
+
+        return result
+
+    def leading_key_count_in_key_sequences(self,
+                keypress_list: Sequence[str]
+                ) -> int:
+        """
+        Number of times first keypress in ``keypress_list`` appears as
+        a leading key in a key sequence
+
+        :param self:            Instance of ``KeyBindingData``; all data is
+                                connected to this instance.
+
+        :param keypress_list:   "keys" list ("keys" element from JSON key binding).
+
+        :return:  Number of times first keypress in ``keypress_list``
+                  appears as a leading key in a key sequence
+        """
+        if keypress_list is None or len(keypress_list) == 0:
+            raise AssertionError('keypress_list must have at least one keypress in it.')
+
+        result = 0
+
+        leading_keypress = keypress_list[0]
+        if leading_keypress in self.mdictByKeySquenceLeadingKeys:
+            result = self.mdictByKeySquenceLeadingKeys[leading_keypress]
 
         return result
 
@@ -1711,6 +1765,9 @@ class KeyBindingData:
             print('In _add_binding_to_key_seq_dict()...')
             print(f'  rpt_binding={rpt_binding.formatted(1)}')
 
+        # -----------------------------------------------------------------
+        # Add `rpt_binding` to `self.mdictByKeySquence`.
+        # -----------------------------------------------------------------
         keypress_tuple = rpt_binding.keypress_tuple()
 
         if keypress_tuple not in self.mdictByKeySquence:
@@ -1721,6 +1778,15 @@ class KeyBindingData:
         binding_list.append(rpt_binding)
         if debugging:
             print(f'  Added rpt_binding for {keypress_tuple}.')
+
+        # -----------------------------------------------------------------
+        # Maintain `self.mdictByKeySquenceLeadingKeys`.
+        # -----------------------------------------------------------------
+        leading_keypress = keypress_tuple[0]
+        if leading_keypress in self.mdictByKeySquenceLeadingKeys:
+            self.mdictByKeySquenceLeadingKeys[leading_keypress] += 1
+        else:
+            self.mdictByKeySquenceLeadingKeys[leading_keypress] = 1
 
     def _add_binding_to_main_key_dict(self, rpt_binding: ReportKeyBinding, main_key_name: str, key_mod_code: int):
         """
@@ -1756,14 +1822,17 @@ class KeyBindingData:
             print(f'  {key_mod_code=}')
             print(f'  rpt_binding={rpt_binding.formatted(1)}')
 
+        # -----------------------------------------------------------------
+        # Add `rpt_binding` to `self.mdictByMainKey`.
+        # -----------------------------------------------------------------
         # Here we know mdictByMainKey[main_key_name] exists.
-        by_main_key_item = self.mdictByMainKey[main_key_name]
-        key_binding_list = by_main_key_item[key_mod_code]
+        binding_lists_by_mod_code = self.mdictByMainKey[main_key_name]
+        key_binding_list = binding_lists_by_mod_code[key_mod_code]
 
         if key_binding_list is None:
             # Lazy list creation
             key_binding_list = []
-            by_main_key_item[key_mod_code] = key_binding_list
+            binding_lists_by_mod_code[key_mod_code] = key_binding_list
 
         key_binding_list.append(rpt_binding)
         if debugging:

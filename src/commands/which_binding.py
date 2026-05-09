@@ -76,14 +76,8 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
             print(f'  {keypress_list=}')
 
         t0 = datetime.now()
-        key_groups = None
-        key_names = None
-        limit_to_packages = None
-        view = self.view
         key_data = data.KeyBindingData()
-        key_data.generate(key_groups, key_names, [keypress_list], limit_to_packages, view)
         binding = key_data.which_binding(keypress_list, self.view)
-        keypress_list_json = json.dumps(keypress_list)
         t1 = datetime.now()
 
         # TODO: rmv after testing.
@@ -91,12 +85,14 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
         main_key_path = r'r:\by_main_key.txt'
         key_seq_path  = r'r:\by_key_seq.txt'
         key_data.dump_to_files(main_key_path, key_seq_path)
+        key_data.dump_leading_keys_data(r'r:\leading_keys.txt')
         t2 = datetime.now()
 
         # =================================================================
         # Generate report.
         # =================================================================
         title = f'{core.package_name}:  Which Key Binding?'
+        keypress_list_json = json.dumps(keypress_list)
 
         content_parts = []
         content_parts.append(output.heading(title))
@@ -112,6 +108,13 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
         if binding:
             binding_repr = binding.formatted(0, include_source=True)
             content_parts.append(binding_repr)
+
+            leading_key_count = key_data.leading_key_count_in_key_sequences(keypress_list)
+            if leading_key_count:
+                plural_suffix = 's' if leading_key_count > 1 else ''
+                content_parts.append('')
+                content_parts.append(f'Notable:  Keypress "{keypress_list[0]}" is also the leading')
+                content_parts.append(f'          keypress in {leading_key_count} keypress sequence{plural_suffix}.')
         else:
             content_parts.append('No binding found.')
 
@@ -125,7 +128,7 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
                 None,
                 _cfg_report_title,
                 content,
-                current_view=view
+                current_view=self.view
                 )
 
         rpt_view.window().bring_to_front()
