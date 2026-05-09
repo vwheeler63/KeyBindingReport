@@ -591,6 +591,112 @@ class KeyBindingData:
 
         return "{%s}" % ",\n ".join(components)
 
+    def binding_overrides(self,
+                view: sublime.View | None = None
+                ) -> list[list[ReportKeyBinding]]:
+        r"""
+        Locate key binding overrides defined as:
+
+        - a key binding lower in the list involves the same keypress or
+          keypress sequence, i.e. ``self.keypress_tuple() == other.keypress_tuple()``
+          with a key binding higher in the list (i.e. any two or more key bindings),
+
+          and
+
+        - those bindings identified have equivalent context conditions
+          (which includes both having no context conditions).
+
+        If ``view`` is specified, only include key bindings that are satisfied
+        by the current context.
+
+        :param self:            Instance of ``KeyBindingData``; all data is
+                                connected to this instance.
+
+        :param view:            View to use for current context, or None
+                                to report all Key Bindings that fit the
+                                definition above.
+
+        :return:  list[list[ReportKeyBinding]]; each inner list is 2 or more
+                  key bindings wherein the binding lowest in the list overrides
+                  the binding(s) above it.
+
+                  If ``view`` was NOT provided, the override is a full override,
+                  i.e. the contexts are functionally equivalent.
+
+                  If ``view`` was provided, then the bindings in each inner list
+                  were satisfied by the current context and thus could be partially
+                  or fully overridden.
+        """
+        result: list[list[ReportKeyBinding]] = []
+
+        if view:
+            # Pass None for all args except `view`,
+            self.generate(key_groups=[KeyGroup.ALL], view=view)
+        else:
+            # Pass None for all args, gathering FULL set of binding data.
+            self.generate(key_groups=[KeyGroup.ALL])
+
+        # if len(keypress_list) > 1:
+        #     # by_key_seq_dict
+        #     #     ("ctrl+k", "ctrl+up"):
+        #     #         [
+        #     #             ReportKeyBinding object,
+        #     #             ReportKeyBinding object,
+        #     #             ReportKeyBinding object,
+        #     #             ...
+        #     #         ]
+        #     keypress_tuple = tuple(keypress_list)
+        #     if keypress_tuple in self.mdictByKeySquence:
+        #         binding_list = self.mdictByKeySquence[keypress_tuple]
+        #         # In a bottom-up search, return first binding whose context is a match.
+        #         for binding in reversed(binding_list):
+        #             smart_context = binding.smart_context()
+        #             if smart_context is None:
+        #                 # This is the binding.
+        #                 result = binding
+        #                 break
+        #             else:
+        #                 if smart_context.query(view):
+        #                     result = binding
+        #                     break
+        # else:
+        #     # by_main_key_dict
+        #     #     "a": [  <-- binding_lists_by_mod_code
+        #     #             None,   # binding list for unmodified 'a' key
+        #     #             None,   # binding list for [Shift-a]
+        #     #             [...],  # binding list for [Ctrl-a]       <-- binding_list
+        #     #             [...],  # binding list for [Ctrl-Shift-a] <-- binding_list
+        #     #             None,   # binding list for [Alt-a]
+        #     #             None,   # binding list for [Alt-Shift-a]
+        #     #             None,   # binding list for [Alt-Ctrl-a]
+        #     #             None,   # binding list for [Alt-Ctrl-Shift-a]
+        #     #             None,   # binding list for [Command-a]
+        #     #             None,   # binding list for [Command-Shift-a]
+        #     #             [...],  # binding list for [Command-Ctrl-a]       <-- binding_list
+        #     #             [...],  # binding list for [Command-Ctrl-Shift-a] <-- binding_list
+        #     #             None,   # binding list for [Command-Alt-a]
+        #     #             None,   # binding list for [Command-Alt-Shift-a]
+        #     #             None,   # binding list for [Command-Alt-Ctrl-a]
+        #     #             None,   # binding list for [Command-Alt-Ctrl-Shift-a]
+        #     #         ]
+        #     main_key_name, mod_code = main_key_and_modifier_code(keypress_list[0])
+        #     if main_key_name in self.mdictByMainKey:
+        #         binding_lists_by_mod_code = self.mdictByMainKey[main_key_name]
+        #         binding_list = binding_lists_by_mod_code[mod_code]
+        #         if binding_list:
+        #             for binding in reversed(binding_list):
+        #                 smart_context = binding.smart_context()
+        #                 if smart_context is None:
+        #                     # This is the binding.
+        #                     result = binding
+        #                     break
+        #                 else:
+        #                     if smart_context.query(view):
+        #                         result = binding
+        #                         break
+
+        return result
+
     def which_binding(self,
                 keypress_list: Sequence[str],
                 view: sublime.View

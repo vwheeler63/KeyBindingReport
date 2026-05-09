@@ -8,10 +8,10 @@ if debugging:
 reload(__package__, ('core', 'data', 'output'))
 reload(__package__ + '.commands')  # Recurse into .commands/ subpackage.
 
-from . import core
-from . import data
-from . import output
-from .commands import *
+from . import core       # noqa: E402
+from . import data       # noqa: E402
+from . import output     # noqa: E402
+from .commands import *  # noqa: E402
 
 __all__ = [
     'core',
@@ -22,6 +22,8 @@ __all__ = [
     'KeyBindingReportCommand',
     "KeyBindingReportWhichBindingCommand",
     'KeyBindingReportKeysUsedCommand',
+    'KeyBindingReportContextOverridesCommand',
+    'KeyBindingReportFullOverridesCommand',
 ]
 
 if debugging:
