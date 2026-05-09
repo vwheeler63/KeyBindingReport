@@ -57,14 +57,7 @@ deal with Sublime Text Key Bindings.
 Detecting Potentially-Conflicting Key Bindings
 ==============================================
 
-To be potentially conflicting, 2 key bindings must:
-
-- involve the same keypress or keypress sequence, i.e.
-  ``(binding1.keypress_tuple() == binding2.keypress_tuple()``
-
-  and
-
-- have a functionally-equivalent context condition.
+See ``has_potential_conflict_with()`` docstring.
 
 
 
@@ -133,7 +126,7 @@ class KeyBinding(dict):
     }
     """
     # __slots__ = [
-    #     '_smart_context',
+    #     '_smart_context',   # None if binding had no "context" entry.
     #     '_source',
     # ]
 
@@ -171,6 +164,25 @@ class KeyBinding(dict):
 
         """
         return f'{self.__class__.__name__}({self.formatted()})'
+
+    def has_potential_conflict_with(self, other) -> bool:
+        """
+        To be potentially conflicting, 2 key bindings must:
+
+        - involve the same keypress or keypress sequence, i.e.
+          ``self.keypress_tuple() == other.keypress_tuple()``
+
+          and
+
+        - have a equivalent context condition.
+        """
+        result = False
+        if self.keypress_tuple() == other.keypress_tuple():
+            if self._smart_context is None and other._smart_context is None:
+                result = True
+            elif self._smart_context and other._smart_context:
+                result = self._smart_context.is_equivalent(other)
+        return result
 
     def formatted(self, indent_level: int = 0, include_source: bool = False) -> str:
         """
