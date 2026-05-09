@@ -193,20 +193,22 @@ class DebugBits(IntFlag):
     # ---------------------------------------------------------------------
     # Core Bits
     # ---------------------------------------------------------------------
-    DEBUGGING              = 0x0001
-    LOAD_UNLOAD            = 0x0002
-    SETTINGS_CHANGED_EVENT = 0x0004
-    KEY_BINDING_REPORT     = 0x0008
-    WHICH_BINDING_REPORT   = 0x0010
-    KEYS_USED_REPORT       = 0x0020
-    REMOVING_ARG_OVERLAP   = 0x0040
-    FILTERING_STAGE_I      = 0x0080
-    FILTERING_STAGE_II     = 0x0100
-    FILTERING_ON_CONTEXT   = 0x0200
-    CONTEXT_CONDITION      = 0x0400
-    BUILDING_MAIN_KEY_DICT = 0x0800
-    BUILDING_KEY_SEQ_DICT  = 0x1000
-    OUTPUT                 = 0x2000
+    DEBUGGING                = 0x000001
+    LOAD_UNLOAD              = 0x000002
+    SETTINGS_CHANGED_EVENT   = 0x000004
+    KEY_BINDING_REPORT       = 0x000008
+    WHICH_BINDING_REPORT     = 0x000010
+    KEYS_USED_REPORT         = 0x000020
+    FULL_OVERRIDES_REPORT    = 0x000040
+    CONTEXT_OVERRIDES_REPORT = 0x000080
+    REMOVING_ARG_OVERLAP     = 0x001000
+    FILTERING_STAGE_I        = 0x002000
+    FILTERING_STAGE_II       = 0x004000
+    FILTERING_ON_CONTEXT     = 0x008000
+    CONTEXT_CONDITION        = 0x010000
+    BUILDING_MAIN_KEY_DICT   = 0x020000
+    BUILDING_KEY_SEQ_DICT    = 0x040000
+    OUTPUT                   = 0x080000
 
     # ---------------------------------------------------------------------
     # Load/Reload/Import-Time Bits
@@ -222,15 +224,15 @@ class DebugBits(IntFlag):
     # that.  All other bits get set after the cached Package settings have
     # been brought in.
     # ---------------------------------------------------------------------
-    LOADING_CONTEXT_ENV    = 0x4000
-    IMPORTING              = 0x8000
+    LOADING_CONTEXT_ENV    = 0x400000
+    IMPORTING              = 0x800000
 
     # ---------------------------------------------------------------------
     # Utility Bits
     # ---------------------------------------------------------------------
-    NONE                   = 0x0000
-    ALL                    = 0xFFFF
-    ANY                    = 0xFFFF
+    NONE                   = 0x000000
+    ALL                    = 0xFFFFFF
+    ANY                    = 0xFFFFFF
 
 
 # *************************************************************************
@@ -243,7 +245,7 @@ class DebugBits(IntFlag):
 
 _debugging: DebugBits = DebugBits.IMPORTING
 _valid_debugging_string_re = None
-_cfg_debugging_print_format = '04X'
+_cfg_debugging_print_format = '06X'
 
 
 # *************************************************************************
