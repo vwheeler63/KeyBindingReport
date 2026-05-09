@@ -136,51 +136,53 @@ class DebugBits(IntFlag):
         # ---------------------------------------------------------------------
         # Core Bits
         # ---------------------------------------------------------------------
-        NONE                   = 0x0000
-        DEBUGGING              = 0x0001
-        LOAD_UNLOAD            = 0x0002
-        INITIALIZATION         = 0x0004
-        SETTINGS_CHANGED_EVENT = 0x0008
-        QUERY_CONTEXT_EVENT    = 0x0010
-        COMMENT_SPECIFIER      = 0x0020
-        BASIC_COMMENT_BLOCKS   = 0x0040
-        HEADER_COMMENT_BLOCKS  = 0x0080
+        NONE                   = 0x00000000
+        DEBUGGING              = 0x00000001
+        LOAD_UNLOAD            = 0x00000002
+        INITIALIZATION         = 0x00000004
+        SETTINGS_CHANGED_EVENT = 0x00000008
+        QUERY_CONTEXT_EVENT    = 0x00000010
+        COMMENT_SPECIFIER      = 0x00000020
+        BASIC_COMMENT_BLOCKS   = 0x00000040
+        HEADER_COMMENT_BLOCKS  = 0x00000080
 
         # ---------------------------------------------------------------------
         # Snippet (Header) Postprocessing (SPP) Bits
         # ---------------------------------------------------------------------
-        POSTPROCESSING         = 0x0100
-        BLOCK_COMMENTS         = 0x0200
-        PARAMETERS             = 0x0400
-        PRECONDITIONS          = 0x0800
-        POSTCONDITIONS         = 0x1000
+        POSTPROCESSING         = 0x00000100
+        BLOCK_COMMENTS         = 0x00000200
+        PARAMETERS             = 0x00000400
+        PRECONDITIONS          = 0x00000800
+        POSTCONDITIONS         = 0x00001000
 
         # ---------------------------------------------------------------------
         # Importing Bits
         # ---------------------------------------------------------------------
-        # Note: because the Debug Module normally does not get initialized
-        # until after the Plugin is fully loaded and `plugin_loaded()` event
-        # gets fired, in order to use the Debug Module with the IMPORTING
-        # bit, the bit has to be set directly into the `_debugging` attribute
-        # in THIS module's module-level code, since execution of THAT code is
-        # when all the IMPORTING debug code gets executed.  Otherwise, the bit
-        # won't be set yet, and all the importing code will have executed by
-        # the time the bit gets set.  This is the only bit that is like that.
-        # All the other ones get set after the cached Package settings have
-        # been brought in.
+        # Note: because the `_debugging` value below normally does not get
+        # initialized with values from user settings until after the Plugin is
+        # fully loaded and `plugin_loaded()` event gets fired, if you need to
+        # debug with the bits below, they have to be assigned directly to the
+        # `_debugging` attribute below so that they will be available to the
+        # logic involved with the below bits, typically during IMPORTING and
+        # sometimes other bits are present that matter before the Package is
+        # completely loaded and initialized.  Otherwise, the bit(s) won't be
+        # set yet, and all the loading/importing code will have executed by the
+        # time the bit(s) gets set.  These are the only bits that are like
+        # that.  All other bits get set after the cached Package settings have
+        # been brought into the Package.
         #
         # Turning on IMPORTING debugging in full is a 3-part process:
         # - plugin.py:  debugging = True;
         # - below:      _debugging: DebugBits = DebugBits.IMPORTING;
         # - settings:   add DebugBits.IMPORTING to debugging setting string.
         # ---------------------------------------------------------------------
-        IMPORTING              = 0X2000
+        IMPORTING              = 0x00008000
 
         # ---------------------------------------------------------------------
         # Utility Bits
         # ---------------------------------------------------------------------
-        ALL                    = 0xFFFF
-        ANY                    = 0xFFFF
+        ALL                    = 0xFFFFFFFF
+        ANY                    = 0xFFFFFFFF
 
     The number of bits used shown above is 16, but it can be raised or
     lowered in the range [1-32] (the limit of the ``IntFlag`` class and
@@ -193,46 +195,53 @@ class DebugBits(IntFlag):
     # ---------------------------------------------------------------------
     # Core Bits
     # ---------------------------------------------------------------------
-    DEBUGGING                = 0x000001
-    LOAD_UNLOAD              = 0x000002
-    SETTINGS_CHANGED_EVENT   = 0x000004
-    KEY_BINDING_REPORT       = 0x000008
-    WHICH_BINDING_REPORT     = 0x000010
-    KEYS_USED_REPORT         = 0x000020
-    FULL_OVERRIDES_REPORT    = 0x000040
-    CONTEXT_OVERRIDES_REPORT = 0x000080
-    REMOVING_ARG_OVERLAP     = 0x001000
-    FILTERING_STAGE_I        = 0x002000
-    FILTERING_STAGE_II       = 0x004000
-    FILTERING_ON_CONTEXT     = 0x008000
-    CONTEXT_CONDITION        = 0x010000
-    BUILDING_MAIN_KEY_DICT   = 0x020000
-    BUILDING_KEY_SEQ_DICT    = 0x040000
-    OUTPUT                   = 0x080000
+    DEBUGGING                = 0x00000001
+    LOAD_UNLOAD              = 0x00000002
+    SETTINGS_CHANGED_EVENT   = 0x00000004
+    KEY_BINDING_REPORT       = 0x00000008
+    WHICH_BINDING_REPORT     = 0x00000010
+    KEYS_USED_REPORT         = 0x00000020
+    FULL_OVERRIDES_REPORT    = 0x00000040
+    CONTEXT_OVERRIDES_REPORT = 0x00000080
+    REMOVING_ARG_OVERLAP     = 0x00001000
+    FILTERING_STAGE_I        = 0x00002000
+    FILTERING_STAGE_II       = 0x00004000
+    FILTERING_ON_CONTEXT     = 0x00008000
+    CONTEXT_CONDITION        = 0x00010000
+    BUILDING_MAIN_KEY_DICT   = 0x00020000
+    BUILDING_KEY_SEQ_DICT    = 0x00040000
+    OUTPUT                   = 0x00080000
 
     # ---------------------------------------------------------------------
     # Load/Reload/Import-Time Bits
     # ---------------------------------------------------------------------
-    # Note: because the Debug Module normally does not get initialized with
-    # values from user settings until after the Plugin is fully loaded and
-    # `plugin_loaded()` event gets fired, in order to use the Debug Module
-    # with these bits, the bit has to be set directly into the `_debugging`
-    # module attribute below, since execution of THAT code is when all the
-    # load/reload/import-time debug code gets executed.  Otherwise, the bit
-    # won't be set yet, and all the importing code will have executed by
-    # the time the bit gets set.  These are the only bits that are like
+    # Note: because the `_debugging` value below normally does not get
+    # initialized with values from user settings until after the Plugin is
+    # fully loaded and `plugin_loaded()` event gets fired, if you need to
+    # debug with the bits below, they have to be assigned directly to the
+    # `_debugging` attribute below so that they will be available to the
+    # logic involved with the below bits, typically during IMPORTING and
+    # sometimes other bits are present that matter before the Package is
+    # completely loaded and initialized.  Otherwise, the bit(s) won't be
+    # set yet, and all the loading/importing code will have executed by the
+    # time the bit(s) gets set.  These are the only bits that are like
     # that.  All other bits get set after the cached Package settings have
-    # been brought in.
+    # been brought into the Package.
+    #
+    # Turning on IMPORTING debugging in full is a 3-part process:
+    # - plugin.py:  debugging = True;
+    # - below:      _debugging: DebugBits = DebugBits.IMPORTING;
+    # - settings:   add DebugBits.IMPORTING to debugging setting string.
     # ---------------------------------------------------------------------
-    LOADING_CONTEXT_ENV    = 0x400000
-    IMPORTING              = 0x800000
+    LOADING_CONTEXT_ENV      = 0x40000000
+    IMPORTING                = 0x80000000
 
     # ---------------------------------------------------------------------
     # Utility Bits
     # ---------------------------------------------------------------------
-    NONE                   = 0x000000
-    ALL                    = 0xFFFFFF
-    ANY                    = 0xFFFFFF
+    NONE                     = 0x00000000
+    ALL                      = 0xFFFFFFFF
+    ANY                      = 0xFFFFFFFF
 
 
 # *************************************************************************
@@ -245,7 +254,7 @@ class DebugBits(IntFlag):
 
 _debugging: DebugBits = DebugBits.IMPORTING
 _valid_debugging_string_re = None
-_cfg_debugging_print_format = '06X'
+_cfg_debugging_print_format = '08X'
 
 
 # *************************************************************************
