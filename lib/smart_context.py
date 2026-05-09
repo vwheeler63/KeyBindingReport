@@ -90,7 +90,7 @@ C.  SmartContext Object.
             +   String representation
         +   repr(self)
             +   Debug representation
-        +   is_functionally_equivalent(self, other)
+        +   equivalent(self, other)
             +   Whether the sum of all contained ContextCondition objects
                 are functionally equivalent with the sum of `other`s
                 contained ContextCondition objects.
@@ -1231,7 +1231,7 @@ class ContextCondition:
     Each instantiated ContextCondition represents one Boolean condition of a
     Sublime Text key-binding context.
 
-    It has:
+    1.  It has:
         +   "key" entry (test name); str value:  (no default value).
             One of the keys in `_context_tests_by_name`.
             The test indicates the value of the LHS (left-hand-side)
@@ -1272,43 +1272,37 @@ class ContextCondition:
         +   language:  language code, e.g. 'en' (features that use this
             are not yet implemented).
 
-    1.  It has:
-        +   condition-definition dictionary directly from key binding
-
     2.  It can be asked:
-        +   str(self)
-            +   String representation
-        +   repr(self)
-            +   Debug representation
-        +   hash(self)
-            +   Value used in determining if one ContextCondition equals another.
-        +   self == other?
-            +   Is `other` functionally equivalent to `self`?
-
-
-    It can be asked:
+        +   str(self)   # String representation
+        +   repr(self)  # Debug representation
+        +   hash(self)  # Used in determining equivalency to other ContextConditions
+        +   self.equivalent(other)?  # Is ``other`` equivalent to ``self``?
+        +   self == other?           # Is ``other`` equivalent to ``self``?
         +   formatted(self, longest_key_len, longest_op_len, indent_level)
-            +   The parameters assist with giving a table-like representation,
-                to enhance readability.
-        +   str(self)
-        +   repr(self)
-        +   hash(self)
+            +   The parameters assist with giving a table-like
+                representation, to enhance readability.
         +   natural_language_repr(self)  (translation of Boolean condition)
-        +   self.is_functionally_equivalent(other)?
-    t can be requested to change context objects as follows:
+
+    3.  It can be requested to change ContextConditions objects as follows:
         +   Creation passes the condition dictionary from the `.sublime-keymap`
-            key-binding context.
+            "context" entry, which parts are then extracted and stored.
         +   set_language(language_code)
             +   Default:  'en'
             +   Determines language used by `natural_language_repr()` method.
 
     Examples:
-    { "key": "setting.auto_match_enabled", "operator": "equal"             ,                    "operand": true },
-    { "key": "selection_empty"           , "operator": "equal"             , "match_all": true, "operand": true },
-    { "key": "following_text"            , "operator": "regex_contains"    , "match_all": true, "operand": "^(?:\t| |\\)|]|\\}|>|$)" },
-    { "key": "preceding_text"            , "operator": "not_regex_contains", "match_all": true, "operand": "[\"a-zA-Z0-9_]$" },
-    { "key": "eol_selector"              , "operator": "not_equal"         , "match_all": true, "operand": "string.quoted.double - punctuation.definition.string.end" },
+    { "key": "setting.auto_match_enabled", "operator": "equal"             , "operand": true },
+    { "key": "selection_empty"           , "operator": "equal"             , "operand": true }, "match_all": true,
+    { "key": "following_text"            , "operator": "regex_contains"    , "operand": "^(?:\t| |\\)|]|\\}|>|$)" }, "match_all": true,
+    { "key": "preceding_text"            , "operator": "not_regex_contains", "operand": "[\"a-zA-Z0-9_]$" }, "match_all": true,
+    { "key": "eol_selector"              , "operator": "not_equal"         , "operand": "string.quoted.double - punctuation.definition.string.end" }, "match_all": true,
+
+
+    Although several attributes are exposed, it is expected that clients of
+    this class ONLY read them.  Setting them is done at instantiation time.
     """
+    hash_format_spec = '06x'
+
     __slots__ = [
         'key',
         'setting_name',
@@ -1343,7 +1337,7 @@ class ContextCondition:
             print(f'  {self.operand      = }')
             print(f'  {self.match_all    = }')
             print(f'  {self.language     = }')
-            print(f'  {hash(self)        = :09_x}')
+            print(f'  {hash(self)        = :{self.hash_format_spec}}')
 
     def __str__(self):
         return self.formatted()
@@ -1352,6 +1346,15 @@ class ContextCondition:
         return f'{self.__class__.__name__}({self.formatted()})'
 
     def __hash__(self):
+        """
+        To make it easy for humans to read in hex while debugging, the 4
+        values above occupy bit space in the integer like this:
+
+                 byte 2                  byte 1                  byte 0
+        +-----------+-----------+-----------+-----------+-----------+-----------+
+        |     test_name_code    |             operator  |  operand    match_all |
+        +-----------+-----------+-----------+-----------+-----------+-----------+
+        """
         if self._hashcode == -1:
             # Lazy calculation; only once when the value is required.
             test_entry_num = _context_entry_numbers_by_name[self.key]
@@ -1371,31 +1374,30 @@ class ContextCondition:
                 raise AssertionError(msg)
 
             self._hashcode = (
-                      (test_entry_num    << 24)
-                    | (operator_code     << 16)
-                    | (operand_type_code <<  8)
+                      (test_entry_num    << 16)
+                    | (operator_code     <<  8)
+                    | (operand_type_code <<  4)
                     | match_all_val
                     )
 
         return self._hashcode
 
-    def set_language(self, language: str = 'en'):
-        self.language = language
+    def __eq__(self, other) -> bool:
+        return self.is_equivalent(other)
 
-    def is_functionally_equivalent(self, other):
+    def is_equivalent(self, other) -> bool:
         """
-        Is ``other`` functionally equivalent to ``self``?
+        Is ``other`` equivalent to ``self``?
 
         Testing for Functionally-Equivalent ContextCondition Objects
         ------------------------------------------------------------
-        To detect 2 functionally-equivalent context conditions, the approach
-        taken is to make each condition have a "hash value" that is computed
-        and stored at instantiation time.  It encapsulates:
+        To detect 2 equivalent context conditions, the approach taken is to
+        make each condition have a "hash value".  It encapsulates:
 
         +----------------------------------+------+-------------------------+
         | Description                      | Bits | Source                  |
         +==================================+======+=========================+
-        | key (test) name (28 tests with   | 5    | Condition's entry # in  |
+        | key (test_name) (28 tests with   | 5    | Condition's entry # in  |
         | "setting.xxx" counting as 1)     |      | _context_tests_by_name  |
         +----------------------------------+------+-------------------------+
         | operator (there are 6 operators) | 3    | _operator_codes_by_name |
@@ -1405,9 +1407,7 @@ class ContextCondition:
         | match_all value                  | 1    | 0 == False, 1 == True   |
         +----------------------------------+------+-------------------------+
 
-        To make it easy for humans to read in hex while debugging, each of the 4
-        values above could simply occupy a byte in a 32-bit integer.  The smaller
-        ones could occupy a nibble if needed.
+        See ``__hash__()`` docstring for bit layout.
 
         Each ContextCondition has a "setting_name" attribute which is an empty
         string by default.  If its test name begins with "setting.", then the
@@ -1426,6 +1426,9 @@ class ContextCondition:
                 and (other.setting_name == self.setting_name)
                 and (other.operand == self.operand)
                 )
+
+    def set_language(self, language: str = 'en'):
+        self.language = language
 
     def formatted(self,
             longest_key_len: int = 0,
@@ -1550,6 +1553,10 @@ class SmartContext(list):
         """
         return f'{self.__class__.__name__}({self.formatted()})'
 
+    def __eq__(self, other) -> bool:
+        """ Is ``self`` equal to ``other``? """
+        return self.is_equivalent(other)
+
     def condition_list_copy(self) -> list[ContextCondition] | None:
         """
         Copy of ``self.conditions``
@@ -1570,31 +1577,31 @@ class SmartContext(list):
         i = -1
 
         for i, other_cond in enumerate(other_cond_list):
-            if other_cond.is_functionally_equivalent(self_cond):
+            if other_cond.is_equivalent(self_cond):
                 result = True
                 break
 
         return i, result
 
-    def is_functionally_equivalent(self, other):
+    def is_equivalent(self, other) -> bool:
         """
-        Is ``other`` functionally equivalent to ``self``?
+        Is ``other`` equivalent to ``self``?
 
-        Testing for Functionally-Equivalent Contexts
-        --------------------------------------------
-        Over and above having context conditions that are functionally equivalent,
-        the order they may appear in another context is random, so a SmartContext
-        Could be considered the functional equivalent of another SmartContext
-        if and only if:
+        Testing for Equivalent Contexts
+        -------------------------------
+        Over and above having context conditions that are equivalent, the
+        order they may appear in another context is random, so a SmartContext
+        is considered the equivalent of another if and only if:
 
         - number of conditions in both contexts match;
         - each ``self.conditions`` item can be paired with an item in
-          ``other.conditions`` that it is functionally equivalent to, and
+          ``other.conditions`` that it is equivalent to, and
           thereafter both paired conditions no longer participate in any other
-          function-equivalence tests.
+          equivalence tests.
 
-        If all conditions found an equivalent condition in the other context,
-        then the two contexts are functionally equivalent.
+        If each condition was paired up with an equivalent condition in the
+        other, and no conditions were left over in either, then the two
+        contexts are equivalent.
         """
         result = False
 
