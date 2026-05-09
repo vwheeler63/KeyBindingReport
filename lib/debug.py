@@ -105,9 +105,6 @@ Public API
         #
         #            If ``True``, at least one of the bits was found.
 *************************************************************************** """
-# Accept forward references as is done in the default assignment
-# to ``_debugging`` below.
-# from __future__ import annotations
 from enum import IntFlag
 import re
 

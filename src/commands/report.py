@@ -220,16 +220,9 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
         # TODO: rmv after testing.
         # Write verification/validation files.
-        tgt_file = r'r:\by_main_key.txt'
-        with open(tgt_file, 'w', encoding='utf-8') as f:
-            # print(f'Writing to [{tgt_file}]...')
-            # f.write(pprint.pformat(key_data.mdictByMainKey))
-            f.write(pprint.pformat(key_data))
-        tgt_file = r'r:\by_key_seq.txt'
-        with open(tgt_file, 'w', encoding='utf-8') as f:
-            # print(f'Writing to [{tgt_file}]...')
-            # f.write(pprint.pformat(key_data.mdictByKeySquence))
-            f.write(pprint.pformat(key_data.mdictByKeySquence))
+        main_key_path = r'r:\by_main_key.txt'
+        key_seq_path  = r'r:\by_key_seq.txt'
+        key_data.dump_to_files(main_key_path, key_seq_path)
         t2 = datetime.now()
 
         # =================================================================

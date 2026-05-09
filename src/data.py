@@ -552,10 +552,13 @@ class KeyBindingData:
         self._debugging_building_key_seq_dict  = is_debugging(DebugBits.BUILDING_KEY_SEQ_DICT)
 
     def __repr__(self) -> str:
+        return self.main_key_repr()
+
+    def main_key_repr(self) -> str:
         components = []
-        append = components.append
-        indent_level = 4
+        indent_level = 1
         indent = '  ' * indent_level
+        indent_plus_one = '  ' * (indent_level + 1)
         sort_dicts = False
 
         if sort_dicts:
@@ -574,22 +577,77 @@ class KeyBindingData:
                 vrepr = repr(binding_list_by_mod_key)
             else:
                 binding_list_items = []
-                for i, binding_list in enumerate(binding_list_by_mod_key):
+                for binding_list in binding_list_by_mod_key:
                     if binding_list is None:
-                        binding_list_items.append(f'{indent}None')
+                        binding_list_items.append(f'{indent_plus_one}None')
                     else:
                         bindings = []
                         for binding in binding_list:
-                            bindings.append( binding.formatted(indent_level + 1, True) )
+                            bindings.append( binding.formatted(indent_level + 2, True) )
                         bindings_list_repr = ',\n'.join(bindings)
-                        binding_list_items.append(f'{indent}[\n{bindings_list_repr}\n{indent}]')
+                        binding_list_items.append(f'{indent_plus_one}[\n{bindings_list_repr}\n{indent_plus_one}]')
 
                 binding_list_items_repr = ',\n'.join(binding_list_items)
-                vrepr = f'[\n{binding_list_items_repr}\n      ]'
+                vrepr = f'[\n{binding_list_items_repr}\n{indent}]'
 
-            append("%s: %s" % (krepr, vrepr))
+            components.append("%s: %s" % (krepr, vrepr))
 
-        return "{%s}" % ",\n ".join(components)
+        return "{\n%s%s\n}" % (indent, ",\n".join(components))
+
+    def key_seq_repr(self) -> str:
+        """
+        by_key_seq_dict
+            ("ctrl+k", "ctrl+up"):
+                [
+                    ReportKeyBinding object,
+                    ReportKeyBinding object,
+                    ReportKeyBinding object,
+                    ...
+                ]
+        """
+        components = []
+        indent_level = 1
+        indent = '  ' * indent_level
+        indent_plus_one = '  ' * (indent_level + 1)
+        sort_dicts = True
+
+        if sort_dicts:
+            items = sorted(self.mdictByKeySquence.items())
+        else:
+            items = self.mdictByKeySquence.items()
+
+        for keypress_tuple, binding_list in items:
+            krepr = repr(keypress_tuple)
+            bindings = []
+
+            for binding in binding_list:
+                bindings.append( binding.formatted(indent_level + 2, True) )
+
+            bindings_list_repr = ',\n'.join(bindings)
+            vrepr = f'[\n{bindings_list_repr}\n{indent_plus_one}]'
+            components.append("%s: %s" % (krepr, vrepr))
+
+        dict_repr = f',\n{indent}'.join(components)
+        return f'{{\n{indent}{dict_repr}\n}}'
+
+    def dump_main_key_data(self, by_main_key_path: str):
+        with open(by_main_key_path, 'w', encoding='utf-8') as f:
+            f.write(self.main_key_repr())
+
+    def dump_key_seq_data(self, by_key_seq_path: str):
+        with open(by_key_seq_path, 'w', encoding='utf-8') as f:
+            f.write(self.key_seq_repr())
+
+    def dump_to_files(self, by_main_key_path: str, by_key_seq_path: str):
+        with open(by_main_key_path, 'w', encoding='utf-8') as f:
+            f.write(self.main_key_repr())
+        with open(by_key_seq_path, 'w', encoding='utf-8') as f:
+            f.write(self.key_seq_repr())
+
+    def dump_to_file(self, output_path: str):
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(self.main_key_repr())
+            f.write(self.key_seq_repr())
 
     def binding_overrides(self,
                 view: sublime.View | None = None
@@ -597,17 +655,16 @@ class KeyBindingData:
         r"""
         Locate key binding overrides defined as:
 
-        - a key binding lower in the list involves the same keypress or
-          keypress sequence, i.e. ``self.keypress_tuple() == other.keypress_tuple()``
-          with a key binding higher in the list (i.e. any two or more key bindings),
+            two or more key bindings involve the same keypresses
 
-          and
+        and
 
-        - those bindings identified have equivalent context conditions
-          (which includes both having no context conditions).
+            those bindings have equivalent context conditions
+            (which includes both having no context conditions).
 
-        If ``view`` is specified, only include key bindings that are satisfied
-        by the current context.
+        If ``view`` is supplied, then the input data is limited to those
+        key bindings that apply to the current context, but the algorithm
+        above is still the same---just different input data.
 
         :param self:            Instance of ``KeyBindingData``; all data is
                                 connected to this instance.
@@ -629,6 +686,9 @@ class KeyBindingData:
         """
         result: list[list[ReportKeyBinding]] = []
 
+        # -----------------------------------------------------------------
+        # Generate input data.
+        # -----------------------------------------------------------------
         if view:
             # Pass None for all args except `view`,
             self.generate(key_groups=[KeyGroup.ALL], view=view)
@@ -636,6 +696,13 @@ class KeyBindingData:
             # Pass None for all args, gathering FULL set of binding data.
             self.generate(key_groups=[KeyGroup.ALL])
 
+        # -----------------------------------------------------------------
+        # From the input data, generate list[list[ReportKeyBinding]] where
+        # each inner list shows bindings that:
+        #
+        # - use the same keypresses, and
+        # - have equivalent contexts
+        # -----------------------------------------------------------------
         # if len(keypress_list) > 1:
         #     # by_key_seq_dict
         #     #     ("ctrl+k", "ctrl+up"):
