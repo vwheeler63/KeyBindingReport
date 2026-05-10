@@ -1435,6 +1435,15 @@ class ContextCondition:
     def __eq__(self, other) -> bool:
         return self.is_equivalent(other)
 
+    def condition_name(self) -> str:
+        key = self.key
+        if key == 'setting':
+            result = f'{key}.{self.setting_name}'
+        else:
+            result = key
+
+        return result
+
     def is_equivalent(self, other) -> bool:
         """
         Is ``other`` equivalent to ``self``?
@@ -1498,27 +1507,28 @@ class ContextCondition:
                   ^^^^^^^^^^^^^^^^^^^^^^^^^^                ^^^^^
                       +-- longest_key_len                     +-- longest_op_len
         """
-        key = self.key
-        if key == 'setting':
-            cond_name = f'{key}.{self.setting_name}'
-        else:
-            cond_name = key
-        field = f'"{cond_name}"'
+        parts = []
         indent = '  ' * indent_level
-        result = f'{indent}{{ "key": {field:{longest_key_len + 2}}'
+
+        field = f'"{self.condition_name()}"'
+        parts.append(f'"key": {field:{longest_key_len + 2}}')
 
         # operator
         field = json.dumps(self.operator)
-        result += f', "operator": {field:{longest_op_len + 2}}'
+        parts.append(f'"operator": {field:{longest_op_len + 2}}')
+
         # operand
         # This value can be str, bool or int, so we use `json.dumps()`.
         val_repr = json.dumps(self.operand)
-        result += f', "operand": {val_repr}'
+        parts.append(f'"operand": {val_repr}')
+
         # match_all
         val_repr = json.dumps(self.match_all)
-        result += f', "match_all": {val_repr}'
+        parts.append(f'"match_all": {val_repr}')
 
-        result += ' }'
+        # Connect parts.
+        inner_repr = ', '.join(parts)
+        result = f'{indent}{{ {inner_repr} }}'
 
         return result
 
@@ -1552,31 +1562,30 @@ class ContextCondition:
         ---------------
         { "key": "selection_empty", "operand": false, "match_all": true }
         """
-        key = self.key
-        if key == 'setting':
-            cond_name = f'{key}.{self.setting_name}'
-        else:
-            cond_name = key
+        parts = []
         indent = '  ' * indent_level
-        result = f'{indent}{{ "key": "{cond_name}"'
+
+        parts.append(f'"key": "{self.condition_name()}"')
 
         # operator
         if self._orig_operator:
-            field = json.dumps(self.operator)
-            result += f', "operator": {field:{longest_op_len + 2}}'
+            val_repr = json.dumps(self.operator)
+            parts.append(f'"operator": {val_repr}')
 
         # operand
         # This value can be str, bool or int, so we use `json.dumps()`.
         if self._orig_operand:
             val_repr = json.dumps(self.operand)
-            result += f', "operand": {val_repr}'
+            parts.append(f'"operand": {val_repr}')
 
         # match_all
         if self._orig_match_all:
             val_repr = json.dumps(self.match_all)
-            result += f', "match_all": {val_repr}'
+            parts.append(f'"match_all": {val_repr}')
 
-        result += ' }'
+        # Connect parts.
+        inner_repr = ', '.join(parts)
+        result = f'{indent}{{ {inner_repr} }}'
 
         return result
 
@@ -1593,31 +1602,30 @@ class ContextCondition:
         ---------------
         { "key": "selection_empty", "operand": false, "match_all": true }
         """
-        key = self.key
-        if key == 'setting':
-            cond_name = f'{key}.{self.setting_name}'
-        else:
-            cond_name = key
+        parts = []
         indent = '  ' * indent_level
-        result = f'{indent}{{ "key": "{cond_name}"'
+
+        parts.append(f'"key": "{self.condition_name()}"')
 
         # operator
         if self.operator != _default_operator:
-            field = json.dumps(self.operator)
-            result += f', "operator": {field:{longest_op_len + 2}}'
+            val_repr = json.dumps(self.operator)
+            parts.append(f'"operator": {val_repr}')
 
         # operand
         # This value can be str, bool or int, so we use `json.dumps()`.
         if self.operand != _default_operand:
             val_repr = json.dumps(self.operand)
-            result += f', "operand": {val_repr}'
+            parts.append(f'"operand": {val_repr}')
 
         # match_all
         if self.match_all != _default_match_all:
             val_repr = json.dumps(self.match_all)
-            result += f', "match_all": {val_repr}'
+            parts.append(f'"match_all": {val_repr}')
 
-        result += ' }'
+        # Connect parts.
+        inner_repr = ', '.join(parts)
+        result = f'{indent}{{ {inner_repr} }}'
 
         return result
 
