@@ -147,6 +147,16 @@ from ..lib import key_binding
 # Constants
 # *************************************************************************
 
+_key_key       = 'key'
+_operator_key  = 'operator'
+_operand_key   = 'operand'
+_match_all_key = 'match_all'
+
+_default_operator  = 'equal'
+_default_operand   = True
+_default_match_all = False
+
+
 class Snippet:
     """
     Carriers of snippet data
@@ -1315,11 +1325,14 @@ class ContextCondition:
         'operand',
         'match_all',
         'language',
+        '_orig_operator',
+        '_orig_operand',
+        '_orig_match_all',
         '_hashcode',
     ]
 
     def __init__(self, condition_dict: dict, language_code: str = 'en'):
-        key = condition_dict['key']
+        key = condition_dict[_key_key]
         if key.startswith('setting.'):
             self.key          = 'setting'
             self.setting_name = key[8:]
@@ -1327,22 +1340,43 @@ class ContextCondition:
             self.key          = key
             self.setting_name = ''
 
-        self.operator  = condition_dict.get('operator', 'equal')
-        self.operand   = condition_dict.get('operand', True)
-        self.match_all = bool(condition_dict.get('match_all', False))
+        if _operator_key in condition_dict:
+            self.operator = condition_dict[_operator_key]
+            self._orig_operator = self.operator
+        else:
+            self.operator = _default_operator
+            self._orig_operator = None
+
+        if _operand_key in condition_dict:
+            self.operand = condition_dict[_operand_key]
+            self._orig_operand = self.operand
+        else:
+            self.operand = _default_operand
+            self._orig_operand = None
+
+        if _match_all_key in condition_dict:
+            self.match_all = condition_dict[_match_all_key]
+            self._orig_match_all = self.match_all
+        else:
+            self.match_all = _default_match_all
+            self._orig_match_all = None
+
         self.language  = language_code
         self._hashcode = -1
 
         debugging = is_debugging(DebugBits.CONTEXT_CONDITION)
         if debugging:
             print(f'In {self.__class__.__name__}.__init__()....')
-            print(f'  {self.key          = }')
-            print(f'  {self.setting_name = }')
-            print(f'  {self.operator     = }')
-            print(f'  {self.operand      = }')
-            print(f'  {self.match_all    = }')
-            print(f'  {self.language     = }')
-            print(f'  {hash(self)        = :{self.hash_format_spec}}')
+            print(f'  {self.key             = }')
+            print(f'  {self.setting_name    = }')
+            print(f'  {self.operator        = }')
+            print(f'  {self._orig_operator  = }')
+            print(f'  {self.operand         = }')
+            print(f'  {self._orig_operand   = }')
+            print(f'  {self.match_all       = }')
+            print(f'  {self._orig_match_all = }')
+            print(f'  {self.language        = }')
+            print(f'  {hash(self)           = :{self.hash_format_spec}}')
 
     def __str__(self) -> str:
         return self.formatted()
