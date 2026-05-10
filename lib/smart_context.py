@@ -1201,8 +1201,13 @@ _context_tests_by_name = {                                          # Operator G
 _context_entry_numbers_by_name = {}
 _context_entry_numbers_by_name['setting'] = 0
 
+i = 0     # Make LSP-pyright happy.
+key = ''  # Make LSP-pyright happy.
+
 for i, key in enumerate(_context_tests_by_name, 1):
     _context_entry_numbers_by_name[key] = i
+
+del i, key
 
 
 
@@ -1352,31 +1357,33 @@ class ContextCondition:
 
                  byte 2                  byte 1                  byte 0
         +-----------+-----------+-----------+-----------+-----------+-----------+
-        |     test_name_code    |  0b0000     operator  |  operand    match_all |
+        |     test_name_code    |   0b0000    operator  |  operand    match_all |
         +-----------+-----------+-----------+-----------+-----------+-----------+
         """
         if self._hashcode == -1:
             # Lazy calculation; only once when the value is required.
             # key = self.key
 
-            if self.key in _context_entry_numbers_by_name:
-                test_entry_num = _context_entry_numbers_by_name[self.key]
+            key = self.key
+            if key in _context_entry_numbers_by_name:
+                test_entry_num = _context_entry_numbers_by_name[key]
             else:
                 test_entry_num = len(_context_entry_numbers_by_name) + 1
 
             operator_code  = _operator_codes_by_name[self.operator]
             match_all_val  = int(self.match_all)
 
-            if isinstance(self.operand, str):
+            operand = self.operand
+            if isinstance(operand, str):
                 operand_type_code = OperandTypeCode.STR
-            elif isinstance(self.operand, bool):
+            elif isinstance(operand, bool):
                 operand_type_code = OperandTypeCode.BOOL
-            elif isinstance(self.operand, int):
+            elif isinstance(operand, int):
                 operand_type_code = OperandTypeCode.INT
-            elif isinstance(self.operand, float):
+            elif isinstance(operand, float):
                 operand_type_code = OperandTypeCode.FLOAT
             else:
-                msg = f'{self.__class__.__name__}.__hash__():  operand type not recognized: {type(self.operand)}'
+                msg = f'{self.__class__.__name__}.__hash__():  operand type not recognized: {type(operand)}'
                 raise AssertionError(msg)
 
             self._hashcode = (
@@ -1484,7 +1491,7 @@ class ContextCondition:
         return f'{indent}English:  Description of ContextCondition'
 
 
-class SmartContext(list):
+class SmartContext:
     """
     Sublime Text Key-Binding Contexts --- lists of conditions required
     for Sublime Text to select a key binding.
@@ -1522,8 +1529,6 @@ class SmartContext(list):
         condition_list = binding.context_list()
         if condition_list is None:
             raise AssertionError('`binding` "context" entry not present.')
-
-        self.extend(condition_list)
 
         conditions: list[ContextCondition] | None = None
         if len(condition_list) > 0:

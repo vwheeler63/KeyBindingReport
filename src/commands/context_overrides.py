@@ -273,7 +273,7 @@ from .. import output
 # Configuration
 # *************************************************************************
 
-_cfg_report_title = 'Partial and Full Key-Binding Overrides in the Current Context'
+_cfg_report_title = 'Key-Binding Overrides in Current Context'
 
 
 
