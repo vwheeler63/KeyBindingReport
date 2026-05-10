@@ -1811,7 +1811,7 @@ class SmartContext:
 
             # Compute length of widest `key` and `operator` fields.
             for condition in self.conditions:
-                key_len = len(condition.key)
+                key_len = len(condition.condition_name())
                 if key_len > longest_key_len:
                     longest_key_len = key_len
 
