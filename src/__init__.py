@@ -23,7 +23,7 @@ __all__ = [
     "KeyBindingReportWhichBindingCommand",
     'KeyBindingReportKeysUsedCommand',
     'KeyBindingReportContextOverridesCommand',
-    'KeyBindingReportFullOverridesCommand',
+    'KeyBindingReportOverridesCommand',
 ]
 
 if debugging:

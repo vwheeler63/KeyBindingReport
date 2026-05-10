@@ -15,7 +15,7 @@ from .. import output
 # Configuration
 # *************************************************************************
 
-_cfg_report_title = 'Key-Binding Report'
+_report_title = 'Key-Binding Report'
 
 
 
@@ -35,10 +35,14 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
     the context of the View received is what is used.
     """
 
-    def _table_key(self) -> str:
+    def _table_key(self, suppress_win_key: bool = False) -> str:
+        exclude_win_key = (( suppress_win_key and data.platform_name != 'OSX' ))
         parts = []
         parts.append('Key:')
-        parts.append(f'  {data.cmd_col_hdg} = {data.cmd_key_name}')
+
+        if not exclude_win_key:
+            parts.append(f'  {data.cmd_col_hdg} = {data.cmd_key_name}')
+
         parts.append(f'  {data.alt_col_hdg} = {data.alt_key_name}')
         parts.append(f'  {data.ctrl_col_hdg} = {data.ctrl_key_name}')
         parts.append(f'  {data.shift_col_hdg} = {data.shift_key_name}')
@@ -47,7 +51,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
     def _key_sequence_table_title(self, keypress_str: str) -> str:
         # Example:  'ctrl+k'
-        return keypress_str.replace('+', '-').title()
+        return 'Leading Key:  ' + keypress_str.replace('+', '-').title()
 
     def run(
             self,
@@ -231,26 +235,67 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         footnotes = []
         last_footnote_num = 0
         title = f'{core.package_name}:  Specified Key-Bindings'
-        table_key = self._table_key()
+        table_key = self._table_key(bool(flags & output.FlagBits.EXCLUDE_WINDOWS_KEY))
 
+        # -----------------------------------------------------------------
+        # Heading
+        # -----------------------------------------------------------------
         content_parts = []
         content_parts.append(output.heading(title))
         content_parts.append('')
 
-        out = output.KeyBindingOutput(key_data)
-        out.set_comments_column_width(60)
+        if key_groups:
+            content_parts.append(f'{key_groups        = }')
+        if key_names:
+            content_parts.append(f'{key_names         = }')
+        if keypress_list:
+            content_parts.append(f'{keypress_list     = }')
+        if limit_to_packages:
+            content_parts.append(f'{limit_to_packages = }')
+
+        content_parts.append(f'{limit_to_context  = }')
+        content_parts.append(f'form              = {ascii_table.Format(fmt)!r}')
+        content_parts.append(f'flags             = 0b{flags:09_b}')
+
+        # Compute length of longest enumeration name with bit set.
+        longest_name_len = 0
+        for enum_bit in output.FlagBits:
+            if enum_bit != output.FlagBits.ALL and enum_bit != output.FlagBits.ANY:
+                if flags & enum_bit._value_:
+                    name_len = len(enum_bit._name_)
+                    if name_len > longest_name_len:
+                        longest_name_len = name_len
+
+        # Report.
+        for enum_bit in output.FlagBits:
+            if enum_bit != output.FlagBits.ALL and enum_bit != output.FlagBits.ANY:
+                if flags & enum_bit._value_:
+                    content_parts.append(
+                            f'  - {enum_bit._name_:{longest_name_len}}:  '
+                            f'0b{enum_bit._value_:09_b}'
+                            )
 
         # -----------------------------------------------------------------
         # Add Main-Key table parts.
         # -----------------------------------------------------------------
+        out = output.KeyBindingOutput(key_data)
+        out.set_comments_column_width(60)
+
         table, footnotes, last_footnote_num = \
                 out.main_key_table(flags, fmt, footnotes, last_footnote_num)
 
         if table:
             mk_asc_tbl = ascii_table.AsciiTable(table)
-            #                                      Key    W     A     C     S    Cmd  Args  Ctxt   Src
-            mk_asc_tbl.set_tight_columns(    [True, True, True, True, True, True, True, True, False])
-            mk_asc_tbl.set_column_alignments([ '^',   '',   '',   '',   '',   '',   '',  '^',    ''])
+
+            if flags & output.FlagBits.EXCLUDE_WINDOWS_KEY:
+                #                                  Key     A     C     S    Cmd  Args  Ctxt   Src
+                mk_asc_tbl.set_tight_columns(    [True, True, True, True, True, True, True, False])
+                mk_asc_tbl.set_column_alignments([ '^',   '',   '',   '',   '',   '',  '^',    ''])
+            else:
+                #                                  Key     W     A     C     S   Cmd  Args  Ctxt   Src
+                mk_asc_tbl.set_tight_columns(    [True, True, True, True, True, True, True, True, False])
+                mk_asc_tbl.set_column_alignments([ '^',   '',   '',   '',   '',   '',   '',  '^',    ''])
+
             heading = 'Single-Keypress Table'
             underline = '=' * len(heading)
             content_parts.append('')
@@ -258,10 +303,17 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             content_parts.append(heading)
             content_parts.append(underline)
             content_parts.append('')
-            content_parts.append( mk_asc_tbl.as_string(fmt) )
-            content_parts.append('')
-            content_parts.append(table_key)
-            content_parts.append('')
+
+            if flags & output.FlagBits.TABLE_KEY_AFTER_TABLE:
+                content_parts.append( mk_asc_tbl.as_string(fmt) )
+                content_parts.append('')
+                content_parts.append(table_key)
+                content_parts.append('')
+            else:
+                content_parts.append(table_key)
+                content_parts.append('')
+                content_parts.append( mk_asc_tbl.as_string(fmt) )
+                content_parts.append('')
 
             # Insert footnotes.
             for footnote in footnotes:
@@ -291,19 +343,31 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
                 if table:
                     kseq_asc_tbl = ascii_table.AsciiTable(table)
-                    #                                      Key    W     A     C     S    Cmd  Args  Ctxt   Src
-                    kseq_asc_tbl.set_tight_columns(    [True, True, True, True, True, True, True, True, False])
-                    kseq_asc_tbl.set_column_alignments([ '^',   '',   '',   '',   '',   '',   '',  '^',    ''])
+                    if flags & output.FlagBits.EXCLUDE_WINDOWS_KEY:
+                        #                                  Key     A     C     S    Cmd  Args  Ctxt   Src
+                        kseq_asc_tbl.set_tight_columns(    [True, True, True, True, True, True, True, False])
+                        kseq_asc_tbl.set_column_alignments([ '^',   '',   '',   '',   '',   '',  '^',    ''])
+                    else:
+                        #                                  Key     W     A     C     S   Cmd  Args  Ctxt   Src
+                        kseq_asc_tbl.set_tight_columns(    [True, True, True, True, True, True, True, True, False])
+                        kseq_asc_tbl.set_column_alignments([ '^',   '',   '',   '',   '',   '',   '',  '^',    ''])
                     heading = self._key_sequence_table_title(lead_keypr_str)
                     content_parts.append('')
                     underline = '-' * len(heading)
                     content_parts.append(heading)
                     content_parts.append(underline)
                     content_parts.append('')
-                    content_parts.append( kseq_asc_tbl.as_string(fmt) )
-                    content_parts.append('')
-                    content_parts.append(table_key)
-                    content_parts.append('')
+
+                    if flags & output.FlagBits.TABLE_KEY_AFTER_TABLE:
+                        content_parts.append( kseq_asc_tbl.as_string(fmt) )
+                        content_parts.append('')
+                        content_parts.append(table_key)
+                        content_parts.append('')
+                    else:
+                        content_parts.append(table_key)
+                        content_parts.append('')
+                        content_parts.append( kseq_asc_tbl.as_string(fmt) )
+                        content_parts.append('')
 
                     # Insert footnotes.
                     if footnotes:
@@ -322,7 +386,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
         rpt_view = output_view.output_to_view(
                 None,
-                _cfg_report_title,
+                _report_title,
                 content,
                 current_view=view
                 )

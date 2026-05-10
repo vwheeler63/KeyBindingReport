@@ -18,14 +18,14 @@ from .report            import KeyBindingReportCommand                  # noqa: 
 from .which_binding     import KeyBindingReportWhichBindingCommand      # noqa: E402
 from .keys_used         import KeyBindingReportKeysUsedCommand          # noqa: E402
 from .context_overrides import KeyBindingReportContextOverridesCommand  # noqa: E402
-from .full_overrides    import KeyBindingReportFullOverridesCommand     # noqa: E402
+from .full_overrides    import KeyBindingReportOverridesCommand     # noqa: E402
 
 __all__ = [
     'KeyBindingReportCommand',
     'KeyBindingReportWhichBindingCommand',
     'KeyBindingReportKeysUsedCommand',
     'KeyBindingReportContextOverridesCommand',
-    'KeyBindingReportFullOverridesCommand',
+    'KeyBindingReportOverridesCommand',
 ]
 
 if debugging:

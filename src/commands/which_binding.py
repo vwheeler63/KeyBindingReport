@@ -22,7 +22,7 @@ from .. import output
 # Configuration
 # *************************************************************************
 
-_cfg_report_title = 'Which Binding?'
+_report_title = 'Which Binding?'
 
 
 
@@ -126,7 +126,7 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
 
         rpt_view = output_view.output_to_view(
                 None,
-                _cfg_report_title,
+                _report_title,
                 content,
                 current_view=self.view
                 )

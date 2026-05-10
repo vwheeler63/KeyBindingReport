@@ -18,7 +18,7 @@ from .. import output
 # Configuration
 # *************************************************************************
 
-_cfg_report_title = 'Full Key-Binding Overrides'
+_report_title = 'Key-Binding Overrides'
 
 
 
@@ -32,7 +32,7 @@ _cfg_report_title = 'Full Key-Binding Overrides'
 # Classes
 # *************************************************************************
 
-class KeyBindingReportFullOverridesCommand(sublime_plugin.ApplicationCommand):
+class KeyBindingReportOverridesCommand(sublime_plugin.ApplicationCommand):
     """ Report Key Bindings that override other key bindings. """
     def run(self):
         """
@@ -86,7 +86,7 @@ class KeyBindingReportFullOverridesCommand(sublime_plugin.ApplicationCommand):
 
         rpt_view = output_view.output_to_view(
                 None,
-                _cfg_report_title,
+                _report_title,
                 content,
                 current_view=sublime.active_window().active_view()
                 )

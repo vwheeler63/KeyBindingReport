@@ -53,7 +53,7 @@ Usage:
 
     output_view.output_to_view(
             view.window(),
-            _cfg_report_title,
+            _report_title,
             content,
             current_view=view
             )
@@ -180,6 +180,8 @@ class FlagBits(IntFlag):
     INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0b0000_0100  #   4
     ADD_SOURCE_COLUMN                 = 0b0000_1000  #   8
     ADD_COMMENTS_COLUMN               = 0b0001_0000  #  16
+    TABLE_KEY_AFTER_TABLE             = 0b0010_0000  #  32
+    EXCLUDE_WINDOWS_KEY               = 0b0100_0000  #  64
 
     # Utility Bits
     ANY_CONTEXT_REQUESTED             = 0b0000_0010 | 0b0000_0100
@@ -261,18 +263,33 @@ class KeyBindingOutput:
         self.comments_column_width = max(1, width)   # Non-negative only.
 
     def _heading_row(self, flags: FlagBits) -> list[str]:
-        result = [
-                'Key',
-                data.cmd_col_hdg,
-                data.alt_col_hdg,
-                data.ctrl_col_hdg,
-                data.shift_col_hdg,
-                'Command',
-                'Args',
-                'Context'
-                ]
+        if flags & FlagBits.EXCLUDE_WINDOWS_KEY:
+            effective_min_col_count = self.min_column_count - 1
 
-        if len(result) != self.min_column_count:
+            result = [
+                    'Key',
+                    data.alt_col_hdg,
+                    data.ctrl_col_hdg,
+                    data.shift_col_hdg,
+                    'Command',
+                    'Args',
+                    'Context'
+                    ]
+        else:
+            effective_min_col_count = self.min_column_count
+
+            result = [
+                    'Key',
+                    data.cmd_col_hdg,
+                    data.alt_col_hdg,
+                    data.ctrl_col_hdg,
+                    data.shift_col_hdg,
+                    'Command',
+                    'Args',
+                    'Context'
+                    ]
+
+        if len(result) != effective_min_col_count:
             raise AssertionError('KeyBindingOutput.main_key_table():  length of `result` and `min_col_count` must match.')
 
         if flags & FlagBits.ADD_SOURCE_COLUMN:
@@ -295,15 +312,18 @@ class KeyBindingOutput:
         footnote_num = prev_footnote_num
 
         if binding_list:
+            suppress_win_key = bool(flags & FlagBits.EXCLUDE_WINDOWS_KEY)
+            exclude_win_key = (( suppress_win_key and data.platform_name != 'OSX' ))
+
             for binding in binding_list:
-                row = [''] * self.min_column_count  # Pre-allocate minimum columns
-                row[0] = main_key_name  # 'f5'
-                row[1] = mod_key_applies_tpl[0]  # Command
-                row[2] = mod_key_applies_tpl[1]  # Alt
-                row[3] = mod_key_applies_tpl[2]  # Ctrl
-                row[4] = mod_key_applies_tpl[3]  # Shift
-                row[5] = binding.command()
-                row[6] = binding.args_json() if binding.has_args() else ' '
+                row = [main_key_name]                   # 'f5'
+                if not exclude_win_key:
+                    row.append(mod_key_applies_tpl[0])  # Command
+                row.append(mod_key_applies_tpl[1])      # Alt
+                row.append(mod_key_applies_tpl[2])      # Ctrl
+                row.append(mod_key_applies_tpl[3])      # Shift
+                row.append(binding.command())
+                row.append(binding.args_json() if binding.has_args() else ' ')
 
                 if binding.has_context():
                     if flags & FlagBits.ANY_CONTEXT_REQUESTED:
@@ -317,7 +337,7 @@ class KeyBindingOutput:
                 else:
                     context_ref = ' '
 
-                row[7] = context_ref
+                row.append(context_ref)
 
                 # Remaining optional columns.
                 if flags & FlagBits.ADD_SOURCE_COLUMN:
@@ -335,16 +355,20 @@ class KeyBindingOutput:
             mod_key_applies_tpl: tuple[str, str, str, str],
             flags              : FlagBits,
             ):
+        suppress_win_key = bool(flags & FlagBits.EXCLUDE_WINDOWS_KEY)
+        exclude_win_key = (( suppress_win_key and data.platform_name != 'OSX' ))
         space = ' '
-        row = [''] * self.min_column_count  # Pre-allocate min columns
-        row[0] = main_key_name           # 'f5'
-        row[1] = mod_key_applies_tpl[0]  # Command
-        row[2] = mod_key_applies_tpl[1]  # Alt
-        row[3] = mod_key_applies_tpl[2]  # Ctrl
-        row[4] = mod_key_applies_tpl[3]  # Shift
-        row[5] = space                   # Command (not bound to any commands)
-        row[6] = space                   # Args    (not bound to any commands)
-        row[7] = space                   # Context (not bound to any commands)
+        row = [main_key_name]                   # 'f5'
+
+        if not exclude_win_key:
+            row.append(mod_key_applies_tpl[0])  # Command)
+
+        row.append(mod_key_applies_tpl[1])      # Alt
+        row.append(mod_key_applies_tpl[2])      # Ctrl
+        row.append(mod_key_applies_tpl[3])      # Shift
+        row.append(space)                       # Command (not bound to any commands)
+        row.append(space)                       # Args    (not bound to any commands)
+        row.append(space)                       # Context (not bound to any commands)
 
         # Remaining optional columns.
         if flags & FlagBits.ADD_SOURCE_COLUMN:

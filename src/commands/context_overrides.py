@@ -273,7 +273,7 @@ from .. import output
 # Configuration
 # *************************************************************************
 
-_cfg_report_title = 'Key-Binding Overrides in Current Context'
+_report_title = 'Key-Binding Overrides in Current Context'
 
 
 
@@ -353,7 +353,7 @@ class KeyBindingReportContextOverridesCommand(sublime_plugin.TextCommand):
 
         rpt_view = output_view.output_to_view(
                 None,
-                _cfg_report_title,
+                _report_title,
                 content,
                 current_view=self.view
                 )
