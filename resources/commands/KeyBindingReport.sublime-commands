@@ -33,7 +33,7 @@
 	// Keys Used Report
 	// --------------------------------------------------------------------
 	{
-		"caption": "KeyBindingReport: Keys Used Report",
+		"caption": "KeyBindingReport: Keys Used Report (Current Platform)",
 		"command": "key_binding_report_keys_used",
 	},
 
@@ -48,96 +48,109 @@
 
 
 	// --------------------------------------------------------------------
-	// Binding List Report
+	// Key-Binding Overrides Report
 	// --------------------------------------------------------------------
 	{
-		"caption": "KeyBindingReport: For Specific Key Combinations in Default Package",
+		"caption": "KeyBindingReport: Key-Binding Overrides",
+		"command": "key_binding_report_overrides",
+	},
+	{
+		"caption": "KeyBindingReport: Key-Binding Overrides in Current Context",
+		"command": "key_binding_report_context_overrides",
+	},
+
+
+	// --------------------------------------------------------------------
+	// Binding List Report; Outlined Format
+	// --------------------------------------------------------------------
+	{
+		"caption": "KeyBindingReport: All Keypress Combinations in Default Package",
 		"command": "key_binding_report",
 		"args": {
-			"packages": ["Default"],
+			"limit_to_packages": ["Default"],
 			"key_groups": [-2],
 			"fmt": 1,
-			"flags": 255,
+			"flags": 11,
 		},
 	},
 	{
-		"caption": "KeyBindingReport: Key Sequences in Default Package",
+		"caption": "KeyBindingReport: Keypress Sequences in Default Package",
 		"command": "key_binding_report",
 		"args": {
-			"packages": ["Default"],
+			"limit_to_packages": ["Default"],
 			"key_groups": [-1],
 			"fmt": 1,
-			"flags": 255,
-		},
-	},
-	{
-		"caption": "KeyBindingReport: Letter Keys in Default Package",
-		"command": "key_binding_report",
-		"args": {
-			"packages": ["Default"],
-			"key_groups": [0],
-			"fmt": 1,
-			"flags": 255,
+			"flags": 11,
 		},
 	},
 	{
 		"caption": "KeyBindingReport: Number Keys in Default Package",
 		"command": "key_binding_report",
 		"args": {
-			"packages": ["Default"],
+			"limit_to_packages": ["Default"],
+			"key_groups": [0],
+			"fmt": 1,
+			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Letter Keys in Default Package",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
 			"key_groups": [1],
 			"fmt": 1,
-			"flags": 255,
-		},
-	},
-	{
-		"caption": "KeyBindingReport: Symbol Keys in Default Package",
-		"command": "key_binding_report",
-		"args": {
-			"packages": ["Default"],
-			"key_groups": [2],
-			"fmt": 1,
-			"flags": 255,
-		},
-	},
-	{
-		"caption": "KeyBindingReport: Named Keys in Default Package",
-		"command": "key_binding_report",
-		"args": {
-			"packages": ["Default"],
-			"key_groups": [3],
-			"fmt": 1,
-			"flags": 255,
+			"flags": 11,
 		},
 	},
 	{
 		"caption": "KeyBindingReport: Function Keys in Default Package",
 		"command": "key_binding_report",
 		"args": {
-			"packages": ["Default"],
+			"limit_to_packages": ["Default"],
+			"key_groups": [2],
+			"fmt": 1,
+			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Symbol Keys in Default Package",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [3],
+			"fmt": 1,
+			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Named Keys in Default Package",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
 			"key_groups": [4],
 			"fmt": 1,
-			"flags": 255,
+			"flags": 11,
 		},
 	},
 	{
 		"caption": "KeyBindingReport: Keypad Keys in Default Package",
 		"command": "key_binding_report",
 		"args": {
-			"packages": ["Default"],
+			"limit_to_packages": ["Default"],
 			"key_groups": [5],
 			"fmt": 1,
-			"flags": 255,
+			"flags": 11,
 		},
 	},
 
 	{
-		"caption": "KeyBindingReport: For Specific Key Combinations for All Installed Packages",
+		"caption": "KeyBindingReport: All Keypress Combinations for All Installed Packages",
 		"command": "key_binding_report",
 		"args": {
 			"key_groups": [-2],
 			"fmt": 1,
-			"flags": 255,
+			"flags": 11,
 		},
 	},
 	{
@@ -146,52 +159,52 @@
 		"args": {
 			"key_groups": [-1],
 			"fmt": 1,
-			"flags": 255,
-		},
-	},
-	{
-		"caption": "KeyBindingReport: Letter Keys for All Installed Packages",
-		"command": "key_binding_report",
-		"args": {
-			"key_groups": [0],
-			"fmt": 1,
-			"flags": 255,
+			"flags": 11,
 		},
 	},
 	{
 		"caption": "KeyBindingReport: Number Keys for All Installed Packages",
 		"command": "key_binding_report",
 		"args": {
+			"key_groups": [0],
+			"fmt": 1,
+			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Letter Keys for All Installed Packages",
+		"command": "key_binding_report",
+		"args": {
 			"key_groups": [1],
 			"fmt": 1,
-			"flags": 255,
-		},
-	},
-	{
-		"caption": "KeyBindingReport: Symbol Keys for All Installed Packages",
-		"command": "key_binding_report",
-		"args": {
-			"key_groups": [2],
-			"fmt": 1,
-			"flags": 255,
-		},
-	},
-	{
-		"caption": "KeyBindingReport: Named Keys for All Installed Packages",
-		"command": "key_binding_report",
-		"args": {
-			"key_groups": [3],
-			"fmt": 1,
-			"flags": 255,
+			"flags": 11,
 		},
 	},
 	{
 		"caption": "KeyBindingReport: Function Keys for All Installed Packages",
 		"command": "key_binding_report",
 		"args": {
+			"key_groups": [2],
+			"fmt": 1,
+			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Symbol Keys for All Installed Packages",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [3],
+			"fmt": 1,
+			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Named Keys for All Installed Packages",
+		"command": "key_binding_report",
+		"args": {
 			"key_groups": [4],
 			"fmt": 1,
-			"flags": 255,
+			"flags": 11,
 		},
 	},
 	{
@@ -200,7 +213,164 @@
 		"args": {
 			"key_groups": [5],
 			"fmt": 1,
-			"flags": 255,
+			"flags": 11,
+		},
+	},
+
+	// --------------------------------------------------------------------
+	// Binding List Report; reStructuredText Format
+	// --------------------------------------------------------------------
+	{
+		"caption": "KeyBindingReport: All Keypress Combinations in Default Package (reStructuredText)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [-2],
+			"fmt": 3,
+			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Keypress Sequences in Default Package (reStructuredText)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [-1],
+			"fmt": 3,
+			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Number Keys in Default Package (reStructuredText)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [0],
+			"fmt": 3,
+			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Letter Keys in Default Package (reStructuredText)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [1],
+			"fmt": 3,
+			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Function Keys in Default Package (reStructuredText)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [2],
+			"fmt": 3,
+			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Symbol Keys in Default Package (reStructuredText)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [3],
+			"fmt": 3,
+			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Named Keys in Default Package (reStructuredText)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [4],
+			"fmt": 3,
+			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Keypad Keys in Default Package (reStructuredText)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [5],
+			"fmt": 3,
+			"flags": 11,
+		},
+	},
+
+	{
+		"caption": "KeyBindingReport: All Keypress Combinations for All Installed Packages (reStructuredText)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [-2],
+			"fmt": 3,
+			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Key Sequences for All Installed Packages (reStructuredText)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [-1],
+			"fmt": 3,
+			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Number Keys for All Installed Packages (reStructuredText)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [0],
+			"fmt": 3,
+			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Letter Keys for All Installed Packages (reStructuredText)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [1],
+			"fmt": 3,
+			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Function Keys for All Installed Packages (reStructuredText)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [2],
+			"fmt": 3,
+			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Symbol Keys for All Installed Packages (reStructuredText)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [3],
+			"fmt": 3,
+			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Named Keys for All Installed Packages (reStructuredText)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [4],
+			"fmt": 3,
+			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Keypad Keys for All Installed Packages (reStructuredText)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [5],
+			"fmt": 3,
+			"flags": 11,
 		},
 	},
 
