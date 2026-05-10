@@ -110,7 +110,7 @@ _context_key = 'context'
 # Classes
 # *************************************************************************
 
-class KeyBinding(dict):
+class KeyBinding:
     """
     Key-binding objects from a ``.sublime-keymap`` file.
 
@@ -125,24 +125,41 @@ class KeyBinding(dict):
         ]
     }
     """
-    # __slots__ = [
-    #     '_smart_context',   # None if binding had no "context" entry.
-    #     '_source',
-    # ]
+    __slots__ = [
+        '_smart_context',   # None if binding had no "context" entry.
+        '_source',
+        'source_entry_no',
+        '_keys',
+        '_command',
+        '_args',
+        '_context',
+        'xxx',
+        'xxx',
+        'xxx',
+    ]
 
     def __init__(self, decoded_key_binding: dict, source: str, source_entry_no: int):
         """
         :param decoded_key_binding:  key binding decoded from JSON in .sublime-keymap
         :param path:                 for improved debug output
         """
-        self.update(decoded_key_binding)
+        self._source = source
+        self.source_entry_no = source_entry_no
+        self._keys = decoded_key_binding[_keys_key]
+        self._command = decoded_key_binding[_command_key]
+
+        if _args_key in decoded_key_binding:
+            self._args = decoded_key_binding[_args_key]
+        else:
+            self._args = None
+
         self._smart_context: smart_context.SmartContext | None = None
 
         if _context_key in decoded_key_binding:
+            self._context = decoded_key_binding[_context_key]
             self._smart_context = smart_context.SmartContext(self)
-
-        self._source = source
-        self.source_entry_no = source_entry_no
+        else:
+            self._context = None
 
     def __str__(self):
         return self.formatted()
@@ -223,7 +240,7 @@ class KeyBinding(dict):
             result = ''
 
         cmd_as_func = self.command_as_function_repr()
-        keypresses_json = json.dumps(self["keys"])
+        keypresses_json = json.dumps(self._command)
         result += f'{indent}{{ {keypresses_json}, {cmd_as_func}'
 
         if self._smart_context:
@@ -238,58 +255,53 @@ class KeyBinding(dict):
         """
         Number of keypresses in binding.
         """
-        return len(self[_keys_key])
+        return len(self._keys)
 
     def keypress_list(self) -> list[str]:
-        return self[_keys_key]
+        return self._keys
 
     def keypress_tuple(self) -> tuple[str]:
-        return tuple(self[_keys_key])
+        return tuple(self._keys)
 
     def keypresses_json(self) -> str:
-        return json.dumps(self[_keys_key])
+        return json.dumps(self._keys)
 
     def keypresses_repr(self) -> str:
-        return repr(self[_keys_key])
+        return repr(self._keys)
 
     def command(self) -> str:
-        return self[_command_key]
+        return self._command
 
     def command_json(self) -> str:
-        return json.dumps(self[_command_key])
+        return json.dumps(self._command)
 
     def command_repr(self) -> str:
-        return repr(self[_command_key])
+        return repr(self._command)
 
     def has_args(self) -> bool:
-        return (( _args_key in self ))
+        return (( self._args is not None ))
 
     def args_dict(self) -> CommandArgs:
-        result = None
-
-        if _args_key in self:
-            result = self[_args_key]
-
-        return result
+        return self._args
 
     def args_json(self) -> str:
         result = ''
 
-        if _args_key in self:
-            result = json.dumps(self[_args_key])
+        if self._args is not None:
+            result = json.dumps(self._args)
 
         return result
 
     def args_repr(self) -> str:
         result = ''
 
-        if _args_key in self:
-            result = repr(self[_args_key])
+        if self._args is not None:
+            result = repr(self._args)
 
         return result
 
     def command_as_function_repr(self) -> str:
-        command = self[_command_key]
+        command = self._command
         args_repr = self.args_repr()
         return f'{command}({args_repr})'
 
@@ -297,26 +309,21 @@ class KeyBinding(dict):
         return (( self._smart_context is not None ))
 
     def context_list(self) -> list[dict] | None:
-        result = None
-
-        if _context_key in self:
-            result = self[_context_key]
-
-        return result
+        return self._context
 
     def context_json(self) -> str:
         result = ''
 
-        if _context_key in self:
-            result = json.dumps(self[_context_key])
+        if self._context is not None:
+            result = json.dumps(self._context)
 
         return result
 
     def context_formatted_json(self) -> str:
         result = ''
 
-        if _context_key in self:
-            result = json.dumps(self[_context_key], indent=2)
+        if self._context is not None:
+            result = json.dumps(self._context, indent=2)
 
         return result
 
@@ -358,10 +365,10 @@ class KeyBinding(dict):
         },
         """
         keypress_tuple = self.keypress_tuple()
-        cmd            = self.command()
-        args           = self.args_dict()
-        ctxt           = self.context_list()
-        src            = self.source()
+        cmd            = self._command
+        args           = self._args
+        ctxt           = self._context
+        src            = self._source
 
         return keypress_tuple, cmd, args, ctxt, src
 
