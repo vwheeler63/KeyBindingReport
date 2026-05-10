@@ -453,9 +453,9 @@ class ReportKeyBinding(key_binding.KeyBinding):
     """
     # __slots__ = ['_smart_context', '_source', '_main_key_names', '_modifier_codes']
 
-    def __init__(self, decoded_key_binding: dict, source: str):
+    def __init__(self, decoded_key_binding: dict, source: str, source_entry_no: int):
         # Incorporate contents of `decoded_key_binding` into `self`.
-        super().__init__(decoded_key_binding, source)
+        super().__init__(decoded_key_binding, source, source_entry_no)
 
         self._main_key_names = []
         self._modifier_codes = []
@@ -1794,7 +1794,7 @@ class KeyBindingData:
             or isinstance(decoded_key_bindings, float) ):
             decoded_key_bindings = []
 
-        for decoded_binding in decoded_key_bindings:
+        for i, decoded_binding in enumerate(decoded_key_bindings):
             # -------------------------------------------------------------
             # First, look for reasons to exclude key binding.
             #
@@ -1885,7 +1885,8 @@ class KeyBindingData:
             # Instantiate binding.  This "hooks it up" with context query
             # apparatus in case it is needed below.
             # -------------------------------------------------------------
-            binding = ReportKeyBinding(decoded_binding, pkg_name + '/' + file_name)
+            src = pkg_name + '/' + file_name
+            binding = ReportKeyBinding(decoded_binding, src, i)
 
             # -------------------------------------------------------------
             # If caller requested limiting bindings to only those that match

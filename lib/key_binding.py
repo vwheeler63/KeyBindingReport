@@ -130,7 +130,7 @@ class KeyBinding(dict):
     #     '_source',
     # ]
 
-    def __init__(self, decoded_key_binding: dict, source: str):
+    def __init__(self, decoded_key_binding: dict, source: str, source_entry_no: int):
         """
         :param decoded_key_binding:  key binding decoded from JSON in .sublime-keymap
         :param path:                 for improved debug output
@@ -142,6 +142,7 @@ class KeyBinding(dict):
             self._smart_context = smart_context.SmartContext(self)
 
         self._source = source
+        self.source_entry_no = source_entry_no
 
     def __str__(self):
         return self.formatted()
@@ -217,7 +218,7 @@ class KeyBinding(dict):
         """
         indent = '  ' * indent_level
         if include_source:
-            result = f'{indent}source: {self._source}\n'
+            result = f'{indent}source: {self._source}  (entry {self.source_entry_no})\n'
         else:
             result = ''
 
