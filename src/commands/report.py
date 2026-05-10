@@ -234,13 +234,19 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         footnotes = []
         last_footnote_num = 0
         title = f'{core.package_name}:  Specified Key-Bindings'
+
+        if flags & output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS:
+            note = 'Keypresses with empty Commands are not bound.'
+        else:
+            note = ''
+
         table_key = self._table_key(bool(flags & output.FlagBits.INCLUDE_WINDOWS_KEY))
 
         # -----------------------------------------------------------------
         # Heading
         # -----------------------------------------------------------------
         content_parts = []
-        content_parts.append(output.heading(title))
+        content_parts.append(output.heading(title, note))
         content_parts.append('')
 
         if key_groups:
