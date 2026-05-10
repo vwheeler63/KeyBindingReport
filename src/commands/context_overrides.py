@@ -289,18 +289,6 @@ _report_title = 'Key-Binding Overrides in Current Context'
 
 class KeyBindingReportContextOverridesCommand(sublime_plugin.TextCommand):
     """ Report Key Bindings that override other key bindings. """
-    def _heading(self, title: str) -> str:
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        parts = ['']
-        parts.append(title)
-        parts.append('*' * len(title))
-        parts.append('')
-        parts.append('Bindings lower in each override bindings higher in the list.')
-        parts.append('')
-        parts.append(f'Report generated:  {timestamp}')
-
-        return '\n'.join(parts)
-
     def run(self, edit):
         """
         Report Key Bindings that override other key bindings.
@@ -343,7 +331,7 @@ class KeyBindingReportContextOverridesCommand(sublime_plugin.TextCommand):
                     content_parts.append('')
         else:
             content_parts.append('')
-            content_parts.append('No overriding key binding found.')
+            content_parts.append('No overriding key bindings found.')
 
         # -----------------------------------------------------------------
         # Finally, assemble parts into 1 string, and push to report View.

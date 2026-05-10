@@ -5,6 +5,8 @@ from ...lib.debug import DebugBits, is_debugging
 from ...lib import ascii_table
 from ...lib import output_view
 from .. import data
+from .. import output
+
 
 
 # *************************************************************************
@@ -27,16 +29,6 @@ _cfg_report_short_title = 'Keys Used (Current Platform)'
 
 class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
     """ Report Keys-Used-In-All-Keymaps Report. """
-
-    def _heading(self, title: str) -> str:
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        parts = ['']
-        parts.append(title)
-        parts.append('*' * len(title))
-        parts.append('')
-        parts.append(f'Report generated:  {timestamp}')
-
-        return '\n'.join(parts)
 
     def run(self):
         """
@@ -156,7 +148,7 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
         other_key_table.set_tight_columns([True, False])
         other_key_table.set_column_alignments(['^', '>'])
 
-        content_parts = [self._heading(_report_title)]
+        content_parts = [output.heading(_report_title)]
         content_parts.append('')
         content_parts.append('Modifier Keys:')
         content_parts.append( mod_key_table.as_string(ascii_table.Format.OUTLINED) )

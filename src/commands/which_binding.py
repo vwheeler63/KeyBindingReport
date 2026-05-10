@@ -41,17 +41,6 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
     to feed into the context-query engine.
     """
 
-    def _heading(self, title: str) -> str:
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        parts = []
-        parts.append('')
-        parts.append(title)
-        parts.append('*' * len(title))
-        parts.append('')
-        parts.append(f'Report generated:  {timestamp}')
-
-        return '\n'.join(parts)
-
     def run(
             self         : sublime_plugin.TextCommand,
             edit         : sublime.Edit,
@@ -93,16 +82,10 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
         # =================================================================
         title = f'{core.package_name}:  Which Key Binding?'
         keypress_list_json = json.dumps(keypress_list)
+        note = f'Binding Selected for {keypress_list_json} in Current Context:'
 
         content_parts = []
-        content_parts.append(output.heading(title))
-        heading = f'Binding Selected for {keypress_list_json} in Current Context:'
-        underline = '=' * len(heading)
-        content_parts.append('')
-        content_parts.append('')
-        content_parts.append('')
-        content_parts.append(heading)
-        content_parts.append(underline)
+        content_parts.append(output.heading(title, note))
         content_parts.append('')
 
         if binding:
