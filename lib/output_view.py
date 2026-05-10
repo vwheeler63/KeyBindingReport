@@ -7,6 +7,7 @@ The MIT License (MIT)
 Copyright 2017-2025 Terence Martin
 
 @version  1.1  04-May-2026 09:38  vw
+    Modified for KeyBindingReport Package:
     Enhanced find_view() and output_to_view() to accept None as
     window argument to search all windows for View with title.
     If found, uses that View and its window.  Otherwise, creates

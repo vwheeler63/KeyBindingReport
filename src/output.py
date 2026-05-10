@@ -149,12 +149,19 @@ from ..lib import ascii_table
 # Utilities
 # *************************************************************************
 
-def heading(title: str) -> str:
+def heading(title: str, note: str = '') -> str:
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     parts = []
     parts.append('')
     parts.append(title)
     parts.append('*' * len(title))
+
+    if note:
+        parts.append('')
+        parts.append('Note:')
+        parts.append('')
+        parts.append(note)
+
     parts.append('')
     parts.append(f'Report generated:  {timestamp}')
 

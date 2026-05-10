@@ -667,9 +667,142 @@ class KeyBindingData:
             f.write(self.main_key_repr())
             f.write(self.key_seq_repr())
 
+    def _extracted_overrides(self,
+            binding_list: list[ReportKeyBinding],
+            debugging   : int
+            ) -> list[list[ReportKeyBinding]] | None:
+        """
+        List of overrides present in ``binding_list``.
+
+        Terminology:
+
+            key-binding override,
+                One key binding overrides another when they:
+                - having the same keypresses, and
+                - have equivalent contexts.
+
+        All binding lists passed in ``binding_list`` are already known
+        to have the same keypress sequence.  So all this routine looks
+        for is combinations of them that have equivalent contexts.
+
+        Note:  It is possible that more than one set of overrides exists in
+        ``binding_list``.  Example:  say ``binding_list`` contains 8 bindings:
+        binding 6 might override binding 2 but not 5 (5 does not have an
+        equivalent context), and and binding 5 could override binding 1.
+        Thus:  bindings [2,6] make one list and [1,5] make another.
+
+        :return:  list of ReportKeyBinding objects
+
+        :precondition:  len(binding_list) >= 2
+
+                        English:  no need to call this method if there is only
+                        one binding in the list.  It takes 2 or more bindings
+                        to have the possibility of a binding override.
+        """
+        if binding_list is None or len(binding_list) < 2:
+            raise AssertionError('binding_list must exist and contain multiple bindings.')
+
+        result: list[list[ReportKeyBinding]] | None = []
+
+        # First make a shallow copy of ``binding_list`` so we're not
+        # deleting elements in the the input data.
+        working_binding_list = binding_list.copy()
+
+        if debugging:
+            print('-----------------------------------------------------')
+            print(f'Entering while not done loop.  Length of batch:  {len(working_binding_list)}.')
+
+        # Note:  items cannot be deleted from ``working_binding_list``
+        # while it is being iterated, so an outer ``while`` loop is used
+        # so that every time items get removed from the list, a fresh
+        # pass through the list is started, each time starting with the
+        # first binding, until no more overrides are found.
+        done = False
+
+        while not done:
+            # For each ``binding_bep``...
+            list_len = len(working_binding_list)
+            last_i = list_len - 1
+            last_i_minus_1 = list_len - 2
+            i = -1   # Make LSP-pyright happy.
+            # Note:  the assertion above and the first while-loop exit
+            # below both guarantee (len(binding_list) >= 2) before this
+            # loop is entered, so the ``for`` loop below is guaranteed
+            # to iterate at least once, thus populating ``i``.
+
+            # From 0 to 2nd-to-last binding...
+            for i in range(0, last_i):
+                # Create empty list of indexes for bindings to report.
+                indices_of_bindings_involved = []
+                binding_bep = working_binding_list[i]
+                if debugging:
+                    print(f'{i = } BINDING_BEP:\n{binding_bep}')
+                # For each subsequent binding in working list...
+                for j in range(i + 1, len(working_binding_list)):
+                    test_binding = working_binding_list[j]
+                    if test_binding.can_override(binding_bep):
+                        if debugging:
+                            print(f'  OVERRIDE:  {repr(test_binding)}.\n')
+                        if len(indices_of_bindings_involved) == 0:
+                            # First item, insert 'i' first.
+                            indices_of_bindings_involved.append(i)
+                        indices_of_bindings_involved.append(j)
+                    else:
+                        # if debugging:
+                        #     print(f'  NOT OVERRIDE: {repr(test_binding)}\n')
+                        pass
+
+                if len(indices_of_bindings_involved) > 0:
+                    # Move bindings involved with override over to result list.
+                    # IMPORTANT!  This step involves deleting elements from a
+                    # list that is being iterated, so we have to break out of
+                    # the outer ``for`` loop and let the ``while`` loop start
+                    # again at the top after the bindings involved with the
+                    # override are removed.  In this case ``done`` is not set
+                    # to True unless there is only one binding left, in which
+                    # case there is nothing left to test.
+                    if debugging:
+                        print(f'    Found overrides {repr(indices_of_bindings_involved)}.')
+
+                    # If ``indices_of_bindings_involved`` is not empty:
+                    # - start a result binding list with [];
+                    bindings_involved: list[ReportKeyBinding] = []
+                    for k in reversed(indices_of_bindings_involved):
+                        # - Pop binding from list so indices are not invalidated
+                        #   (in reverse order).
+                        involved_binding = working_binding_list.pop(k)
+                        # - Push that binding into ``involved_binding`` while
+                        #   preserving original order.  (``binding_bep`` must be first.)
+                        bindings_involved.insert(0, involved_binding)
+
+                    if debugging:
+                        print(f'    Assembled bindings\n{pprint.pformat(bindings_involved)}.')
+                        print(f'    Afterwards length of batch now: {len(working_binding_list)}.')
+
+                    # - Append list just built to ``result`` list;
+                    result.append(bindings_involved)
+
+                    if len(working_binding_list) < 2:
+                        done = True
+
+                    # Break out of ``for i`` loop to force a
+                    # fresh pass on list just edited.
+                    break
+
+            # When ``for i`` loop drops through, all permutations of key
+            # bindings have been checked for overrides.
+            # Time to return result.
+            if i == last_i_minus_1:
+                done = True
+
+        if len(result) == 0:
+            result = None
+
+        return result
+
     def binding_overrides(self,
-                view: sublime.View | None = None
-                ) -> list[list[ReportKeyBinding]]:
+            view: sublime.View | None = None
+            ) -> list[list[ReportKeyBinding]]:
         """
         Locate key binding overrides defined as:
 
@@ -702,11 +835,13 @@ class KeyBindingData:
                   were satisfied by the current context and thus could be partially
                   or fully overridden.
         """
-        result: list[list[ReportKeyBinding]] = []
+        debugging = is_debugging(DebugBits.FULL_OVERRIDES_REPORT | DebugBits.CONTEXT_OVERRIDES_REPORT)
+        if debugging:
+            print(f'In {self.__class__.__name__}.binding_overrides()...')
 
-        # -----------------------------------------------------------------
+        # =================================================================
         # Generate input data.
-        # -----------------------------------------------------------------
+        # =================================================================
         if view:
             # Pass None for all args except `view`,
             self.generate(key_groups=[KeyGroup.ALL], view=view)
@@ -714,71 +849,97 @@ class KeyBindingData:
             # Pass None for all args, gathering FULL set of binding data.
             self.generate(key_groups=[KeyGroup.ALL])
 
-        # -----------------------------------------------------------------
+        # =================================================================
         # From the input data, generate list[list[ReportKeyBinding]] where
         # each inner list shows bindings that:
         #
         # - use the same keypresses, and
         # - have equivalent contexts
+        # =================================================================
         # -----------------------------------------------------------------
-        # if len(keypress_list) > 1:
-        #     # by_key_seq_dict
-        #     #     ("ctrl+k", "ctrl+up"):
-        #     #         [
-        #     #             ReportKeyBinding object,
-        #     #             ReportKeyBinding object,
-        #     #             ReportKeyBinding object,
-        #     #             ...
-        #     #         ]
-        #     keypress_tuple = tuple(keypress_list)
-        #     if keypress_tuple in self.mdictByKeySquence:
-        #         binding_list = self.mdictByKeySquence[keypress_tuple]
-        #         # In a bottom-up search, return first binding whose context is a match.
-        #         for binding in reversed(binding_list):
-        #             smart_context = binding.smart_context()
-        #             if smart_context is None:
-        #                 # This is the binding.
-        #                 result = binding
-        #                 break
-        #             else:
-        #                 if smart_context.query(view):
-        #                     result = binding
-        #                     break
-        # else:
-        #     # by_main_key_dict
-        #     #     "a": [  <-- binding_lists_by_mod_code
-        #     #             None,   # binding list for unmodified 'a' key
-        #     #             None,   # binding list for [Shift-a]
-        #     #             [...],  # binding list for [Ctrl-a]       <-- binding_list
-        #     #             [...],  # binding list for [Ctrl-Shift-a] <-- binding_list
-        #     #             None,   # binding list for [Alt-a]
-        #     #             None,   # binding list for [Alt-Shift-a]
-        #     #             None,   # binding list for [Alt-Ctrl-a]
-        #     #             None,   # binding list for [Alt-Ctrl-Shift-a]
-        #     #             None,   # binding list for [Command-a]
-        #     #             None,   # binding list for [Command-Shift-a]
-        #     #             [...],  # binding list for [Command-Ctrl-a]       <-- binding_list
-        #     #             [...],  # binding list for [Command-Ctrl-Shift-a] <-- binding_list
-        #     #             None,   # binding list for [Command-Alt-a]
-        #     #             None,   # binding list for [Command-Alt-Shift-a]
-        #     #             None,   # binding list for [Command-Alt-Ctrl-a]
-        #     #             None,   # binding list for [Command-Alt-Ctrl-Shift-a]
-        #     #         ]
-        #     main_key_name, mod_code = main_key_and_modifier_code(keypress_list[0])
-        #     if main_key_name in self.mdictByMainKey:
-        #         binding_lists_by_mod_code = self.mdictByMainKey[main_key_name]
-        #         binding_list = binding_lists_by_mod_code[mod_code]
-        #         if binding_list:
-        #             for binding in reversed(binding_list):
-        #                 smart_context = binding.smart_context()
-        #                 if smart_context is None:
-        #                     # This is the binding.
-        #                     result = binding
-        #                     break
-        #                 else:
-        #                     if smart_context.query(view):
-        #                         result = binding
-        #                         break
+        # by_main_key_dict
+        #     "a": [  <-- binding_lists_by_mod_code
+        #             None,   # binding list for unmodified 'a' key
+        #             None,   # binding list for [Shift-a]
+        #             [...],  # binding list for [Ctrl-a]       <-- binding_list
+        #             [...],  # binding list for [Ctrl-Shift-a] <-- binding_list
+        #             None,   # binding list for [Alt-a]
+        #             None,   # binding list for [Alt-Shift-a]
+        #             None,   # binding list for [Alt-Ctrl-a]
+        #             None,   # binding list for [Alt-Ctrl-Shift-a]
+        #             None,   # binding list for [Command-a]
+        #             None,   # binding list for [Command-Shift-a]
+        #             [...],  # binding list for [Command-Ctrl-a]       <-- binding_list
+        #             [...],  # binding list for [Command-Ctrl-Shift-a] <-- binding_list
+        #             None,   # binding list for [Command-Alt-a]
+        #             None,   # binding list for [Command-Alt-Shift-a]
+        #             None,   # binding list for [Command-Alt-Ctrl-a]
+        #             None,   # binding list for [Command-Alt-Ctrl-Shift-a]
+        #         ]
+        #
+        # Sorted doesn't do well for `self.mdictByMainKey` because it mixes
+        # the key groups up.  So we take another approach:  by key group
+        # in sequence.  Note that this does not report all the keys
+        # encountered, so an additional dictionary `main_key_reported`
+        # is kept so that we can do a final loop at the end to report
+        # all the keypresses encountered that did not get reported here.
+        # -----------------------------------------------------------------
+        main_key_reported = {}
+        result: list[list[ReportKeyBinding]] = []
+
+        if debugging:
+            print('  Entering 1st loop...', flush=True)
+
+        # Add to list for known key names.
+        for key_name_group in key_name_groups:
+            for main_key_name in key_name_group:
+                if main_key_name in self.mdictByMainKey:
+                    binding_lists_by_mod_code = self.mdictByMainKey[main_key_name]
+
+                    for binding_list in binding_lists_by_mod_code:
+                        if binding_list and len(binding_list) > 1:
+                            overrides = self._extracted_overrides(binding_list, debugging)
+                            if overrides:
+                                for override_list in overrides:
+                                    result.append(override_list)
+
+                    main_key_reported[main_key_name] = True
+
+        if debugging:
+            print('  Entering 2nd loop...', flush=True)
+
+        # Add to list for UNknown key names.
+        for main_key_name in self.mdictByMainKey:
+            if main_key_name not in main_key_reported:
+                binding_lists_by_mod_code = self.mdictByMainKey[main_key_name]
+
+                for binding_list in binding_lists_by_mod_code:
+                    if binding_list and len(binding_list) > 1:
+                        overrides = self._extracted_overrides(binding_list, debugging)
+                        if overrides:
+                            for override_set in overrides:
+                                result.append(override_set)
+
+        # -----------------------------------------------------------------
+        # by_key_seq_dict
+        #     ("ctrl+k", "ctrl+up"):
+        #         [
+        #             ReportKeyBinding object,
+        #             ReportKeyBinding object,
+        #             ReportKeyBinding object,
+        #             ...
+        #         ]
+        # -----------------------------------------------------------------
+        if debugging:
+            print('  Entering 3rd loop...', flush=True)
+
+        for keypress_tuple in self.mdictByKeySquence:
+            binding_list = self.mdictByKeySquence[keypress_tuple]
+            if len(binding_list) > 1:
+                overrides = self._extracted_overrides(binding_list, debugging)
+                if overrides:
+                    for override_set in overrides:
+                        result.append(override_set)
 
         return result
 

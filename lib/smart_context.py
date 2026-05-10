@@ -1339,25 +1339,31 @@ class ContextCondition:
             print(f'  {self.language     = }')
             print(f'  {hash(self)        = :{self.hash_format_spec}}')
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.formatted()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'{self.__class__.__name__}({self.formatted()})'
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         """
         To make it easy for humans to read in hex while debugging, the 4
         values above occupy bit space in the integer like this:
 
                  byte 2                  byte 1                  byte 0
         +-----------+-----------+-----------+-----------+-----------+-----------+
-        |     test_name_code    |             operator  |  operand    match_all |
+        |     test_name_code    |  0b0000     operator  |  operand    match_all |
         +-----------+-----------+-----------+-----------+-----------+-----------+
         """
         if self._hashcode == -1:
             # Lazy calculation; only once when the value is required.
-            test_entry_num = _context_entry_numbers_by_name[self.key]
+            # key = self.key
+
+            if self.key in _context_entry_numbers_by_name:
+                test_entry_num = _context_entry_numbers_by_name[self.key]
+            else:
+                test_entry_num = len(_context_entry_numbers_by_name) + 1
+
             operator_code  = _operator_codes_by_name[self.operator]
             match_all_val  = int(self.match_all)
 
@@ -1557,21 +1563,6 @@ class SmartContext(list):
         """ Is ``self`` equal to ``other``? """
         return self.is_equivalent(other)
 
-    def condition_list_copy(self) -> list[ContextCondition] | None:
-        """
-        Copy of ``self.conditions``
-
-        :return:  list[ContextCondition] or None if context had no conditions.
-        """
-        result: list[ContextCondition] | None = None
-
-        if self.conditions:
-            result = []
-            for cond in self.conditions:
-                result.append(cond)
-
-        return result
-
     def _equivalent_to_any_condition(self, self_cond, other_cond_list) -> tuple[int, bool]:
         result = False
         i = -1
@@ -1605,22 +1596,23 @@ class SmartContext(list):
         """
         result = False
 
-        if len(other.conditions) == len(self.conditions):
-            working_other_cond_list = other.condition_list_copy()
+        if other.conditions is not None and self.conditions is not None:
+            if len(other.conditions) == len(self.conditions):
+                working_other_cond_list = other.conditions.copy()  # Shallow copy.
 
-            for self_cond in self.conditions:
-                i, test_result = self._equivalent_to_any_condition(self_cond, working_other_cond_list)
-                if test_result:
-                    # Okay so far.  Remove element 'i' from working list.
-                    del working_other_cond_list[i]
-                    if len(working_other_cond_list) == 0:
-                        # Equivalent conditions in other were found for
-                        # each condition in self.conditions.
-                        result = True
+                for self_cond in self.conditions:
+                    i, test_result = self._equivalent_to_any_condition(self_cond, working_other_cond_list)
+                    if test_result:
+                        # Okay so far.  Remove element 'i' from working list.
+                        del working_other_cond_list[i]
+                        if len(working_other_cond_list) == 0:
+                            # Equivalent conditions in other were found for
+                            # each condition in self.conditions.
+                            result = True
+                            break
+                    else:
+                        # result is already False, just break out of loop.
                         break
-                else:
-                    # result is already False, just break out of loop.
-                    break
 
         return result
 
