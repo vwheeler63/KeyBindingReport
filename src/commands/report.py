@@ -35,12 +35,11 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
     the context of the View received is what is used.
     """
 
-    def _table_key(self, suppress_win_key: bool = False) -> str:
-        exclude_win_key = (( suppress_win_key and data.platform_name != 'OSX' ))
+    def _table_key(self, include_win_key: bool = False) -> str:
         parts = []
         parts.append('Key:')
 
-        if not exclude_win_key:
+        if include_win_key and data.platform_name != 'OSX':
             parts.append(f'  {data.cmd_col_hdg} = {data.cmd_key_name}')
 
         parts.append(f'  {data.alt_col_hdg} = {data.alt_key_name}')
@@ -235,7 +234,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         footnotes = []
         last_footnote_num = 0
         title = f'{core.package_name}:  Specified Key-Bindings'
-        table_key = self._table_key(bool(flags & output.FlagBits.EXCLUDE_WINDOWS_KEY))
+        table_key = self._table_key(bool(flags & output.FlagBits.INCLUDE_WINDOWS_KEY))
 
         # -----------------------------------------------------------------
         # Heading
@@ -287,14 +286,14 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         if table:
             mk_asc_tbl = ascii_table.AsciiTable(table)
 
-            if flags & output.FlagBits.EXCLUDE_WINDOWS_KEY:
-                #                                  Key     A     C     S    Cmd  Args  Ctxt   Src
-                mk_asc_tbl.set_tight_columns(    [True, True, True, True, True, True, True, False])
-                mk_asc_tbl.set_column_alignments([ '^',   '',   '',   '',   '',   '',  '^',    ''])
-            else:
+            if flags & output.FlagBits.INCLUDE_WINDOWS_KEY:
                 #                                  Key     W     A     C     S   Cmd  Args  Ctxt   Src
                 mk_asc_tbl.set_tight_columns(    [True, True, True, True, True, True, True, True, False])
                 mk_asc_tbl.set_column_alignments([ '^',   '',   '',   '',   '',   '',   '',  '^',    ''])
+            else:
+                #                                  Key     A     C     S    Cmd  Args  Ctxt   Src
+                mk_asc_tbl.set_tight_columns(    [True, True, True, True, True, True, True, False])
+                mk_asc_tbl.set_column_alignments([ '^',   '',   '',   '',   '',   '',  '^',    ''])
 
             heading = 'Single-Keypress Table'
             underline = '=' * len(heading)
@@ -343,14 +342,14 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
                 if table:
                     kseq_asc_tbl = ascii_table.AsciiTable(table)
-                    if flags & output.FlagBits.EXCLUDE_WINDOWS_KEY:
-                        #                                  Key     A     C     S    Cmd  Args  Ctxt   Src
-                        kseq_asc_tbl.set_tight_columns(    [True, True, True, True, True, True, True, False])
-                        kseq_asc_tbl.set_column_alignments([ '^',   '',   '',   '',   '',   '',  '^',    ''])
-                    else:
+                    if flags & output.FlagBits.INCLUDE_WINDOWS_KEY:
                         #                                  Key     W     A     C     S   Cmd  Args  Ctxt   Src
                         kseq_asc_tbl.set_tight_columns(    [True, True, True, True, True, True, True, True, False])
                         kseq_asc_tbl.set_column_alignments([ '^',   '',   '',   '',   '',   '',   '',  '^',    ''])
+                    else:
+                        #                                  Key     A     C     S    Cmd  Args  Ctxt   Src
+                        kseq_asc_tbl.set_tight_columns(    [True, True, True, True, True, True, True, False])
+                        kseq_asc_tbl.set_column_alignments([ '^',   '',   '',   '',   '',   '',  '^',    ''])
                     heading = self._key_sequence_table_title(lead_keypr_str)
                     content_parts.append('')
                     underline = '-' * len(heading)

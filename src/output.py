@@ -181,7 +181,7 @@ class FlagBits(IntFlag):
     ADD_SOURCE_COLUMN                 = 0b0000_1000  #   8
     ADD_COMMENTS_COLUMN               = 0b0001_0000  #  16
     TABLE_KEY_AFTER_TABLE             = 0b0010_0000  #  32
-    EXCLUDE_WINDOWS_KEY               = 0b0100_0000  #  64
+    INCLUDE_WINDOWS_KEY               = 0b0100_0000  #  64
 
     # Utility Bits
     ANY_CONTEXT_REQUESTED             = 0b0000_0010 | 0b0000_0100
@@ -263,11 +263,12 @@ class KeyBindingOutput:
         self.comments_column_width = max(1, width)   # Non-negative only.
 
     def _heading_row(self, flags: FlagBits) -> list[str]:
-        if flags & FlagBits.EXCLUDE_WINDOWS_KEY:
-            effective_min_col_count = self.min_column_count - 1
+        if flags & FlagBits.INCLUDE_WINDOWS_KEY:
+            effective_min_col_count = self.min_column_count
 
             result = [
                     'Key',
+                    data.cmd_col_hdg,
                     data.alt_col_hdg,
                     data.ctrl_col_hdg,
                     data.shift_col_hdg,
@@ -276,11 +277,10 @@ class KeyBindingOutput:
                     'Context'
                     ]
         else:
-            effective_min_col_count = self.min_column_count
+            effective_min_col_count = self.min_column_count - 1
 
             result = [
                     'Key',
-                    data.cmd_col_hdg,
                     data.alt_col_hdg,
                     data.ctrl_col_hdg,
                     data.shift_col_hdg,
@@ -312,12 +312,14 @@ class KeyBindingOutput:
         footnote_num = prev_footnote_num
 
         if binding_list:
-            suppress_win_key = bool(flags & FlagBits.EXCLUDE_WINDOWS_KEY)
-            exclude_win_key = (( suppress_win_key and data.platform_name != 'OSX' ))
+            include_win_key = ((
+                    bool(flags & FlagBits.INCLUDE_WINDOWS_KEY)
+                    and data.platform_name != 'OSX'
+                    ))
 
             for binding in binding_list:
                 row = [main_key_name]                   # 'f5'
-                if not exclude_win_key:
+                if include_win_key:
                     row.append(mod_key_applies_tpl[0])  # Command
                 row.append(mod_key_applies_tpl[1])      # Alt
                 row.append(mod_key_applies_tpl[2])      # Ctrl
@@ -355,12 +357,14 @@ class KeyBindingOutput:
             mod_key_applies_tpl: tuple[str, str, str, str],
             flags              : FlagBits,
             ):
-        suppress_win_key = bool(flags & FlagBits.EXCLUDE_WINDOWS_KEY)
-        exclude_win_key = (( suppress_win_key and data.platform_name != 'OSX' ))
+        include_win_key = ((
+                bool(flags & FlagBits.INCLUDE_WINDOWS_KEY)
+                and data.platform_name != 'OSX'
+                ))
         space = ' '
         row = [main_key_name]                   # 'f5'
 
-        if not exclude_win_key:
+        if include_win_key:
             row.append(mod_key_applies_tpl[0])  # Command)
 
         row.append(mod_key_applies_tpl[1])      # Alt
