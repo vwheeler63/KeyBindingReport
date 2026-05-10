@@ -1328,10 +1328,13 @@ class ContextCondition:
         '_orig_operator',
         '_orig_operand',
         '_orig_match_all',
+        '_orig_definition_dict',
         '_hashcode',
     ]
 
     def __init__(self, condition_dict: dict, language_code: str = 'en'):
+        self._orig_definition_dict = condition_dict
+
         key = condition_dict[_key_key]
         if key.startswith('setting.'):
             self.key          = 'setting'
@@ -1483,18 +1486,17 @@ class ContextCondition:
             indent_level: int = 0
             ) -> str:
         """
-        Python representation of ``json_binding`` context conditions (same structure as
-        in .sublime-keymap files) such that the keys and values are in logical order.
+        Python representation of ``self`` (same structure as .sublime-keymap
+        files) such that the keys and values are in logical order.
 
         Each condition presented on 1 line in JSON-compatible representation.
 
         Representation (just one of these, but 2 shown to show meaning of args):
         ------------------------------------------------------------------------
-        { "key": "selection_empty"           , "operator": "equal", "operand": False, "match_all": True }
-        { "key": "setting.auto_match_enabled", "operator": "equal", "operand": True }
+        { "key": "selection_empty"           , "operator": "equal", "operand": false, "match_all": true }
+        { "key": "setting.auto_match_enabled", "operator": "equal", "operand": true }
                   ^^^^^^^^^^^^^^^^^^^^^^^^^^                ^^^^^
                       +-- longest_key_len                     +-- longest_op_len
-        }
         """
         key = self.key
         if key == 'setting':
@@ -1515,6 +1517,105 @@ class ContextCondition:
         # match_all
         val_repr = json.dumps(self.match_all)
         result += f', "match_all": {val_repr}'
+
+        result += ' }'
+
+        return result
+
+    def original_repr(self, indent_level: int = 0) -> str:
+        """
+        Python representation of ``self`` (same structure as .sublime-keymap
+        files), with entries in their original order, and with the original
+        representation:  e.g. if "match_all" was specified in original
+        definition, it is included in this representation regardless of
+        whether it had a default value or not.
+
+        Each condition presented on 1 line in JSON-compatible representation.
+
+        Representation:
+        ---------------
+        { "key": "selection_empty", "match_all": true, "operand": false }
+        """
+        return json.dumps(self._orig_definition_dict)
+
+    def original_repr_ordered(self, indent_level: int = 0) -> str:
+        """
+        Python representation of ``self`` (same structure as .sublime-keymap
+        files), such that the keys and values are in logical order, but with
+        the original representation:  e.g. if "match_all" was specified in
+        original definition, it is included in this representation
+        regardless of whether it had a default value or not.
+
+        Each condition presented on 1 line in JSON-compatible representation.
+
+        Representation:
+        ---------------
+        { "key": "selection_empty", "operand": false, "match_all": true }
+        """
+        key = self.key
+        if key == 'setting':
+            cond_name = f'{key}.{self.setting_name}'
+        else:
+            cond_name = key
+        indent = '  ' * indent_level
+        result = f'{indent}{{ "key": "{cond_name}"'
+
+        # operator
+        if self._orig_operator:
+            field = json.dumps(self.operator)
+            result += f', "operator": {field:{longest_op_len + 2}}'
+
+        # operand
+        # This value can be str, bool or int, so we use `json.dumps()`.
+        if self._orig_operand:
+            val_repr = json.dumps(self.operand)
+            result += f', "operand": {val_repr}'
+
+        # match_all
+        if self._orig_match_all:
+            val_repr = json.dumps(self.match_all)
+            result += f', "match_all": {val_repr}'
+
+        result += ' }'
+
+        return result
+
+    def minimal_repr(self, indent_level: int = 0) -> str:
+        """
+        Python representation of ``self`` (same structure as .sublime-keymap files),
+        such that the keys and values are in logical order, but elements with default
+        values are not shown:  i.e. if "operator", "operand" or "match_all" values
+        have their default values, then they are not included in this representation.
+
+        Each condition presented on 1 line in JSON-compatible representation.
+
+        Representation:
+        ---------------
+        { "key": "selection_empty", "operand": false, "match_all": true }
+        """
+        key = self.key
+        if key == 'setting':
+            cond_name = f'{key}.{self.setting_name}'
+        else:
+            cond_name = key
+        indent = '  ' * indent_level
+        result = f'{indent}{{ "key": "{cond_name}"'
+
+        # operator
+        if self.operator != _default_operator:
+            field = json.dumps(self.operator)
+            result += f', "operator": {field:{longest_op_len + 2}}'
+
+        # operand
+        # This value can be str, bool or int, so we use `json.dumps()`.
+        if self.operand != _default_operand:
+            val_repr = json.dumps(self.operand)
+            result += f', "operand": {val_repr}'
+
+        # match_all
+        if self.match_all != _default_match_all:
+            val_repr = json.dumps(self.match_all)
+            result += f', "match_all": {val_repr}'
 
         result += ' }'
 
