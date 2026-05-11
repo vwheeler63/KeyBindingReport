@@ -1,6 +1,6 @@
 """ ***********************************************************************
 Key Binding Report
-******************
+***************************************************************************
 
 KeyBindingReport is a Sublime Text Package that produces a wide variety of
 reports about the current state of Sublime Text key bindings on the system
@@ -25,7 +25,7 @@ from datetime import datetime
 
 module_path, _ = os.path.splitext(os.path.realpath(__file__))
 _, submodule_name = os.path.split(module_path)
-if isinstance(__package__, str):
+if __package__ is not None:
     package_name = __package__
 else:
     package_name = 'Unknown'
@@ -39,14 +39,14 @@ t0 = datetime.now()
 
 debugging = True
 if debugging:
-    print(f'{this_module_name}  >>> module execution')
+    print(f'{__package__}  >>> module execution....')
 
 
 # *************************************************************************
 # Load / Reload
 # *************************************************************************
 
-def reload(dotted_subpkg: str | None, submodules: tuple[str, ...] = ()):
+def reload(dotted_subpkg: str, submodules: tuple[str, ...] | None = None):
     """
     Reload each module in `submodules` only if previously loaded.  This is a
     precondition of calling ``importlib.reload()`` but is also for efficiency:
@@ -85,22 +85,21 @@ def reload(dotted_subpkg: str | None, submodules: tuple[str, ...] = ()):
             print('vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv')
         print(f'{indent}reload():  >>> {dotted_subpkg=} {submodules=}')
 
-    if dotted_subpkg:
-        if not submodules:
-            # Called from top-level Plugin.
-            module_name = dotted_subpkg
+    if not submodules:
+        # Called from top-level Plugin.
+        module_name = dotted_subpkg
+        if module_name in sys.modules:
+            if debugging:
+                print(f'{indent}Reloading({module_name})')
+            importlib.reload(sys.modules[module_name])
+    else:
+        # Called from subpackage.
+        for submodule in submodules:
+            module_name = f'{dotted_subpkg}.{submodule}'
             if module_name in sys.modules:
                 if debugging:
                     print(f'{indent}Reloading({module_name})')
                 importlib.reload(sys.modules[module_name])
-        else:
-            # Called from subpackage.
-            for submodule in submodules:
-                module_name = f'{dotted_subpkg}.{submodule}'
-                if module_name in sys.modules:
-                    if debugging:
-                        print(f'{indent}Reloading({module_name})')
-                    importlib.reload(sys.modules[module_name])
 
     if debugging:
         print(f'{indent}reload():  <<<')
@@ -114,11 +113,11 @@ reload(package_name + '.lib')  # Recurse into .lib/ subpackage.
 reload(package_name + '.src')  # Recurse into .src/ subpackage.
 
 # This needs to be BELOW the `reload()` definition above because the modules
-# imported here require `reload()` to already be defined because they both
-# import it and call it.
+# imported here require `reload()` to already be defined because they need
+# to call it during the imports below.
 from .lib import *     # noqa: E402, F403
 from .src import *     # noqa: E402, F403
-from .src import core  # noqa: E402
+#from .src import core  # noqa: E402  # Makes LSP-pyright happy.
 
 
 

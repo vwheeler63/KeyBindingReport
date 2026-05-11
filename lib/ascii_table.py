@@ -1,4 +1,3 @@
-from typing import Sequence
 from enum import IntEnum
 
 

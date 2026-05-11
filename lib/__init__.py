@@ -1,27 +1,34 @@
 from ..keybindingreport import reload
-from .debug import DebugBits, is_debugging
 
-
-debugging = is_debugging(DebugBits.IMPORTING)
+debugging = True
 if debugging:
-    print(f'{__package__}  >>> module execution')
+    print(f'{__package__}  >>> module execution....')
 
-reload(__package__, ('debug', 'output_view', 'ascii_table', 'smart_context', 'key_binding', 'utils'))
+if __package__ is not None:
+    reload(__package__, ('debug', 'utils', 'output_view', 'ascii_table'))
 
+# These imports are *below* the calls to ``reload()`` because when they are
+# above them, the calls to ``reload()`` then reloads the just-imported
+# modules---double work:  unnecessary.  Whereas, when they are below the
+# calls to ``reload()``, then by design, the first time these modules are
+# loaded, the calls to ``reload()`` do nothing, and the import statements
+# do the work.
+#
+# In contrast, while the Package is being developed or enhanced, saving the
+# top-level Plugin (or when the Package is updated by the ``PackageDev``
+# Package during run time), causes the ``reload()`` calls to do their job
+# of reloading updated modules, and the import statements to do nothing.
+# This is by design.
 from . import debug          # noqa: E402
+from . import utils          # noqa: E402
 from . import output_view    # noqa: E402
 from . import ascii_table    # noqa: E402
-from . import smart_context  # noqa: E402
-from . import key_binding    # noqa: E402
-from . import utils          # noqa: E402
 
 __all__ = [
     'debug',
+    'utils',
     'output_view',
     'ascii_table',
-    'smart_context',
-    'key_binding',
-    'utils',
 ]
 
 if debugging:

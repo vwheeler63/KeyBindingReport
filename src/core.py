@@ -295,45 +295,71 @@ contains it.
             ]
 
 
-Key Names
-=========
+Main Key Names
+==============
 
-Key names are specified either by the (non-shifted) character printed on
-the key, or a key name:
+When modifier keys are used in :term:`keypresses <keypress>`, these unshifted key
+names must be used with them:
 
 .. code-block:: text
 
-    0   a   n   f1    ,   up           keypad0
-    1   b   o   f2    .   down         keypad1
-    2   c   p   f3    \   left         keypad2
-    3   d   q   f4    /   right        keypad3
-    4   e   r   f5    ;   insert       keypad4
-    5   f   s   f6    '   delete       keypad5
-    6   g   t   f7    `   home         keypad6
-    7   h   u   f8    +   end          keypad7
-    8   i   v   f9    -   pageup       keypad8
-    9   j   w   f10   =   pagedown     keypad9
-        k   x   f11   [   backspace    keypad_period
-        l   y   f12   ]   tab          keypad_divide
-        m   z   f13       enter        keypad_multiply
-                f14       pause        keypad_minus
-                f15       escape       keypad_plus
-                f16       space        keypad_enter
-                f17       break        clear
-                f18       context_menu
+                                                        Alternate      Specialty
+                    Regular Key Names                   Symbol Names   Keyboards
+    --------------------------------------------------  -------------  -----------------
+    0   a   n   f1   ,   keypad0          up            backquote      close
+    1   b   o   f2   .   keypad1          down          equals         copy
+    2   c   p   f3   \   keypad2          left          forward_slash  cut
+    3   d   q   f4   /   keypad3          right         minus          find
+    4   e   r   f5   ;   keypad4          insert        plus           open
+    5   f   s   f6   '   keypad5          delete                       paste
+    6   g   t   f7   `   keypad6          home                         redo
+    7   h   u   f8   -   keypad7          end                          save
+    8   i   v   f9   =   keypad8          pageup                       sysreq
+    9   j   w   f10  [   keypad9          pagedown                     undo
+        k   x   f11  ]   keypad_period    backspace
+        l   y   f12      keypad_divide    tab                          browser_back
+        m   z   f13      keypad_multiply  enter                        browser_favorites
+                f14      keypad_minus     pause                        browser_forward
+                f15      keypad_plus      break                        browser_home
+                f16      keypad_enter     space                        browser_refresh
+                f17      clear            escape                       browser_search
+                f18                       context_menu                 browser_stop
                 f19
                 f20
-      ^ \___/    ^    ^     ^            ^
-      |   |      |    |     |            |
-      |   |      |    |     |            +-- KEYPAD_KEYS
-      |   |      |    |     +-- NAMED_KEYS
-      |   |      |    +-- SYMBOL_KEYS
-      |   |      +-- F_KEYS
-      |   +-- LETTER_KEYS
-      +-- NUMBER_KEYS
+    ^   \___/    ^   ^     ^              \______________________________________________/
+    |     |      |   |     |                                |
+    |     |      |   |     |                                +-- NAMED_KEYS
+    |     |      |   |     +-- KEYPAD_KEYS
+    |     |      |   +-- SYMBOL_KEYS
+    |     |      +-- F_KEYS
+    |     +-- LETTER_KEYS
+    +-- NUMBER_KEYS
 
-    The above enumerator names are from the ``KeyGroup`` class.
-    Note that identify lists of key names that are mutually exclusive.
+The above names in ALL CAPS are from the ``KeyGroup`` class.
+Note that they identify lists of key names that are mutually exclusive,
+as well as provide indexes into ``key_name_groups`` list for values >= 0.
+
+Shifted key names can also be used, but *may not be used with modifier keys*.
+Attempting to do so generates no errors, but does not work.
+
+.. code-block:: text
+
+    "  (  )  {  }                  # <-- These can be found in Default keymap
+                                   #     with contexts.
+
+    `  ~  !  @  #  $  %  ^  &      # <-- These are also bind-able (and should
+    *  _  +  |  :  "  <  >  ?      #     have contexts if used).
+
+    " "                            # <-- Works as an unmodified key,
+                                   #     but is redundant with `space`.
+
+The following is a specialty application, such as if your Plugin temporarily
+either suppresses or captures all keystrokes with a custom key context.
+This key name (with angle brackets) captures all printable keypresses:
+
+.. code-block:: text
+
+    <character>
 
 
 Ways to Limit Output
@@ -344,15 +370,12 @@ See ``KeyBindingReportCommand`` docstring for details.
 """
 
 from datetime import datetime
-from typing import Dict, Set
-import re
-import os
-import sys
 import sublime
-from enum import IntFlag
-#from ..lib.ascii_table import Format, Generator
-from ..lib.debug import DebugBits, is_debugging, set_debugging_bits
+# Importing ``IntFlag`` in the below is to remain compatible with Python 3.8,
+# which requires it.  Python 3.14 does not.
+from ..lib.debug import IntFlag, DebugBits, is_debugging, set_debugging_bits  # noqa: F401
 from ..keybindingreport import package_name
+
 
 
 # *************************************************************************
@@ -367,6 +390,7 @@ _cfg_on_settings_chgd_listener_id        = '_kbr_settings_changed_tag'
 
 # Package Settings Names (most are used multiple times throughout this Plugin)
 _cfg_stg_name__debugging                 = 'debugging'
+
 
 
 # *************************************************************************
@@ -391,6 +415,7 @@ def kbr_setting(setting_name: str):
     return kbr_setting.obj.get(setting_name, default)
 
 
+
 # *************************************************************************
 # Load default settings once.
 # *************************************************************************
@@ -398,6 +423,7 @@ def kbr_setting(setting_name: str):
 kbr_setting.default = {
     _cfg_stg_name__debugging: False
 }
+
 
 
 # *************************************************************************
@@ -418,6 +444,7 @@ def arg_type_error_message(arg, arg_name: str, required_type: str, after_matter:
         article = 'an'
 
     return f'`{arg_name}` arg must be {article} {required_type}. Got {type(arg)} instead.{after_matter}'
+
 
 
 # *************************************************************************

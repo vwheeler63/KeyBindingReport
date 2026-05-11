@@ -139,7 +139,7 @@ import sublime
 from sublime import QueryOperator
 import sublime_plugin
 from ..lib.debug import DebugBits, is_debugging
-from ..lib import key_binding
+from . import key_binding
 
 
 
@@ -1964,4 +1964,3 @@ class SmartContext:
             print(indent, underline)
 
         return all_tests_passed
-

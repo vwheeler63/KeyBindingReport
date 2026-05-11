@@ -343,9 +343,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             content_parts.append(underline)
             content_parts.append('')
 
-            for pkg in tuple_list:
-                lead_keypr_str, table, footnotes, last_footnote_num = pkg
-
+            for lead_keypr_str, table, footnotes, last_footnote_num in tuple_list:
                 if table:
                     kseq_asc_tbl = ascii_table.AsciiTable(table)
                     if flags & output.FlagBits.INCLUDE_WINDOWS_KEY:

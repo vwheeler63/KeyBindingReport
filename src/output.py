@@ -123,8 +123,8 @@ from datetime import datetime
 from . import data
 from .data import KeyBindingData
 from ..lib.debug import DebugBits, is_debugging
-from ..lib.smart_context import SmartContext
 from ..lib import ascii_table
+from . smart_context import SmartContext
 
 
 # *************************************************************************

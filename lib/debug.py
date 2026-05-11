@@ -43,6 +43,9 @@ Usage
 
 .. code-block:: py
 
+    # Python 3.8 needs the ``IntFlag``, Python 3.14 does not.
+    # ``set_debugging_bits`` is only needed in the module that is
+    # going to call it in response to the ``plugin_loaded`` event.
     from .lib.debug import IntFlag, DebugBits, is_debugging, set_debugging_bits
 
     def pc_setting():
@@ -105,8 +108,8 @@ Public API
         #
         #            If ``True``, at least one of the bits was found.
 *************************************************************************** """
-from enum import IntFlag
 import re
+from enum import IntFlag
 
 
 class DebugBits(IntFlag):
@@ -169,9 +172,9 @@ class DebugBits(IntFlag):
         # been brought into the Package.
         #
         # Turning on IMPORTING debugging in full is a 3-part process:
-        # - plugin.py:  debugging = True;
-        # - below:      _debugging: DebugBits = DebugBits.IMPORTING;
-        # - settings:   add DebugBits.IMPORTING to debugging setting string.
+        # - plugin.py:  debugging = True in top-level plugin;
+        # - below    :  _debugging: DebugBits = DebugBits.IMPORTING;
+        # - settings :  add DebugBits.IMPORTING to debugging setting string.
         # ---------------------------------------------------------------------
         IMPORTING              = 0x00008000
 
@@ -226,9 +229,9 @@ class DebugBits(IntFlag):
     # been brought into the Package.
     #
     # Turning on IMPORTING debugging in full is a 3-part process:
-    # - plugin.py:  debugging = True;
-    # - below:      _debugging: DebugBits = DebugBits.IMPORTING;
-    # - settings:   add DebugBits.IMPORTING to debugging setting string.
+    # - plugin.py:  debugging = True in top-level plugin;
+    # - below    :  _debugging: DebugBits = DebugBits.IMPORTING;
+    # - settings :  add DebugBits.IMPORTING to debugging setting string.
     # ---------------------------------------------------------------------
     LOADING_CONTEXT_ENV      = 0x40000000
     IMPORTING                = 0x80000000
@@ -239,6 +242,7 @@ class DebugBits(IntFlag):
     NONE                     = 0x00000000
     ALL                      = 0xFFFFFFFF
     ANY                      = 0xFFFFFFFF
+
 
 
 # *************************************************************************
@@ -254,9 +258,32 @@ _valid_debugging_string_re = None
 _cfg_debugging_print_format = '08X'
 
 
+
 # *************************************************************************
 # Module Definitions
 # *************************************************************************
+
+def debug_show_regions(
+        view    : View,
+        regions : List[Region],
+        key     : str,
+        comment : str,
+        pkg_name: str = ''
+        ):
+    """ Temporarily show `regions` on screen. """
+    view.add_regions(
+        key,
+        regions,
+        "region.orangish",
+        "bookmark",
+        flags=RegionFlags.DRAW_EMPTY | RegionFlags.DRAW_NO_FILL
+    )
+
+    # Delay so user can look at regions highlighted in View before they are erased.
+    msg = f'{pkg_name}:\n\n{comment}'
+    sublime.message_dialog(msg)
+    view.erase_regions(key)
+
 
 def _debugging_string_validator_regex():
     r"""
@@ -272,7 +299,7 @@ def _debugging_string_validator_regex():
     """
     bit_class = DebugBits
     attr_list = dir(bit_class)
-    bit_names = ['NONE']     # Otherwise this doesn't get included because 0 not power of 2.
+    bit_names = ['NONE']     # Otherwise this doesn't get included because 0 is not a power of 2.
 
     for attr in attr_list:
         if attr[0] == '_':
@@ -287,7 +314,9 @@ def _debugging_string_validator_regex():
     return re.compile(final_re)
 
 
-def _securely_computed_bits_from_setting_input(selection_bits: int | str | bool | DebugBits) -> DebugBits:
+def _securely_computed_bits_from_setting_input(
+		selection_bits: int | str | bool | DebugBits
+		) -> DebugBits:
     """
     Accept any of int | str | bool | DebugBits, and securely compute the
     applicable Debug Module bits in an int:  ``result``.
@@ -302,7 +331,7 @@ def _securely_computed_bits_from_setting_input(selection_bits: int | str | bool 
         result = selection_bits
 
     # ---------------------------------------------------------------------
-    # String -- only use if valid.
+    # String---only use if valid.
     # ---------------------------------------------------------------------
     elif isinstance(selection_bits, str):
         # Only use if validated.

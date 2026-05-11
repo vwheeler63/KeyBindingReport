@@ -31,10 +31,10 @@ import pprint
 from typing import Set, Iterable, Sequence
 from enum import IntEnum, IntFlag
 import sublime
-from . import core
 from ..lib.debug import DebugBits, is_debugging
-from ..lib import key_binding
-from ..lib import smart_context
+from . import core
+from . import key_binding
+from . import smart_context
 
 
 
@@ -101,7 +101,7 @@ key_name_groups = [
         'backquote','equals','forward_slash','minus','plus','close','copy','cut',
         'find','open','paste','redo','save','sysreq','undo','browser_back',
         'browser_favorites','browser_forward','browser_home','browser_refresh',
-        'browser_search','browser_stop'],
+        'browser_search','browser_stop', '<character>'],
     # KEYPAD_KEYS == 5
     ['keypad0','keypad1','keypad2','keypad3','keypad4','keypad5','keypad6','keypad7','keypad8','keypad9','keypad_period','keypad_divide','keypad_multiply','keypad_minus','keypad_plus','keypad_enter','clear'],
 ]
@@ -139,6 +139,7 @@ for i, key_name in enumerate(all_key_names):
 
 # Clean up.
 del i, count, grp, key_name
+
 
 
 # *************************************************************************
@@ -414,6 +415,7 @@ def modifier_characters(modifier_code: int, mod_applies_char: str) -> tuple[str,
         M = space
 
     return M, A, C, S
+
 
 
 # *************************************************************************

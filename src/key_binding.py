@@ -133,9 +133,7 @@ class KeyBinding:
         '_command',
         '_args',
         '_context',
-        'xxx',
-        'xxx',
-        'xxx',
+        '_cached_keypress_tuple',
     ]
 
     def __init__(self, decoded_key_binding: dict, source: str, source_entry_no: int):
@@ -160,6 +158,8 @@ class KeyBinding:
             self._smart_context = smart_context.SmartContext(self)
         else:
             self._context = None
+
+        self._cached_keypress_tuple = None
 
     def __str__(self):
         return self.formatted()
@@ -261,7 +261,9 @@ class KeyBinding:
         return self._keys
 
     def keypress_tuple(self) -> tuple[str]:
-        return tuple(self._keys)
+        if self._cached_keypress_tuple is None:
+            self._cached_keypress_tuple = tuple(self._keys)
+        return self._cached_keypress_tuple
 
     def keypresses_json(self) -> str:
         return json.dumps(self._keys)
@@ -371,4 +373,3 @@ class KeyBinding:
         src            = self._source
 
         return keypress_tuple, cmd, args, ctxt, src
-
