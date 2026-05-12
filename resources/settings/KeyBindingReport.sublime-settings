@@ -2,7 +2,8 @@
 // which overrides the settings in here.
 {
 	// --------------------------------------------------------------------
-	// String.  Path to output directory.
+	// String.  Path to output directory:  one for each platform.
+	// Path must already exist to be valid.
 	// --------------------------------------------------------------------
 	// If you would like these reports to output to file(s) in addition to on
 	// screen when the `output.FlagBits.OUTPUT_TO_FILES` bit is passed as one
@@ -26,7 +27,9 @@
 	// Single-Keypress Bindings    single-keypress.txt
 	//                               or the individual file names above
 	//                               if separate tables are requested.
-	"output_directory": "",
+	"output_directory_windows": "",
+	"output_directory_linux": "",
+	"output_directory_osx": "",
 
 	// --------------------------------------------------------------------
 	// String.  reStructuredText Container Name

@@ -379,7 +379,7 @@ class KeyBindingOutput:
         if binding_list:
             include_win_key = ((
                     bool(flags & FlagBits.INCLUDE_WINDOWS_KEY)
-                    and data.platform_name != 'OSX'
+                    and data.platform != data.osx_platform_code
                     ))
 
             for binding in binding_list:
@@ -442,7 +442,7 @@ class KeyBindingOutput:
             ):
         include_win_key = ((
                 bool(flags & FlagBits.INCLUDE_WINDOWS_KEY)
-                and data.platform_name != 'OSX'
+                and data.platform != data.osx_platform_code
                 ))
         space = ' '
 

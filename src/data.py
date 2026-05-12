@@ -67,49 +67,9 @@ class KeyGroup(IntEnum):
     KEY_SEQUENCES  =  7  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
 
 
-platform_name = {
-    'osx': 'OSX',
-    'windows': 'Windows',
-    'linux': 'Linux',
-}[sublime.platform()]
-
-if platform_name == 'OSX':
-    modifier_key_names_by_modifier_code_bit = {
-        ModifierKeyBits.SHIFT:   'Shift',
-        ModifierKeyBits.CTRL:    'Ctrl',
-        ModifierKeyBits.ALT:     'Option',
-        ModifierKeyBits.COMMAND: 'Command',
-    }
-else:
-    modifier_key_names_by_modifier_code_bit = {
-        ModifierKeyBits.SHIFT:   'Shift',
-        ModifierKeyBits.CTRL:    'Ctrl',
-        ModifierKeyBits.ALT:     'Alt',
-        ModifierKeyBits.COMMAND: '⌘',
-    }
-
-platform_name_w_parens = '(' + platform_name + ')'
-
-# Column headings rely on platform_name.
-if platform_name == 'OSX':
-    cmd_col_hdg    = 'C'
-    cmd_key_name   = '⌘ Command'
-    alt_col_hdg    = 'O'
-    alt_key_name   = '⌥ Option'
-    ctrl_col_hdg   = '^'
-    ctrl_key_name  = 'Ctrl'
-    shift_col_hdg  = 'S'
-    shift_key_name = 'Shift'
-else:
-    cmd_col_hdg    = 'W'
-    cmd_key_name   = '⌘ Windows'
-    alt_col_hdg    = 'A'
-    alt_key_name   = 'Alt'
-    ctrl_col_hdg   = 'C'
-    ctrl_key_name  = 'Ctrl'
-    shift_col_hdg  = 'S'
-    shift_key_name = 'Shift'
-
+windows_platform_code = 'windows'
+linux_platform_code   = 'linux'
+osx_platform_code     = 'osx'
 
 # Regex to extract package name from resource path.
 # Example of input:  'Packages/ScopeView/Default (Windows).sublime-keymap'
@@ -154,8 +114,8 @@ key_group_names = [
     "Symbol Keys",
     "Named Keys",
     "Keypad Keys",
-    "Single-Keypress Tables",
-    "Multi-Keypress Tables",
+    "Single-Keypress Bindings",
+    "Multi-Keypress Bindings",
 ]
 
 # Indexed by class ``KeyGroup``.
@@ -204,6 +164,96 @@ for i, key_name in enumerate(all_key_names):
 
 # Clean up.
 del i, count, grp, key_name
+
+
+
+# *************************************************************************
+# Data
+# *************************************************************************
+
+platform               = sublime.platform()
+platform_name          = ''
+platform_name_w_parens = ''
+cmd_col_hdg            = 'W'
+cmd_key_name           = '⊞ Windows'
+alt_col_hdg            = 'A'
+alt_key_name           = 'Alt'
+ctrl_col_hdg           = 'C'
+ctrl_key_name          = 'Ctrl'
+shift_col_hdg          = 'S'
+shift_key_name         = 'Shift'
+modifier_key_names_by_modifier_code_bit = {}
+
+
+def set_platform(platform_code: str):
+    """ Set data` module attributes in which platform plays a role. """
+    if platform_code not in (windows_platform_code, linux_platform_code, osx_platform_code):
+        raise AssertionError(f'`platform_code` not recognozed: [{platform_code}].')
+
+    global platform
+    global platform_name
+    global platform_name_w_parens
+    global cmd_col_hdg
+    global cmd_key_name
+    global alt_col_hdg
+    global alt_key_name
+    global ctrl_col_hdg
+    global ctrl_key_name
+    global shift_col_hdg
+    global shift_key_name
+    global modifier_key_names_by_modifier_code_bit
+
+    platform = platform_code
+
+    platform_name = {
+        windows_platform_code: 'Windows',
+        linux_platform_code  : 'Linux',
+        osx_platform_code    : 'OSX',
+    }[platform]
+
+    platform_name_w_parens = '(' + platform_name + ')'
+
+    # Column headings rely on platform_name.
+    if platform == osx_platform_code:
+        cmd_col_hdg    = 'C'
+        cmd_key_name   = '⌘ Command'
+        alt_col_hdg    = 'O'
+        alt_key_name   = '⌥ Option'
+        ctrl_col_hdg   = '^'
+        ctrl_key_name  = 'Ctrl'
+        shift_col_hdg  = 'S'
+        shift_key_name = 'Shift'
+    else:
+        cmd_col_hdg    = 'W'
+        cmd_key_name   = '⊞ Windows'
+        alt_col_hdg    = 'A'
+        alt_key_name   = 'Alt'
+        ctrl_col_hdg   = 'C'
+        ctrl_key_name  = 'Ctrl'
+        shift_col_hdg  = 'S'
+        shift_key_name = 'Shift'
+
+    if platform == osx_platform_code:
+        modifier_key_names_by_modifier_code_bit = {
+            ModifierKeyBits.SHIFT:   'Shift',
+            ModifierKeyBits.CTRL:    'Ctrl',
+            ModifierKeyBits.ALT:     'Option',
+            ModifierKeyBits.COMMAND: 'Command',
+        }
+    else:
+        modifier_key_names_by_modifier_code_bit = {
+            ModifierKeyBits.SHIFT:   'Shift',
+            ModifierKeyBits.CTRL:    'Ctrl',
+            ModifierKeyBits.ALT:     'Alt',
+            ModifierKeyBits.COMMAND: '⌘',
+        }
+
+
+def set_current_platform():
+    set_platform(sublime.platform())
+
+
+set_current_platform()
 
 
 
@@ -346,7 +396,7 @@ def main_key_and_modifier_code(keypress_str: str) -> tuple[str, int]:
             # Either way we record this as "COMMAND" bit.
             modifier_code |= ModifierKeyBits.COMMAND
         elif mod_key == 'primary':
-            if platform_name == 'OSX':
+            if platform == osx_platform_code:
                 modifier_code |= ModifierKeyBits.COMMAND
             else:
                 modifier_code |= ModifierKeyBits.CTRL

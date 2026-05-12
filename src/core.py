@@ -391,7 +391,7 @@ _cfg_on_settings_chgd_listener_id        = '_kbr_settings_changed_tag'
 # Package Settings Names (most are used multiple times throughout this Plugin)
 _cfg_stg_name__debugging                 = 'debugging'
 _cfg_stg_name__rst_container_class       = 'rst_container_class'
-_cfg_stg_name__output_directory          = 'output_directory'
+_cfg_stg_name__output_directory_windows          = 'output_directory_windows'
 _cfg_stg_name__timestamp_strftime_format = 'timestamp_strftime_format'
 
 
@@ -424,13 +424,13 @@ def kbr_setting(setting_name: str):
 # *************************************************************************
 
 kbr_setting.default = {
-    _cfg_stg_name__output_directory         : "",
+    _cfg_stg_name__output_directory_windows         : "",
     _cfg_stg_name__rst_container_class      : "",
     _cfg_stg_name__timestamp_strftime_format: "%Y-%m-%d %H:%M",
     _cfg_stg_name__debugging                : False,
 }
 
-setting__output_directory          = kbr_setting.default[_cfg_stg_name__output_directory]
+setting__output_directory_windows          = kbr_setting.default[_cfg_stg_name__output_directory_windows]
 setting__rst_container_class       = kbr_setting.default[_cfg_stg_name__rst_container_class]
 setting__timestamp_strftime_format = kbr_setting.default[_cfg_stg_name__timestamp_strftime_format]
 setting__debugging                 = kbr_setting.default[_cfg_stg_name__debugging]
@@ -478,11 +478,11 @@ def _on_pkg_settings_chgd():
     if debugging:
         print(f'In _on_pkg_settings_chgd()')
 
-    global setting__output_directory
+    global setting__output_directory_windows
     global setting__rst_container_class
     global setting__timestamp_strftime_format
     global setting__debugging
-    setting__output_directory          = kbr_setting(_cfg_stg_name__output_directory)
+    setting__output_directory_windows  = kbr_setting(_cfg_stg_name__output_directory_windows)
     setting__rst_container_class       = kbr_setting(_cfg_stg_name__rst_container_class)
     setting__timestamp_strftime_format = kbr_setting(_cfg_stg_name__timestamp_strftime_format)
     setting__debugging                 = kbr_setting(_cfg_stg_name__debugging)

@@ -28,7 +28,7 @@ _flags_format_spec_hex = '#04x'
 
 def _table_key(fmt: ascii_table.Format, include_win_key: bool = False) -> str:
     parts = []
-    win_key = (( include_win_key and data.platform_name != 'OSX' ))
+    win_key = (( include_win_key and data.platform != data.osx_platform_code ))
 
     if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
         """
@@ -72,7 +72,7 @@ def _table_and_footnotes(
         print(f'  {fmt=}')
         print(f'  {fmt=}')
 
-    incl_win_key = (( data.platform_name == 'OSX' or bool(flags & output.FlagBits.INCLUDE_WINDOWS_KEY) ))
+    incl_win_key = (( data.platform == data.osx_platform_code or bool(flags & output.FlagBits.INCLUDE_WINDOWS_KEY) ))
     restructuredtext = (( fmt == ascii_table.Format.RESTRUCTUREDTEXT ))
 
     asc_tbl = ascii_table.AsciiTable(table)
@@ -138,12 +138,12 @@ def _table_and_footnotes(
 
     content = '\n'.join(parts)
 
-    if core.setting__output_directory and (flags & output.FlagBits.OUTPUT_TO_FILES):
+    if core.setting__output_directory_windows and (flags & output.FlagBits.OUTPUT_TO_FILES):
         key_group_file_name = data.key_group_file_names[key_group_idx]
         var_str = '{$leading_keypress}'
         if lead_keypr and var_str in key_group_file_name:
             key_group_file_name = key_group_file_name.replace(var_str, lead_keypr.replace('+', '-'))
-        output_path = os.path.join(core.setting__output_directory, key_group_file_name)
+        output_path = os.path.join(core.setting__output_directory_windows, key_group_file_name)
 
         try:
             if debugging:
