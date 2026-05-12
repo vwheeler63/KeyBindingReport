@@ -1,8 +1,68 @@
 // Place your settings in the file "Packages/User/ProComment.sublime-settings",
 // which overrides the settings in here.
 {
-	// String | Integer | Boolean
+	// --------------------------------------------------------------------
+	// String.  Path to output directory.
+	// --------------------------------------------------------------------
+	// If you would like these reports to output to file(s) in addition to on
+	// screen when the `output.FlagBits.OUTPUT_TO_FILES` bit is passed as one
+	// of the `flags` bits to the command, set this setting to the path to
+	// the directory to use in your platform-native syntax.  If existing
+	// files are there, they are silently overwritten. They contain the exact
+	// content of the screen report coded in UTF-8, in the requested format.
 	//
+	// The reports that have the following partial names in the report name
+	// have this capability:
+	//
+	// Name                        File Name Written
+	// -------------------------   -------------------------------
+	// Number Keys                 number_keys.txt
+	// Letter Keys                 letter_keys.txt
+	// Function Keys               function_keys.txt
+	// Symbol Keys                 symbol_keys.txt
+	// Named Keys                  named_keys.txt
+	// Keypad Keys                 keypad_keys.txt
+	// Multi-Keypress Bindings     multi-keypress_{$leading_keypress}.txt
+	// Single-Keypress Bindings    single-keypress.txt
+	//                               or the individual file names above
+	//                               if separate tables are requested.
+	"output_directory": "",
+
+	// --------------------------------------------------------------------
+	// String.  reStructuredText Container Name
+	// --------------------------------------------------------------------
+	// If not an empty string, when key-binding tables are output in
+	// reStructuredText format, they will be prefixed by this directive
+	// and the tables will be indented 4 spaces below the directive.
+	//
+	// .. container:  your_string_here
+	//
+	// Example:
+	// --------
+	// .. container:  tighter-table-6
+	//
+	// In this example, the CSS class "tighter-table-6" is used in
+	// formatting the final Sphinx or Docutils output.
+	"rst_container_name": "",
+
+	// --------------------------------------------------------------------
+	// String.  Format String for Report Timestamps
+	// --------------------------------------------------------------------
+	// Timestamped comment blocks look like this:
+	//
+	//     2025-05-14 20:55
+	//
+	// This setting holds the string passed to
+	// `datetime.datetime.now().strftime()` to get the timestamp string.  See
+	// https://docs.python.org/3.12/library/datetime.html#strftime-and-strptime-format-codes
+	// for a table of the applicable format codes.  Examples:
+	// "%Y-%m-%d %H:%M" => 2025-05-22 17:31
+	// "%d-%b-%Y %H:%M" => 22-May-2025 17:31
+	"timestamp_strftime_format": "%Y-%m-%d %H:%M",
+
+	// --------------------------------------------------------------------
+	// String | Integer | Boolean
+	// --------------------------------------------------------------------
 	// Selectively turn on and off parts of debugging output in Console Panel.
 	//
 	// Valid values:
@@ -31,7 +91,7 @@
 	// BUILDING_MAIN_KEY_DICT   = 0x020000
 	// BUILDING_KEY_SEQ_DICT    = 0x040000
 	// OUTPUT                   = 0x080000
-
+	//
 	// # ---------------------------------------------------------------------
 	// # Load/Reload/Import-Time Bits
 	// # ---------------------------------------------------------------------
@@ -48,7 +108,7 @@
 	// # ---------------------------------------------------------------------
 	// LOADING_CONTEXT_ENV    = 0x400000
 	// IMPORTING              = 0x800000
-
+	//
 	// # ---------------------------------------------------------------------
 	// # Utility Bits
 	// # ---------------------------------------------------------------------

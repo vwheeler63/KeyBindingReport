@@ -390,6 +390,9 @@ _cfg_on_settings_chgd_listener_id        = '_kbr_settings_changed_tag'
 
 # Package Settings Names (most are used multiple times throughout this Plugin)
 _cfg_stg_name__debugging                 = 'debugging'
+_cfg_stg_name__rst_container_name        = 'rst_container_name'
+_cfg_stg_name__output_directory          = 'output_directory'
+_cfg_stg_name__timestamp_strftime_format = 'timestamp_strftime_format'
 
 
 
@@ -421,8 +424,16 @@ def kbr_setting(setting_name: str):
 # *************************************************************************
 
 kbr_setting.default = {
-    _cfg_stg_name__debugging: False
+    _cfg_stg_name__output_directory         : "",
+    _cfg_stg_name__rst_container_name       : "",
+    _cfg_stg_name__timestamp_strftime_format: "%Y-%m-%d %H:%M",
+    _cfg_stg_name__debugging                : False,
 }
+
+setting__output_directory          = kbr_setting.default[_cfg_stg_name__output_directory]
+setting__rst_container_name        = kbr_setting.default[_cfg_stg_name__rst_container_name]
+setting__timestamp_strftime_format = kbr_setting.default[_cfg_stg_name__timestamp_strftime_format]
+setting__debugging                 = kbr_setting.default[_cfg_stg_name__debugging]
 
 
 
@@ -433,7 +444,7 @@ kbr_setting.default = {
 def timestamp() -> str:
     """ Universal timestamp; used in some Package debug output. """
     now = datetime.now()
-    fmt = '%Y-%m-%d %H:%M'
+    fmt = kbr_setting(_cfg_stg_name__timestamp_strftime_format)
     return now.strftime(fmt)
 
 
@@ -461,11 +472,21 @@ def _on_pkg_settings_chgd():
     kbr_setting.obj = sublime.load_settings(_cfg_pkg_settings_file)
 
     # Initialize debugging subsystem.
-    temp = kbr_setting(_cfg_stg_name__debugging)
-    set_debugging_bits(temp)
+    bit_val = kbr_setting(_cfg_stg_name__debugging)
+    set_debugging_bits(bit_val)
     debugging = is_debugging(DebugBits.SETTINGS_CHANGED_EVENT)
     if debugging:
         print(f'In _on_pkg_settings_chgd()')
+
+    global setting__output_directory
+    global setting__rst_container_name
+    global setting__timestamp_strftime_format
+    global setting__debugging
+    setting__output_directory          = kbr_setting(_cfg_stg_name__output_directory)
+    setting__rst_container_name        = kbr_setting(_cfg_stg_name__rst_container_name)
+    setting__timestamp_strftime_format = kbr_setting(_cfg_stg_name__timestamp_strftime_format)
+    setting__debugging                 = kbr_setting(_cfg_stg_name__debugging)
+
 
 
 def on_plugin_loaded():
