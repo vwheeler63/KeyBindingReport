@@ -82,6 +82,7 @@
 	//     INCLUDE_WINDOWS_KEY               = 0x0040  #    64
 	//     SEPARATE_TABLES_BY_KEY_GROUPS     = 0x0080  #   128
 	//     OUTPUT_TO_FILES                   = 0x0100  #   256
+	//     ALL_PLATFORMS                     = 0x0200  #   512
 	//
 	//     # Utility Bits
 	//     ANY_CONTEXT_REQUESTED             = 0x0002 | 0x0004  # 6

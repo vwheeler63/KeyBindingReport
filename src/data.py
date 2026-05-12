@@ -171,6 +171,9 @@ del i, count, grp, key_name
 # Data
 # *************************************************************************
 
+# -------------------------------------------------------------------------
+# Platform-Related
+# -------------------------------------------------------------------------
 platform               = sublime.platform()
 platform_name          = ''
 platform_name_w_parens = ''
@@ -203,6 +206,8 @@ def set_platform(platform_code: str):
     global shift_key_name
     global modifier_key_names_by_modifier_code_bit
 
+    debugging = is_debugging(DebugBits.PLATFORM)
+
     platform = platform_code
 
     platform_name = {
@@ -223,6 +228,13 @@ def set_platform(platform_code: str):
         ctrl_key_name  = 'Ctrl'
         shift_col_hdg  = 'S'
         shift_key_name = 'Shift'
+
+        modifier_key_names_by_modifier_code_bit = {
+            ModifierKeyBits.SHIFT:   'Shift',
+            ModifierKeyBits.CTRL:    'Ctrl',
+            ModifierKeyBits.ALT:     'Option',
+            ModifierKeyBits.COMMAND: 'Command',
+        }
     else:
         cmd_col_hdg    = 'W'
         cmd_key_name   = '⊞ Windows'
@@ -233,20 +245,24 @@ def set_platform(platform_code: str):
         shift_col_hdg  = 'S'
         shift_key_name = 'Shift'
 
-    if platform == osx_platform_code:
-        modifier_key_names_by_modifier_code_bit = {
-            ModifierKeyBits.SHIFT:   'Shift',
-            ModifierKeyBits.CTRL:    'Ctrl',
-            ModifierKeyBits.ALT:     'Option',
-            ModifierKeyBits.COMMAND: 'Command',
-        }
-    else:
         modifier_key_names_by_modifier_code_bit = {
             ModifierKeyBits.SHIFT:   'Shift',
             ModifierKeyBits.CTRL:    'Ctrl',
             ModifierKeyBits.ALT:     'Alt',
             ModifierKeyBits.COMMAND: '⌘',
         }
+
+
+def simulate_windows_platform():
+    set_platform(windows_platform_code)
+
+
+def simulate_linux_platform():
+    set_platform(linux_platform_code)
+
+
+def simulate_osx_platform():
+    set_platform(osx_platform_code)
 
 
 def set_current_platform():

@@ -211,6 +211,7 @@ class DebugBits(IntFlag):
     BUILDING_MAIN_KEY_DICT   = 0x00020000
     BUILDING_KEY_SEQ_DICT    = 0x00040000
     OUTPUT                   = 0x00080000
+    PLATFORM                 = 0x00100000
 
     # ---------------------------------------------------------------------
     # Load/Reload/Import-Time Bits

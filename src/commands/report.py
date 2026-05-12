@@ -27,7 +27,6 @@ _report_short_title = 'Key-Binding Report'
 
 def _table_key(fmt: ascii_table.Format, include_win_key: bool = False) -> str:
     parts = []
-    win_key = (( include_win_key and data.platform != data.osx_platform_code ))
 
     if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
         """
@@ -47,14 +46,14 @@ def _table_key(fmt: ascii_table.Format, include_win_key: bool = False) -> str:
         parts.append(f'{indent}.. parsed-literal::')
         parts.append('')
         parts.append(f'{indent2}**Key:**')
-        if win_key:
+        if include_win_key:
             parts.append(f'{indent2}  {data.cmd_col_hdg} = {data.cmd_key_name}')
         parts.append(    f'{indent2}  {data.alt_col_hdg} = {data.alt_key_name}')
         parts.append(    f'{indent2}  {data.ctrl_col_hdg} = {data.ctrl_key_name}')
         parts.append(    f'{indent2}  {data.shift_col_hdg} = {data.shift_key_name}')
     else:
         parts.append('Key:')
-        if win_key:
+        if include_win_key:
             parts.append(f'  {data.cmd_col_hdg} = {data.cmd_key_name}')
         parts.append(    f'  {data.alt_col_hdg} = {data.alt_key_name}')
         parts.append(    f'  {data.ctrl_col_hdg} = {data.ctrl_key_name}')
@@ -72,16 +71,19 @@ def _table_and_footnotes(
         debugging    : int,
         lead_keypr   : str | None = None,
         ) -> str:
-    if debugging:
-        print('In _table_and_footnotes()....')
-        print(f'  {fmt=}')
-        print(f'  {flags=}')
-        print(f'  {fmt=}')
-        print(f'  {fmt=}')
+    # if debugging:
+    #     print('In _table_and_footnotes()....')
+    #     print(f'  {fmt=}')
+    #     print(f'  {flags=}')
+    #     print(f'  {fmt=}')
+    #     print(f'  {fmt=}')
 
-    incl_win_key = (( data.platform == data.osx_platform_code or bool(flags & output.FlagBits.INCLUDE_WINDOWS_KEY) ))
+    incl_win_key = output.include_windows_key(flags)
     restructuredtext = (( fmt == ascii_table.Format.RESTRUCTUREDTEXT ))
 
+    # ---------------------------------------------------------------------
+    # Set up AsciiTable for output.
+    # ---------------------------------------------------------------------
     asc_tbl = ascii_table.AsciiTable(table)
 
     # Prep column specs.
@@ -112,6 +114,9 @@ def _table_and_footnotes(
     if fmt != ascii_table.Format.RESTRUCTUREDTEXT:
         asc_tbl.set_tight_columns(tight_col_specs)
 
+    # ---------------------------------------------------------------------
+    # Build table key, table and footnotes => ``content``.
+    # ---------------------------------------------------------------------
     table_key = _table_key(fmt, incl_win_key)
     parts = []
 
@@ -145,22 +150,33 @@ def _table_and_footnotes(
 
     content = '\n'.join(parts)
 
-    if core.setting__output_directory_windows and (flags & output.FlagBits.OUTPUT_TO_FILES):
+    # ---------------------------------------------------------------------
+    # Output to file(s) if requested.
+    # ---------------------------------------------------------------------
+    output_dir = ''
+    if data.platform == data.windows_platform_code:
+        output_dir = core.setting__output_directory_windows
+    if data.platform == data.linux_platform_code:
+        output_dir = core.setting__output_directory_linux
+    if data.platform == data.osx_platform_code:
+        output_dir = core.setting__output_directory_osx
+
+    if output_dir and (flags & output.FlagBits.OUTPUT_TO_FILES):
         key_group_file_name = data.key_group_file_names[key_group_idx]
         var_str = '{$leading_keypress}'
         if lead_keypr and var_str in key_group_file_name:
             key_group_file_name = key_group_file_name.replace(var_str, lead_keypr.replace('+', '-'))
-        output_path = os.path.join(core.setting__output_directory_windows, key_group_file_name)
+        output_path = os.path.join(output_dir, key_group_file_name)
 
         try:
             if debugging:
-                print(f'  Attempting to open for writing [{output_path}]....')
+                print(f'    Writing [{output_path}]... ', end='')
             with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(content)
             if debugging:
-                print('  Success.')
+                print('OK.')
         except Exception as e:
-            print(f'Opening {output_path} for writing failed: {e}')
+            print(f'    Writing to [{output_path}] failed: {e}')
 
     return content
 
@@ -168,6 +184,176 @@ def _table_and_footnotes(
 def _key_sequence_table_title(keypress_str: str) -> str:
     # Example:  'ctrl+k'
     return 'Leading Key:  ' + keypress_str.replace('+', '-').title()
+
+
+def _generate_report(
+        self,
+        edit             : sublime.Edit,
+        key_groups       : Iterable[data.KeyGroup] | None,
+        key_names        : Iterable[str]           | None,
+        keypress_list    : Iterable[Iterable[str]] | None,
+        limit_to_packages: Iterable[str]           | None,
+        limit_to_context : bool,
+        fmt              : ascii_table.Format,
+        flags            : output.FlagBits,
+        debugging        : int
+        ) -> tuple[datetime, datetime, datetime, datetime]:
+    """
+    Do work for KeyBindingReportCommand, so that the command itself can
+    iterate calling this repeatedly to fulfil the new ALL_PLATFORMS flag.
+    """
+    t0 = datetime.now()
+    view = self.view
+    key_data = data.KeyBindingData()
+
+    if limit_to_context:
+        rpt_gen_view = self.view
+    else:
+        rpt_gen_view = None
+
+    key_data.generate(key_groups, key_names, keypress_list, limit_to_packages, rpt_gen_view)
+    t1 = datetime.now()
+
+    # TODO: rmv after testing.
+    # Write verification/validation files.
+    main_key_path = r'r:\by_main_key.txt'
+    key_seq_path  = r'r:\by_key_seq.txt'
+    key_data.dump_to_files(main_key_path, key_seq_path)
+    t2 = datetime.now()
+
+    # =================================================================
+    # Generate report.
+    # =================================================================
+    last_footnote_num = 0
+
+    if flags & output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS:
+        note = 'Keypresses with empty Commands are not bound.'
+    else:
+        note = ''
+
+    # -----------------------------------------------------------------
+    # Heading
+    # -----------------------------------------------------------------
+    content_parts = []
+    content_parts.append(output.report_heading(_report_title, note))
+    content_parts.append('')
+    content_parts.append(
+            output.report_specification(
+                    key_groups,
+                    key_names,
+                    keypress_list,
+                    limit_to_packages,
+                    limit_to_context,
+                    fmt,
+                    flags
+                    )
+            )
+
+    # -----------------------------------------------------------------
+    # Add Main-Key table parts.
+    # -----------------------------------------------------------------
+    out = output.KeyBindingOutput(key_data)
+    out.set_comments_column_width(60)
+
+    if flags & output.FlagBits.SEPARATE_TABLES_BY_KEY_GROUPS:
+        table_pkg_list = out.main_key_tables(flags, fmt, last_footnote_num)
+        #     list[tuple] (table_pkg) each tuple containing:
+        #         (key_group_idx, table, footnotes, last_footnote_num)
+
+        if table_pkg_list:
+            plural_suffix = 's' if len(table_pkg_list) > 1 else ''
+            heading = f'Single-Keypress Table{plural_suffix}'
+            content_parts.append(output.section_heading(heading, '*'))
+
+            for key_group_idx, table, footnotes, last_footnote_num in table_pkg_list:
+                if table:
+                    heading = data.key_group_names[key_group_idx]
+                    content_parts.append(output.section_heading(heading, '='))
+                    content_parts.append('')
+
+                    tbl_and_footnotes = _table_and_footnotes(
+                            key_group_idx,
+                            table,
+                            footnotes,
+                            fmt,
+                            flags,
+                            debugging,
+                            None   # lead_keypr
+                            )
+
+                    content_parts.append(tbl_and_footnotes)
+
+    else:
+        table, footnotes, last_footnote_num = \
+                out.main_key_table(flags, fmt, last_footnote_num)
+
+        if table:
+            heading = 'Single-Keypress Table'
+            content_parts.append(output.section_heading(heading, '*'))
+            content_parts.append('')
+
+            tbl_and_footnotes = _table_and_footnotes(
+                    data.KeyGroup.ALL,  # All in 1 table
+                    table,
+                    footnotes,
+                    fmt,
+                    flags,
+                    debugging,
+                    None                # lead_keypr
+                    )
+
+            content_parts.append(tbl_and_footnotes)
+
+    # -----------------------------------------------------------------
+    # Add Key-Sequence table(s) parts.
+    # -----------------------------------------------------------------
+    table_pkg_list = out.key_seq_tables(flags, fmt, last_footnote_num)
+    #     list[tuple] (table_pkg) each tuple containing:
+    #         (lead_keypr_str, table, footnotes, last_footnote_num)
+
+    if table_pkg_list:
+        plural_suffix = 's' if len(table_pkg_list) > 1 else ''
+        heading = f'Multi-Keypress Table{plural_suffix}'
+        content_parts.append(output.section_heading(heading, '*'))
+
+        for lead_keypr_str, table, footnotes, last_footnote_num in table_pkg_list:
+            if table:
+                heading = _key_sequence_table_title(lead_keypr_str)
+                content_parts.append(output.section_heading(heading, '='))
+                content_parts.append('')
+
+                tbl_and_footnotes = _table_and_footnotes(
+                        data.KeyGroup.KEY_SEQUENCES,
+                        table,
+                        footnotes,
+                        fmt,
+                        flags,
+                        debugging,
+                        lead_keypr_str
+                        )
+
+                content_parts.append(tbl_and_footnotes)
+
+
+    # This leaves `last_footnote_num` containing the last-used footnote
+    # number in case we should need to add more content below.
+
+    # -----------------------------------------------------------------
+    # Finally, assemble parts into 1 string, and push to report View.
+    # -----------------------------------------------------------------
+    content = '\n'.join(content_parts)
+
+    rpt_view = output_view.output_to_view(
+            None,
+            _report_short_title,
+            content,
+            current_view=view
+            )
+
+    rpt_view.window().bring_to_front()
+    t3 = datetime.now()
+
+    return t0, t1, t2, t3
 
 
 class KeyBindingReportCommand(sublime_plugin.TextCommand):
@@ -296,6 +482,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                 //     INCLUDE_WINDOWS_KEY               = 0x0040  #    64
                 //     SEPARATE_TABLES_BY_KEY_GROUPS     = 0x0080  #   128
                 //     OUTPUT_TO_FILES                   = 0x0100  #   256
+                //     ALL_PLATFORMS                     = 0x0200  #   512
                 //
                 //     # Utility Bits
                 //     ANY_CONTEXT_REQUESTED             = 0x0002 | 0x0004  # 6
@@ -336,168 +523,79 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         """
         debugging = is_debugging(DebugBits.KEY_BINDING_REPORT)
         if debugging:
-            print('>\n>\n>\n>')
-            print('In KeyBindingReportCommand.run()...')
-            print(f'  {key_groups=}')
-            print(f'  {key_names=}')
-            print(f'  {keypress_list=}')
-            print(f'  {limit_to_packages=}')
-            print(f'  {limit_to_context=}')
-            print(f'  {fmt=}')
-            print(f'  flags=0x{flags:{output.flags_format_spec_hex}}')
+            print('In KeyBindingReportCommand.run()....')
+            print( output.report_specification(
+                    key_groups,
+                    key_names,
+                    keypress_list,
+                    limit_to_packages,
+                    limit_to_context,
+                    fmt,
+                    flags,
+                    indent_level = 1
+                    )
+                 )
+            # print(f'  {key_groups=}')
+            # print(f'  {key_names=}')
+            # print(f'  {keypress_list=}')
+            # print(f'  {limit_to_packages=}')
+            # print(f'  {limit_to_context=}')
+            # print(f'  {fmt=}')
+            # print(f'  flags=0x{flags:{output.flags_format_spec_hex}}')
 
-        t0 = datetime.now()
-        view = self.view
-        key_data = data.KeyBindingData()
+        if flags & output.FlagBits.ALL_PLATFORMS:
+            # Run once for each platform.
+            platform_code_tuple = (
+                    data.windows_platform_code,
+                    data.linux_platform_code,
+                    data.osx_platform_code
+                    )
 
-        if limit_to_context:
-            rpt_gen_view = self.view
-        else:
-            rpt_gen_view = None
+            for platform_code in platform_code_tuple:
+                data.set_platform(platform_code)
 
-        key_data.generate(key_groups, key_names, keypress_list, limit_to_packages, rpt_gen_view)
-        t1 = datetime.now()
+                if debugging:
+                    print(f'  Running for platform [{data.platform_name}]....')
 
-        # TODO: rmv after testing.
-        # Write verification/validation files.
-        main_key_path = r'r:\by_main_key.txt'
-        key_seq_path  = r'r:\by_key_seq.txt'
-        key_data.dump_to_files(main_key_path, key_seq_path)
-        t2 = datetime.now()
-
-        # =================================================================
-        # Generate report.
-        # =================================================================
-        last_footnote_num = 0
-
-        if flags & output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS:
-            note = 'Keypresses with empty Commands are not bound.'
-        else:
-            note = ''
-
-        # -----------------------------------------------------------------
-        # Heading
-        # -----------------------------------------------------------------
-        content_parts = []
-        content_parts.append(output.report_heading(_report_title, note))
-        content_parts.append('')
-        content_parts.append(
-                output.report_specification(
+                t0, t1, t2, t3 = _generate_report(
+                        self,
+                        edit,
                         key_groups,
                         key_names,
                         keypress_list,
                         limit_to_packages,
                         limit_to_context,
                         fmt,
-                        flags
+                        flags,
+                        debugging
                         )
-                )
 
-        # -----------------------------------------------------------------
-        # Add Main-Key table parts.
-        # -----------------------------------------------------------------
-        out = output.KeyBindingOutput(key_data)
-        out.set_comments_column_width(60)
+                if debugging:
+                    print('    Time to generate data structures: ', str(t1 - t0))
+                    print('    Time to write files             : ', str(t2 - t1))
+                    print('    Time to generate report         : ', str(t3 - t2))
+                    print('    Total                           : ', str(t3 - t0))
 
-        if flags & output.FlagBits.SEPARATE_TABLES_BY_KEY_GROUPS:
-            table_pkg_list = out.main_key_tables(flags, fmt, last_footnote_num)
-            #     list[tuple] (table_pkg) each tuple containing:
-            #         (key_group_idx, table, footnotes, last_footnote_num)
-
-            if table_pkg_list:
-                plural_suffix = 's' if len(table_pkg_list) > 1 else ''
-                heading = f'Single-Keypress Table{plural_suffix}'
-                content_parts.append(output.section_heading(heading, '*'))
-
-                for key_group_idx, table, footnotes, last_footnote_num in table_pkg_list:
-                    if table:
-                        heading = data.key_group_names[key_group_idx]
-                        content_parts.append(output.section_heading(heading, '='))
-                        content_parts.append('')
-
-                        tbl_and_footnotes = _table_and_footnotes(
-                                key_group_idx,
-                                table,
-                                footnotes,
-                                fmt,
-                                flags,
-                                debugging,
-                                None   # lead_keypr
-                                )
-
-                        content_parts.append(tbl_and_footnotes)
+            # Finally, set back to normal platform again.
+            data.set_current_platform()
 
         else:
-            table, footnotes, last_footnote_num = \
-                    out.main_key_table(flags, fmt, last_footnote_num)
+            # Just run once.
+            t0, t1, t2, t3 = _generate_report(
+                    self,
+                    edit,
+                    key_groups,
+                    key_names,
+                    keypress_list,
+                    limit_to_packages,
+                    limit_to_context,
+                    fmt,
+                    flags,
+                    debugging
+                    )
 
-            if table:
-                heading = 'Single-Keypress Table'
-                content_parts.append(output.section_heading(heading, '*'))
-                content_parts.append('')
-
-                tbl_and_footnotes = _table_and_footnotes(
-                        data.KeyGroup.ALL,  # All in 1 table
-                        table,
-                        footnotes,
-                        fmt,
-                        flags,
-                        debugging,
-                        None                # lead_keypr
-                        )
-
-                content_parts.append(tbl_and_footnotes)
-
-        # -----------------------------------------------------------------
-        # Add Key-Sequence table(s) parts.
-        # -----------------------------------------------------------------
-        table_pkg_list = out.key_seq_tables(flags, fmt, last_footnote_num)
-        #     list[tuple] (table_pkg) each tuple containing:
-        #         (lead_keypr_str, table, footnotes, last_footnote_num)
-
-        if table_pkg_list:
-            plural_suffix = 's' if len(table_pkg_list) > 1 else ''
-            heading = f'Multi-Keypress Table{plural_suffix}'
-            content_parts.append(output.section_heading(heading, '*'))
-
-            for lead_keypr_str, table, footnotes, last_footnote_num in table_pkg_list:
-                if table:
-                    heading = _key_sequence_table_title(lead_keypr_str)
-                    content_parts.append(output.section_heading(heading, '='))
-                    content_parts.append('')
-
-                    tbl_and_footnotes = _table_and_footnotes(
-                            data.KeyGroup.KEY_SEQUENCES,
-                            table,
-                            footnotes,
-                            fmt,
-                            flags,
-                            debugging,
-                            lead_keypr_str
-                            )
-
-                    content_parts.append(tbl_and_footnotes)
-
-
-        # This leaves `last_footnote_num` containing the last-used footnote
-        # number in case we should need to add more content below.
-
-        # -----------------------------------------------------------------
-        # Finally, assemble parts into 1 string, and push to report View.
-        # -----------------------------------------------------------------
-        content = '\n'.join(content_parts)
-
-        rpt_view = output_view.output_to_view(
-                None,
-                _report_short_title,
-                content,
-                current_view=view
-                )
-
-        rpt_view.window().bring_to_front()
-        t3 = datetime.now()
-
-        print('Time to generate data structures: ', str(t1 - t0))
-        print('Time to write files             : ', str(t2 - t1))
-        print('Time to generate report         : ', str(t3 - t2))
-        print('Total                           : ', str(t3 - t0))
+            if debugging:
+                print('  Time to generate data structures: ', str(t1 - t0))
+                print('  Time to write files             : ', str(t2 - t1))
+                print('  Time to generate report         : ', str(t3 - t2))
+                print('  Total                           : ', str(t3 - t0))

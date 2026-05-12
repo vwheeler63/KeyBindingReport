@@ -91,6 +91,26 @@ flags_format_spec_hex = '04X'
 # Constants
 # *************************************************************************
 
+class FlagBits(IntFlag):
+    # Output Flags
+    INCLUDE_UNBOUND_KEY_COMBINATIONS  = 0x0001  #     1
+    INCLUDE_UNTRANSLATED_CONTEXTS     = 0x0002  #     2
+    INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0x0004  #     4
+    ADD_SOURCE_COLUMN                 = 0x0008  #     8
+    ADD_COMMENTS_COLUMN               = 0x0010  #    16
+    TABLE_KEY_AFTER_TABLE             = 0x0020  #    32
+    INCLUDE_WINDOWS_KEY               = 0x0040  #    64
+    SEPARATE_TABLES_BY_KEY_GROUPS     = 0x0080  #   128
+    OUTPUT_TO_FILES                   = 0x0100  #   256
+    ALL_PLATFORMS                     = 0x0200  #   512
+
+    # Utility Bits
+    ANY_CONTEXT_REQUESTED             = 0x0002 | 0x0004  # 6
+    NONE                              = 0x0000  #     0
+    ALL                               = 0xFFFF  # 65535
+    ANY                               = 0xFFFF  # 65535
+
+
 _rst_chars_to_escape_in_table = [
     '\\',  # Otherwise, lone '\' escapes the space ahead of it.
     '`',   # Otherwise Docutils tries to start a default interpreted-text role.
@@ -229,6 +249,13 @@ def rst_table_args_str(args_str: str) -> str:
     return result
 
 
+def include_windows_key(flags: FlagBits):
+    return ((
+            (data.platform == data.osx_platform_code)
+            or bool(flags & FlagBits.INCLUDE_WINDOWS_KEY)
+            ))
+
+
 
 # *************************************************************************
 # Function Definitions
@@ -239,25 +266,6 @@ def rst_table_args_str(args_str: str) -> str:
 # *************************************************************************
 # Classes
 # *************************************************************************
-
-class FlagBits(IntFlag):
-    # Output Flags
-    INCLUDE_UNBOUND_KEY_COMBINATIONS  = 0x0001  #     1
-    INCLUDE_UNTRANSLATED_CONTEXTS     = 0x0002  #     2
-    INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0x0004  #     4
-    ADD_SOURCE_COLUMN                 = 0x0008  #     8
-    ADD_COMMENTS_COLUMN               = 0x0010  #    16
-    TABLE_KEY_AFTER_TABLE             = 0x0020  #    32
-    INCLUDE_WINDOWS_KEY               = 0x0040  #    64
-    SEPARATE_TABLES_BY_KEY_GROUPS     = 0x0080  #   128
-    OUTPUT_TO_FILES                   = 0x0100  #   256
-
-    # Utility Bits
-    ANY_CONTEXT_REQUESTED             = 0x0002 | 0x0004  # 6
-    NONE                              = 0x0000  #     0
-    ALL                               = 0xFFFF  # 65535
-    ANY                               = 0xFFFF  # 65535
-
 
 class Footnote:
     """ Containers for key-binding table footnotes """
@@ -357,7 +365,7 @@ class KeyBindingOutput:
         self.comments_column_width = max(1, width)   # Non-negative only.
 
     def _heading_row(self, flags: FlagBits) -> list[str]:
-        if flags & FlagBits.INCLUDE_WINDOWS_KEY:
+        if include_windows_key(flags):
             effective_min_col_count = self.min_column_count
 
             result = [
@@ -407,10 +415,7 @@ class KeyBindingOutput:
         footnote_num = prev_footnote_num
 
         if binding_list:
-            include_win_key = ((
-                    bool(flags & FlagBits.INCLUDE_WINDOWS_KEY)
-                    and data.platform != data.osx_platform_code
-                    ))
+            include_win_key = include_windows_key(flags)
 
             for binding in binding_list:
                 if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
@@ -470,10 +475,8 @@ class KeyBindingOutput:
             flags              : FlagBits,
             fmt                : ascii_table.Format,
             ):
-        include_win_key = ((
-                bool(flags & FlagBits.INCLUDE_WINDOWS_KEY)
-                and data.platform != data.osx_platform_code
-                ))
+        include_win_key = include_windows_key(flags)
+
         space = ' '
 
         if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
