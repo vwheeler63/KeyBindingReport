@@ -24,7 +24,7 @@ class AsciiTable():
             'debugging'
             ]
 
-    def __init__(self, table: list[Sequence[str]]):
+    def __init__(self, table: list[list[str]]):
         if table is None:
             msg = '`table` must be a list of iterables elements.  Got `None` instead.'
             raise AssertionError(msg)
@@ -58,7 +58,7 @@ class AsciiTable():
         self.column_alignments = [''] * self.column_count
         self.tight_columns = [False] * self.column_count
 
-    def set_column_alignments(self, alignment_list: Sequence[str]):
+    def set_column_alignments(self, alignment_list: list[str]):
         """
         Align Specifiers
         ----------------
@@ -78,7 +78,7 @@ class AsciiTable():
             raise AssertionError(msg)
         self.column_alignments = alignment_list
 
-    def set_tight_columns(self, tight_col_list: Sequence[bool]):
+    def set_tight_columns(self, tight_col_list: list[bool]):
         """
         Set whether each column is considered "tight".
 
@@ -90,7 +90,7 @@ class AsciiTable():
         self.tight_columns = tight_col_list
 
     def as_string(self, fmt: Format):
-        self.debugging = False
+        self.debugging = True
         if self.debugging:
             print(f'In {self.__class__.__name__}.as_string()....')
             print(f'  {fmt                    = }')
@@ -260,8 +260,8 @@ class AsciiTable():
         """
         lines = []
         line_parts = []
-        row_sep = self._single_line_row_separator()
-        title_sep = self._double_line_row_separator()
+        row_sep = self._single_line_row_separator(True)
+        title_sep = self._double_line_row_separator(True)
 
         lines.append(row_sep)
 
@@ -310,7 +310,7 @@ if __name__ == '__main__':
         rows.append(fields)
 
     # ---------------------------------------------------------------------
-    # ``rows`` is now a list[Sequence[str]] needed by ``AsciiTable``.
+    # ``rows`` is now a list[list[str]] needed by ``AsciiTable``.
     # ---------------------------------------------------------------------
     table = AsciiTable(rows)
     # table.set_column_alignments(['', '^', '^', '^'])
