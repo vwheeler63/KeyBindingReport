@@ -74,6 +74,16 @@
 		},
 	},
 	{
+		"caption": "KeyBindingReport: All Keypress Combinations in Default Package (Separate Tables)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [-2],
+			"fmt": 1,
+			"flags": 139,
+		},
+	},
+	{
 		"caption": "KeyBindingReport: Keypress Sequences in Default Package",
 		"command": "key_binding_report",
 		"args": {
@@ -154,6 +164,15 @@
 		},
 	},
 	{
+		"caption": "KeyBindingReport: All Keypress Combinations for All Installed Packages (Separate Tables)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [-2],
+			"fmt": 1,
+			"flags": 139,
+		},
+	},
+	{
 		"caption": "KeyBindingReport: Key Sequences for All Installed Packages",
 		"command": "key_binding_report",
 		"args": {
@@ -228,6 +247,16 @@
 			"key_groups": [-2],
 			"fmt": 3,
 			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: All Keypress Combinations in Default Package (reStructuredText) (Separate Tables)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [-2],
+			"fmt": 3,
+			"flags": 139,
 		},
 	},
 	{
@@ -308,6 +337,15 @@
 			"key_groups": [-2],
 			"fmt": 3,
 			"flags": 11,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: All Keypress Combinations for All Installed Packages (reStructuredText) (Separate Tables)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [-2],
+			"fmt": 3,
+			"flags": 139,
 		},
 	},
 	{

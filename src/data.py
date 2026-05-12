@@ -79,7 +79,7 @@ platform_name_from_file_name_re = re.compile(r'^Default \((.*)\)\.sublime-keymap
 # Key Name Groups, indexed by class ``KeyGroup``.
 key_name_groups = [
     # NUMBER_KEYS == 0
-    ['0','1','2','3','4','5','6','7','8','9'],
+    ['1','2','3','4','5','6','7','8','9','0'],
     # LETTER_KEYS == 1
     ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'],
     # F_KEYS      == 2
@@ -104,6 +104,16 @@ key_name_groups = [
         'browser_search','browser_stop', '<character>'],
     # KEYPAD_KEYS == 5
     ['keypad0','keypad1','keypad2','keypad3','keypad4','keypad5','keypad6','keypad7','keypad8','keypad9','keypad_period','keypad_divide','keypad_multiply','keypad_minus','keypad_plus','keypad_enter','clear'],
+]
+
+# These are also indexed by class ``KeyGroup``.
+key_group_names = [
+    "Number Keys",
+    "Letter Keys",
+    "Function Keys",
+    "Symbol Keys",
+    "Named Keys",
+    "Keypad Keys",
 ]
 
 # Generate ``all_key_names`` from ``key_name_groups``.

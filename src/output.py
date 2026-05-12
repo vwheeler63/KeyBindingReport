@@ -122,9 +122,9 @@ from enum import IntFlag
 from datetime import datetime
 from . import data
 from .data import KeyBindingData
+from . smart_context import SmartContext
 from ..lib.debug import DebugBits, is_debugging
 from ..lib import ascii_table
-from . smart_context import SmartContext
 
 
 # *************************************************************************
@@ -151,19 +151,20 @@ from . smart_context import SmartContext
 
 def heading(title: str, note: str = '') -> str:
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    under_over_line = '*' * len(title)
     parts = []
     parts.append('')
+    parts.append(under_over_line)
     parts.append(title)
-    parts.append('*' * len(title))
+    parts.append(under_over_line)
+    parts.append('')
+    parts.append(f'Report generated:  {timestamp}')
 
     if note:
         parts.append('')
         parts.append('Note:')
         parts.append('')
-        parts.append(note)
-
-    parts.append('')
-    parts.append(f'Report generated:  {timestamp}')
+        parts.append('    ' + note)
 
     return '\n'.join(parts)
 
@@ -182,6 +183,7 @@ class FlagBits(IntFlag):
     ADD_COMMENTS_COLUMN               = 0b0001_0000  #  16
     TABLE_KEY_AFTER_TABLE             = 0b0010_0000  #  32
     INCLUDE_WINDOWS_KEY               = 0b0100_0000  #  64
+    SEPARATE_TABLES_BY_KEY_GROUPS     = 0b1000_0000  # 128
 
     # Utility Bits
     ANY_CONTEXT_REQUESTED             = 0b0000_0010 | 0b0000_0100
@@ -385,8 +387,7 @@ class KeyBindingOutput:
     def main_key_table(self,
             flags            : FlagBits,
             fmt              : ascii_table.Format,
-            footnotes        : list[Footnote]       = [],
-            prev_footnote_num: int                  = 0
+            prev_footnote_num: int = 0
             ) -> tuple[list[list[str]], list[Footnote], int]:
         """
         Generate and return main-key table.
@@ -419,7 +420,6 @@ class KeyBindingOutput:
 
         :param flags:              OR-ed combination of FlagBits bits
         :param fmt:                needed to instantiate Footnote objects
-        :param footnotes:          possibly-empty list of Footnote objects
         :param prev_footnote_num:  one-based last-footnote number;
                                      0 = first footnote has not yet been generated.
 
@@ -433,13 +433,19 @@ class KeyBindingOutput:
         include_unbound_keypresses = flags & FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
         footnote_num = prev_footnote_num
         heading_row = self._heading_row(flags)
-        table = [heading_row]
-
         by_main_key_dict = self.data.mdictByMainKey
+
+        table = [heading_row]
+        footnotes = []
 
         for main_key_name in by_main_key_dict:
             binding_lists_by_mod_code = by_main_key_dict[main_key_name]
             key_has_bindings = any(binding_lists_by_mod_code)
+
+            # There is no need to go through all 16 sub-items if
+            # ``not key_has_bindings and not include_unbound_keypresses``.
+            if not key_has_bindings and not include_unbound_keypresses:
+                continue
 
             for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
                 if not binding_list and not include_unbound_keypresses:
@@ -459,6 +465,11 @@ class KeyBindingOutput:
                             footnote_num,
                             )
                 elif include_unbound_keypresses and key_has_bindings:
+                    # TODO: review the need for ``key_has_bindings`` in condition.
+                    # Does this prevent outputting say letter "b" when only "a" was
+                    # asked for?  Or perhaps outputting "f1" when the F-KEY group
+                    # was requested and it "f1" has no bindings?
+
                     # The following are all True:
                     # - `binding_list` == None,
                     # - `include_unbound_keypresses`, and
@@ -473,15 +484,138 @@ class KeyBindingOutput:
                     # No output should be generated.
                     pass
 
-
         return table, footnotes, footnote_num
+
+
+    def main_key_tables(self,
+            flags            : FlagBits,
+            fmt              : ascii_table.Format,
+            prev_footnote_num: int = 0
+            ) -> list[    tuple[str, list[list[str]], list[Footnote], int]    ]:
+        """
+        Like ``main_key_table()`` only it creates a LIST of main-key tables,
+        1 table per key-group occurring in the data.
+
+        The data structure inside ``self.data.mdictByMainKey`` is already
+        ordered in key-group order.  However, the logic below is simplified
+        if we manager our flow of control directly from the key-group lists.
+
+        Input Data Structure:
+        ---------------------
+        by_main_key_dict
+            "a": [  <-- binding_lists_by_mod_code
+                    None,   # binding list for unmodified 'a' key
+                    None,   # binding list for [Shift-a]
+                    [...],  # binding list for [Ctrl-a]       <-- binding_list
+                    [...],  # binding list for [Ctrl-Shift-a] <-- binding_list
+                    None,   # binding list for [Alt-a]
+                    None,   # binding list for [Alt-Shift-a]
+                    None,   # binding list for [Alt-Ctrl-a]
+                    None,   # binding list for [Alt-Ctrl-Shift-a]
+                    None,   # binding list for [Command-a]
+                    None,   # binding list for [Command-Shift-a]
+                    [...],  # binding list for [Command-Ctrl-a]       <-- binding_list
+                    [...],  # binding list for [Command-Ctrl-Shift-a] <-- binding_list
+                    None,   # binding list for [Command-Alt-a]
+                    None,   # binding list for [Command-Alt-Shift-a]
+                    None,   # binding list for [Command-Alt-Ctrl-a]
+                    None,   # binding list for [Command-Alt-Ctrl-Shift-a]
+                ]
+
+        Possible Columns:
+        -----------------
+        Key W A C S Command  Args  Context  Source  Comments
+
+        :param flags:              OR-ed combination of FlagBits bits
+        :param fmt:                needed to instantiate Footnote objects
+        :param prev_footnote_num:  one-based last-footnote number;
+                                     0 = first footnote has not yet been generated.
+
+        :return:  tuple:  table, footnotes, last_footnote_num
+        """
+        debugging = is_debugging(DebugBits.OUTPUT)
+        if debugging:
+            print('In KeyBindingOutput.main_key_tables()...')
+            print(f'  {flags = :#011_b}')
+
+        include_unbound_keypresses = flags & FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
+        footnote_num = prev_footnote_num
+        heading_row = self._heading_row(flags)
+        by_main_key_dict = self.data.mdictByMainKey
+
+        table_list = []
+
+        for key_group_idx, key_group_list in enumerate(data.key_name_groups):
+            # Start new table.  Don't add headings yet until
+            # we know there is going to be some content.
+            table = [heading_row]
+            footnotes = []
+
+            for main_key_name in key_group_list:
+                # We know ``main_key_name in by_main_key_dict`` because
+                # ``key_group_list`` was used to build the empty version of
+                # it at the beginning of the data gathering.
+                binding_lists_by_mod_code = by_main_key_dict[main_key_name]
+                key_has_bindings = any(binding_lists_by_mod_code)
+
+                # There is no need to go through all 16 sub-items if
+                # ``not key_has_bindings and not include_unbound_keypresses``.
+                if not key_has_bindings and not include_unbound_keypresses:
+                    continue
+
+                for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
+                    if not binding_list and not include_unbound_keypresses:
+                        continue
+
+                    mod_key_applies_tpl = data.modifier_characters(modifier_code, self.modifier_applies_symbol)
+
+                    if binding_list:
+                        # Now we know there is content.
+                        # Heading not added yet?  Add it now.
+                        if len(table) == 0:
+                            table.append(heading_row)
+
+                        footnote_num = self._append_rows_to_table_for_one_keypress(
+                                table,
+                                main_key_name,
+                                mod_key_applies_tpl,
+                                binding_list,
+                                flags,
+                                fmt,
+                                footnotes,
+                                footnote_num,
+                                )
+                    elif include_unbound_keypresses and key_has_bindings:
+                        # TODO: review the need for ``key_has_bindings`` in condition.
+                        # Does this prevent outputting say letter "b" when only "a" was
+                        # asked for?  Or perhaps outputting "f1" when the F-KEY group
+                        # was requested and it "f1" has no bindings?
+
+                        # The following are all True:
+                        # - `binding_list` == None,
+                        # - `include_unbound_keypresses`, and
+                        # - `key_has_bindings`
+                        self._append_empty_row_to_table(
+                                table,
+                                main_key_name,
+                                mod_key_applies_tpl,
+                                flags,
+                                )
+                    else:
+                        # No output should be generated.
+                        pass
+
+            # We've reached the end of a key group.
+            key_group_name = data.key_group_names[key_group_idx]
+            table_list.append((key_group_name, table, footnotes, footnote_num))
+
+        return table_list
 
 
     def key_seq_tables(self,
             flags            : FlagBits,
             fmt              : ascii_table.Format,
-            footnotes        : list[Footnote]       = [],
-            prev_footnote_num: int                  = 0
+            prev_footnote_num: int = 0
             ) -> list[    tuple[str, list[list[str]], list[Footnote], int]    ]:
         """
         Generate and return LIST of tuples, one per UNIQUE LEADING KEYPRESS,
@@ -514,7 +648,6 @@ class KeyBindingOutput:
 
         :param flags:              OR-ed combination of FlagBits bits
         :param fmt:                needed to instantiate Footnote objects
-        :param footnotes:          possibly-empty list of Footnote objects
         :param prev_footnote_num:  one-based last-footnote number;
                                      0 = first footnote has not yet been generated.
 
