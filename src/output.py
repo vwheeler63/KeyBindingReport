@@ -67,6 +67,7 @@ All input data goes away when the last reference to the created
 @version  1.0  22-Apr-2026 15:54  vw  - Created.
 ***************************************************************************"""
 
+from typing import Iterable
 from enum import IntFlag
 from datetime import datetime
 from . import data
@@ -80,6 +81,9 @@ from ..lib import ascii_table
 # *************************************************************************
 # Configuration
 # *************************************************************************
+
+flags_format_spec_hex = '014_b'
+flags_format_spec_hex = '04X'
 
 
 
@@ -124,6 +128,58 @@ def report_heading(title: str, note: str = '') -> str:
         parts.append('Note:')
         parts.append('')
         parts.append('    ' + note)
+
+    return '\n'.join(parts)
+
+
+def report_specification(
+        key_groups       : Iterable[data.KeyGroup] | None,
+        key_names        : Iterable[str]           | None,
+        keypress_list    : Iterable[Iterable[str]] | None,
+        limit_to_packages: Iterable[str]           | None,
+        limit_to_context : bool,
+        fmt              : ascii_table.Format,
+        flags            : FlagBits,
+        indent_level     : int = 0
+        ) -> str:
+    indent = '  ' * indent_level
+    parts = []
+    parts.append(f'{indent}Specification:')
+    parts.append('')
+
+    if key_groups:
+        key_grp_list = []
+        for kg_i in key_groups:
+            key_grp_list.append(data.KeyGroup(kg_i))
+        parts.append(f'{indent}    key_groups        = {key_grp_list}')
+    if key_names:
+        parts.append(f'{indent}    {key_names         = }')
+    if keypress_list:
+        parts.append(f'{indent}    {keypress_list     = }')
+    if limit_to_packages:
+        parts.append(f'{indent}    {limit_to_packages = }')
+
+    parts.append(f'{indent}    {limit_to_context  = }')
+    parts.append(f'{indent}    format            = {ascii_table.Format(fmt)!r}')
+    parts.append(f'{indent}    flags             = 0x{flags:{flags_format_spec_hex}}')
+
+    # Compute length of longest FlagBits enumeration name.
+    longest_name_len = 0
+    for enum_bit_val in FlagBits:
+        if enum_bit_val != FlagBits.ALL and enum_bit_val != FlagBits.ANY:
+            if flags & enum_bit_val._value_:
+                name_len = len(enum_bit_val._name_)
+                if name_len > longest_name_len:
+                    longest_name_len = name_len
+
+    # Report.
+    for enum_bit_val in FlagBits:
+        if enum_bit_val != FlagBits.ALL and enum_bit_val != FlagBits.ANY:
+            if flags & enum_bit_val._value_:
+                parts.append(
+                        f'{indent}      - {enum_bit_val._name_:{longest_name_len}}:  '
+                        f'0x{enum_bit_val._value_:{flags_format_spec_hex}}'
+                        )
 
     return '\n'.join(parts)
 

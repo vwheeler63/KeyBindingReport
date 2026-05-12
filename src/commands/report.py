@@ -18,8 +18,6 @@ from .. import output
 
 _report_title       = f'{core.package_name}:  Specified Key-Bindings'
 _report_short_title = 'Key-Binding Report'
-_flags_format_spec_bin = '014_b'
-_flags_format_spec_hex = '04X'
 
 
 
@@ -346,7 +344,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             print(f'  {limit_to_packages=}')
             print(f'  {limit_to_context=}')
             print(f'  {fmt=}')
-            print(f'  flags=0x{flags:{_flags_format_spec_hex}}')
+            print(f'  flags=0x{flags:{output.flags_format_spec_hex}}')
 
         t0 = datetime.now()
         view = self.view
@@ -383,40 +381,17 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         content_parts = []
         content_parts.append(output.report_heading(_report_title, note))
         content_parts.append('')
-
-        if key_groups:
-            key_grp_list = []
-            for kg_i in key_groups:
-                key_grp_list.append(data.KeyGroup(kg_i))
-            content_parts.append(f'key_groups        = {key_grp_list}')
-        if key_names:
-            content_parts.append(f'{key_names         = }')
-        if keypress_list:
-            content_parts.append(f'{keypress_list     = }')
-        if limit_to_packages:
-            content_parts.append(f'{limit_to_packages = }')
-
-        content_parts.append(f'{limit_to_context  = }')
-        content_parts.append(f'format            = {ascii_table.Format(fmt)!r}')
-        content_parts.append(f'flags             = 0x{flags:{_flags_format_spec_hex}}')
-
-        # Compute length of longest enumeration name with bit set.
-        longest_name_len = 0
-        for enum_bit in output.FlagBits:
-            if enum_bit != output.FlagBits.ALL and enum_bit != output.FlagBits.ANY:
-                if flags & enum_bit._value_:
-                    name_len = len(enum_bit._name_)
-                    if name_len > longest_name_len:
-                        longest_name_len = name_len
-
-        # Report.
-        for enum_bit in output.FlagBits:
-            if enum_bit != output.FlagBits.ALL and enum_bit != output.FlagBits.ANY:
-                if flags & enum_bit._value_:
-                    content_parts.append(
-                            f'  - {enum_bit._name_:{longest_name_len}}:  '
-                            f'0x{enum_bit._value_:{_flags_format_spec_hex}}'
-                            )
+        content_parts.append(
+                output.report_specification(
+                        key_groups,
+                        key_names,
+                        keypress_list,
+                        limit_to_packages,
+                        limit_to_context,
+                        fmt,
+                        flags
+                        )
+                )
 
         # -----------------------------------------------------------------
         # Add Main-Key table parts.
