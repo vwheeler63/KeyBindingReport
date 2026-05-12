@@ -121,7 +121,8 @@ All input data goes away when the last reference to the created
 from enum import IntFlag
 from datetime import datetime
 from . import data
-from .data import KeyBindingData
+from .data import KeyBindingData, ModifierKeyBits
+from . import core
 from . smart_context import SmartContext
 from ..lib.debug import DebugBits, is_debugging
 from ..lib import ascii_table
@@ -137,6 +138,15 @@ from ..lib import ascii_table
 # Constants
 # *************************************************************************
 
+_rst_chars_to_escape_in_table = [
+    '\\',  # Otherwise, lone '\' escapes the space ahead of it.
+    '`',   # Otherwise Docutils tries to start a default interpreted-text role.
+    '-',   # Otherwise Docutils interprets as a bullet
+    '+',   # Otherwise Docutils interprets as a bullet
+    "'",   # Otherwise Docutils converts it to an opening "smart quote" (curved).
+    '"',   # Otherwise Docutils converts it to an opening "smart quote" (curved).
+]
+
 
 
 # *************************************************************************
@@ -150,7 +160,7 @@ from ..lib import ascii_table
 # *************************************************************************
 
 def heading(title: str, note: str = '') -> str:
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.now().strftime(core.setting__timestamp_strftime_format)
     under_over_line = '*' * len(title)
     parts = []
     parts.append('')
@@ -169,44 +179,75 @@ def heading(title: str, note: str = '') -> str:
     return '\n'.join(parts)
 
 
+def rst_table_key_name(main_key_name: str) -> str:
+    if main_key_name in _rst_chars_to_escape_in_table:
+        result = '\\' + main_key_name
+    else:
+        result = main_key_name
+
+    return result
+
+
+def rst_table_args_str(args_str: str) -> str:
+    result = args_str
+
+    for c in _rst_chars_to_escape_in_table:
+        if c in args_str:
+            escaped_c = '\\' + c
+            result = result.replace(c, escaped_c)
+
+    return result
+
+
 
 # *************************************************************************
 # Function Definitions
 # *************************************************************************
 
+
+
+# *************************************************************************
+# Classes
+# *************************************************************************
+
 class FlagBits(IntFlag):
     # Output Flags
-    INCLUDE_UNBOUND_KEY_COMBINATIONS  = 0b0000_0001  #   1
-    INCLUDE_UNTRANSLATED_CONTEXTS     = 0b0000_0010  #   2
-    INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0b0000_0100  #   4
-    ADD_SOURCE_COLUMN                 = 0b0000_1000  #   8
-    ADD_COMMENTS_COLUMN               = 0b0001_0000  #  16
-    TABLE_KEY_AFTER_TABLE             = 0b0010_0000  #  32
-    INCLUDE_WINDOWS_KEY               = 0b0100_0000  #  64
-    SEPARATE_TABLES_BY_KEY_GROUPS     = 0b1000_0000  # 128
+    INCLUDE_UNBOUND_KEY_COMBINATIONS  = 0x0001  #     1
+    INCLUDE_UNTRANSLATED_CONTEXTS     = 0x0002  #     2
+    INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0x0004  #     4
+    ADD_SOURCE_COLUMN                 = 0x0008  #     8
+    ADD_COMMENTS_COLUMN               = 0x0010  #    16
+    TABLE_KEY_AFTER_TABLE             = 0x0020  #    32
+    INCLUDE_WINDOWS_KEY               = 0x0040  #    64
+    SEPARATE_TABLES_BY_KEY_GROUPS     = 0x0080  #   128
+    OUTPUT_TO_FILES                   = 0x0100  #   256
 
     # Utility Bits
-    ANY_CONTEXT_REQUESTED             = 0b0000_0010 | 0b0000_0100
-    NONE                              = 0b0000_0000  #   0
-    ALL                               = 0b1111_1111  # 255
-    ANY                               = 0b1111_1111  # 255
+    ANY_CONTEXT_REQUESTED             = 0x0002 | 0x0004  # 6
+    NONE                              = 0x0000  #     0
+    ALL                               = 0xFFFF  # 65535
+    ANY                               = 0xFFFF  # 65535
 
 
 class Footnote:
     """ Containers for key-binding table footnotes """
-    __slots__ = ['number', 'context', 'flags', 'format']
+    __slots__ = ['key_name', 'mod_code', 'number', 'context', 'flags', 'format']
 
     def __init__(
             self,
-            number : int,
-            context: SmartContext | None,
-            flags  : FlagBits,
-            format : ascii_table.Format
+            key_name: str,
+            mod_code: int,
+            number  : int,
+            context : SmartContext | None,
+            flags   : FlagBits,
+            format  : ascii_table.Format
             ):
-        self.number = number
-        self.context = context
-        self.flags = flags
-        self.format = format
+        self.key_name = key_name
+        self.mod_code = mod_code
+        self.number   = number
+        self.context  = context
+        self.flags    = flags
+        self.format   = format
 
     def __str__(self) -> str:
         return self.formatted()
@@ -231,17 +272,38 @@ class Footnote:
             footnote_str = self.context.formatted(2, raw=raw, natural_language=natural_lang)
 
             if self.format == ascii_table.Format.RESTRUCTUREDTEXT:
-                result = f'.. [{self.number}]\n{footnote_str}'
+                # .. [1] context for :kbd:`Alt-1`:
+                # .. code-block:: json
+                #
+                #     "context": [
+                #       { "key": "group_has_multiselect", "operator": "equal", "operand": true, "match_all": false }
+                #     ]
+                parts = []
+                if self.mod_code:
+                    bit_val = ModifierKeyBits.CTRL
+                    if self.mod_code & bit_val:
+                        parts.append(data.modifier_key_names_by_modifier_code_bit[bit_val])
+                    bit_val = ModifierKeyBits.ALT
+                    if self.mod_code & bit_val:
+                        parts.append(data.modifier_key_names_by_modifier_code_bit[bit_val])
+                    bit_val = ModifierKeyBits.SHIFT
+                    if self.mod_code & bit_val:
+                        parts.append(data.modifier_key_names_by_modifier_code_bit[bit_val])
+                    bit_val = ModifierKeyBits.COMMAND
+                    if self.mod_code & bit_val:
+                        parts.append(data.modifier_key_names_by_modifier_code_bit[bit_val])
+
+                parts.append(self.key_name)
+                human_readable_keypr = '-'.join(parts).title()
+                result = (
+                        f'.. [{self.number}] Context for :kbd:`{human_readable_keypr}`:\n'
+                        f'.. code-block:: json\n\n{footnote_str}\n'
+                        )
             else:
                 result = f'({self.number}):\n{footnote_str}'
 
         return result
 
-
-
-# *************************************************************************
-# Classes
-# *************************************************************************
 
 class KeyBindingOutput:
     """ Managers of Key-Binding Report output """
@@ -304,6 +366,7 @@ class KeyBindingOutput:
     def _append_rows_to_table_for_one_keypress(self,
             table              : list[list],
             main_key_name      : str,
+            modifier_code      : int,
             mod_key_applies_tpl: tuple[str, str, str, str],
             binding_list       : list[data.ReportKeyBinding],
             flags              : FlagBits,
@@ -320,20 +383,35 @@ class KeyBindingOutput:
                     ))
 
             for binding in binding_list:
-                row = [main_key_name]                   # 'f5'
+                if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
+                    tbl_key_name = rst_table_key_name(main_key_name)
+                else:
+                    tbl_key_name = main_key_name
+
+                row = [tbl_key_name]                    # 'f5'
                 if include_win_key:
                     row.append(mod_key_applies_tpl[0])  # Command
                 row.append(mod_key_applies_tpl[1])      # Alt
                 row.append(mod_key_applies_tpl[2])      # Ctrl
                 row.append(mod_key_applies_tpl[3])      # Shift
                 row.append(binding.command())
-                row.append(binding.args_json() if binding.has_args() else ' ')
+
+                if binding.has_args():
+                    if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
+                        args_str = rst_table_args_str(binding.args_json())
+                    else:
+                        args_str = binding.args_json()
+                else:
+                    args_str = ' '
+
+                row.append(args_str)
 
                 if binding.has_context():
                     if flags & FlagBits.ANY_CONTEXT_REQUESTED:
                         # User requested detailed context information
                         footnote_num += 1
-                        footnote = Footnote(footnote_num, binding.smart_context(), flags, fmt)
+                        footnote = Footnote(main_key_name, modifier_code,
+                                footnote_num, binding.smart_context(), flags, fmt)
                         footnotes.append(footnote)
                         context_ref = footnote.formatted_reference()
                     else:
@@ -358,13 +436,20 @@ class KeyBindingOutput:
             main_key_name      : str,
             mod_key_applies_tpl: tuple[str, str, str, str],
             flags              : FlagBits,
+            fmt                : ascii_table.Format,
             ):
         include_win_key = ((
                 bool(flags & FlagBits.INCLUDE_WINDOWS_KEY)
                 and data.platform_name != 'OSX'
                 ))
         space = ' '
-        row = [main_key_name]                   # 'f5'
+
+        if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
+            tbl_key_name = rst_table_key_name(main_key_name)
+        else:
+            tbl_key_name = main_key_name
+
+        row = [tbl_key_name]                    # 'f5'
 
         if include_win_key:
             row.append(mod_key_applies_tpl[0])  # Command)
@@ -457,6 +542,7 @@ class KeyBindingOutput:
                     footnote_num = self._append_rows_to_table_for_one_keypress(
                             table,
                             main_key_name,
+                            modifier_code,
                             mod_key_applies_tpl,
                             binding_list,
                             flags,
@@ -479,6 +565,7 @@ class KeyBindingOutput:
                             main_key_name,
                             mod_key_applies_tpl,
                             flags,
+                            fmt,
                             )
                 else:
                     # No output should be generated.
@@ -491,7 +578,7 @@ class KeyBindingOutput:
             flags            : FlagBits,
             fmt              : ascii_table.Format,
             prev_footnote_num: int = 0
-            ) -> list[    tuple[str, list[list[str]], list[Footnote], int]    ]:
+            ) -> list[    tuple[int, list[list[str]], list[Footnote], int]    ]:
         """
         Like ``main_key_table()`` only it creates a LIST of main-key tables,
         1 table per key-group occurring in the data.
@@ -578,6 +665,7 @@ class KeyBindingOutput:
                         footnote_num = self._append_rows_to_table_for_one_keypress(
                                 table,
                                 main_key_name,
+                                modifier_code,
                                 mod_key_applies_tpl,
                                 binding_list,
                                 flags,
@@ -600,14 +688,14 @@ class KeyBindingOutput:
                                 main_key_name,
                                 mod_key_applies_tpl,
                                 flags,
+                                fmt,
                                 )
                     else:
                         # No output should be generated.
                         pass
 
             # We've reached the end of a key group.
-            key_group_name = data.key_group_names[key_group_idx]
-            table_list.append((key_group_name, table, footnotes, footnote_num))
+            table_list.append((key_group_idx, table, footnotes, footnote_num))
 
         return table_list
 
@@ -727,6 +815,7 @@ class KeyBindingOutput:
                     footnote_num = self._append_rows_to_table_for_one_keypress(
                             table,
                             scored_keypress_tuple_bep.second_main_key_name,
+                            scored_keypress_tuple_bep.mod_code,
                             mod_key_applies_tpl,
                             binding_list,
                             flags,

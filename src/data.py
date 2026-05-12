@@ -42,11 +42,51 @@ from . import smart_context
 # Constants (can be assigned/generated once on Package load)
 # *************************************************************************
 
+class ModifierKeyBits(IntFlag):
+    SHIFT         = 0b0001
+    CTRL          = 0b0010
+    ALT           = 0b0100
+    COMMAND       = 0b1000
+
+    NONE          = 0b0000
+    ALL           = 0b1111
+    ANY           = 0b1111
+
+
+class KeyGroup(IntEnum):
+    """ Non-negative values index into ``key_name_groups``. """
+    NUMBER_KEYS    =  0  # \
+    LETTER_KEYS    =  1  #  \
+    F_KEYS         =  2  #   \__ These index into ``key_name_groups``.
+    SYMBOL_KEYS    =  3  #   /
+    NAMED_KEYS     =  4  #  /
+    KEYPAD_KEYS    =  5  # /
+
+    LAST           =  5
+    ALL            =  6  # Equivalent to specifying all groups [0-LAST].
+    KEY_SEQUENCES  =  7  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
+
+
 platform_name = {
     'osx': 'OSX',
     'windows': 'Windows',
     'linux': 'Linux',
 }[sublime.platform()]
+
+if platform_name == 'OSX':
+    modifier_key_names_by_modifier_code_bit = {
+        ModifierKeyBits.SHIFT:   'Shift',
+        ModifierKeyBits.CTRL:    'Ctrl',
+        ModifierKeyBits.ALT:     'Option',
+        ModifierKeyBits.COMMAND: 'Command',
+    }
+else:
+    modifier_key_names_by_modifier_code_bit = {
+        ModifierKeyBits.SHIFT:   'Shift',
+        ModifierKeyBits.CTRL:    'Ctrl',
+        ModifierKeyBits.ALT:     'Alt',
+        ModifierKeyBits.COMMAND: '⌘',
+    }
 
 platform_name_w_parens = '(' + platform_name + ')'
 
@@ -102,11 +142,11 @@ key_name_groups = [
         'find','open','paste','redo','save','sysreq','undo','browser_back',
         'browser_favorites','browser_forward','browser_home','browser_refresh',
         'browser_search','browser_stop', '<character>'],
-    # KEYPAD_KEYS == 5
+    # KEYPAD_KEYS == 5 == LAST
     ['keypad0','keypad1','keypad2','keypad3','keypad4','keypad5','keypad6','keypad7','keypad8','keypad9','keypad_period','keypad_divide','keypad_multiply','keypad_minus','keypad_plus','keypad_enter','clear'],
 ]
 
-# These are also indexed by class ``KeyGroup``.
+# Indexed by class ``KeyGroup``.
 key_group_names = [
     "Number Keys",
     "Letter Keys",
@@ -114,7 +154,22 @@ key_group_names = [
     "Symbol Keys",
     "Named Keys",
     "Keypad Keys",
+    "Single-Keypress Tables",
+    "Multi-Keypress Tables",
 ]
+
+# Indexed by class ``KeyGroup``.
+key_group_file_names = [
+    "number_keys.txt",
+    "letter_keys.txt",
+    "function_keys.txt",
+    "symbol_keys.txt",
+    "named_keys.txt",
+    "keypad_keys.txt",
+    "single-keypress.txt",
+    "multi-keypress_{$leading_keypress}.txt",
+]
+
 
 # Generate ``all_key_names`` from ``key_name_groups``.
 count = 0
@@ -431,30 +486,6 @@ def modifier_characters(modifier_code: int, mod_applies_char: str) -> tuple[str,
 # *************************************************************************
 # Classes
 # *************************************************************************
-
-class KeyGroup(IntEnum):
-    """ Non-negative values index into ``key_name_groups``. """
-    ALL            = -2  # Equivalent to specifying all groups >= 0.
-    KEY_SEQUENCES  = -1  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
-
-    NUMBER_KEYS    =  0  # \
-    LETTER_KEYS    =  1  #  \
-    F_KEYS         =  2  #   \__ These index into ``key_name_groups``.
-    SYMBOL_KEYS    =  3  #   /
-    NAMED_KEYS     =  4  #  /
-    KEYPAD_KEYS    =  5  # /
-
-
-class ModifierKeyBits(IntFlag):
-    SHIFT         = 0b0001
-    CTRL          = 0b0010
-    ALT           = 0b0100
-    COMMAND       = 0b1000
-
-    NONE          = 0b0000
-    ALL           = 0b1111
-    ANY           = 0b1111
-
 
 class ReportKeyBinding(key_binding.KeyBinding):
     """

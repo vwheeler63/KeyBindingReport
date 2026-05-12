@@ -1,9 +1,9 @@
 [
 	// Items listed here become available in the Command Palette.
 
-	// --------------------------------------------------------------------
+	// ====================================================================
 	// Basics
-	// --------------------------------------------------------------------
+	// ====================================================================
 	{
 		"caption": "KeyBindingReport: Open Readme",
 		"command": "open_file",
@@ -29,27 +29,27 @@
 	},
 
 
-	// --------------------------------------------------------------------
+	// ====================================================================
 	// Keys Used Report
-	// --------------------------------------------------------------------
+	// ====================================================================
 	{
 		"caption": "KeyBindingReport: Keys Used Report (Current Platform)",
 		"command": "key_binding_report_keys_used",
 	},
 
 
-	// --------------------------------------------------------------------
+	// ====================================================================
 	// Which Binding Report
-	// --------------------------------------------------------------------
+	// ====================================================================
 	{
 		"caption": "KeyBindingReport: Which Binding?",
 		"command": "key_binding_report_which_binding",
 	},
 
 
-	// --------------------------------------------------------------------
+	// ====================================================================
 	// Key-Binding Overrides Report
-	// --------------------------------------------------------------------
+	// ====================================================================
 	{
 		"caption": "KeyBindingReport: Key-Binding Overrides",
 		"command": "key_binding_report_overrides",
@@ -60,15 +60,53 @@
 	},
 
 
-	// --------------------------------------------------------------------
+	// ====================================================================
 	// Binding List Report; Outlined Format
-	// --------------------------------------------------------------------
+	// ====================================================================
+	// Args for `key_binding_report`:
+	//     key_groups       : Iterable[data.KeyGroup] | None = None,
+	//     key_names        : Iterable[str]           | None = None,
+	//     keypress_list    : Iterable[Iterable[str]] | None = None,
+	//     limit_to_packages: Iterable[str]           | None = None,
+	//     limit_to_context : bool = False,
+	//     fmt              : ascii_table.Format = ascii_table.Format.OUTLINED,
+	//     flags            : output.FlagBits = output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
+
+	// class FlagBits(IntFlag):
+	//     INCLUDE_UNBOUND_KEY_COMBINATIONS  = 0x0001  #     1
+	//     INCLUDE_UNTRANSLATED_CONTEXTS     = 0x0002  #     2
+	//     INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0x0004  #     4
+	//     ADD_SOURCE_COLUMN                 = 0x0008  #     8
+	//     ADD_COMMENTS_COLUMN               = 0x0010  #    16
+	//     TABLE_KEY_AFTER_TABLE             = 0x0020  #    32
+	//     INCLUDE_WINDOWS_KEY               = 0x0040  #    64
+	//     SEPARATE_TABLES_BY_KEY_GROUPS     = 0x0080  #   128
+	//     OUTPUT_TO_FILES                   = 0x0100  #   256
+	//
+	//     # Utility Bits
+	//     ANY_CONTEXT_REQUESTED             = 0x0002 | 0x0004  # 6
+	//     NONE                              = 0x0000  #     0
+	//     ALL                               = 0xFFFF  # 65535
+	//     ANY                               = 0xFFFF  # 65535
+
+	// class KeyGroup(IntEnum):
+	//     """ Non-negative values index into ``key_name_groups``. """
+	//     NUMBER_KEYS    =  0  # \
+	//     LETTER_KEYS    =  1  #  \
+	//     F_KEYS         =  2  #   \__ These index into ``key_name_groups``.
+	//     SYMBOL_KEYS    =  3  #   /
+	//     NAMED_KEYS     =  4  #  /
+	//     KEYPAD_KEYS    =  5  # /
+	//
+	//     LAST           =  5
+	//     ALL            =  6  # Equivalent to specifying all groups [0-LAST].
+	//     KEY_SEQUENCES  =  7  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
 	{
 		"caption": "KeyBindingReport: All Keypress Combinations in Default Package",
 		"command": "key_binding_report",
 		"args": {
 			"limit_to_packages": ["Default"],
-			"key_groups": [-2],
+			"key_groups": [6],
 			"fmt": 1,
 			"flags": 11,
 		},
@@ -78,7 +116,7 @@
 		"command": "key_binding_report",
 		"args": {
 			"limit_to_packages": ["Default"],
-			"key_groups": [-2],
+			"key_groups": [6],
 			"fmt": 1,
 			"flags": 139,
 		},
@@ -88,7 +126,7 @@
 		"command": "key_binding_report",
 		"args": {
 			"limit_to_packages": ["Default"],
-			"key_groups": [-1],
+			"key_groups": [7],
 			"fmt": 1,
 			"flags": 11,
 		},
@@ -158,7 +196,7 @@
 		"caption": "KeyBindingReport: All Keypress Combinations for All Installed Packages",
 		"command": "key_binding_report",
 		"args": {
-			"key_groups": [-2],
+			"key_groups": [6],
 			"fmt": 1,
 			"flags": 11,
 		},
@@ -167,7 +205,7 @@
 		"caption": "KeyBindingReport: All Keypress Combinations for All Installed Packages (Separate Tables)",
 		"command": "key_binding_report",
 		"args": {
-			"key_groups": [-2],
+			"key_groups": [6],
 			"fmt": 1,
 			"flags": 139,
 		},
@@ -176,7 +214,7 @@
 		"caption": "KeyBindingReport: Key Sequences for All Installed Packages",
 		"command": "key_binding_report",
 		"args": {
-			"key_groups": [-1],
+			"key_groups": [7],
 			"fmt": 1,
 			"flags": 11,
 		},
@@ -236,15 +274,18 @@
 		},
 	},
 
-	// --------------------------------------------------------------------
+	// ====================================================================
 	// Binding List Report; reStructuredText Format
+	// ====================================================================
+	// --------------------------------------------------------------------
+	// Output to View
 	// --------------------------------------------------------------------
 	{
 		"caption": "KeyBindingReport: All Keypress Combinations in Default Package (reStructuredText)",
 		"command": "key_binding_report",
 		"args": {
 			"limit_to_packages": ["Default"],
-			"key_groups": [-2],
+			"key_groups": [6],
 			"fmt": 3,
 			"flags": 11,
 		},
@@ -254,7 +295,7 @@
 		"command": "key_binding_report",
 		"args": {
 			"limit_to_packages": ["Default"],
-			"key_groups": [-2],
+			"key_groups": [6],
 			"fmt": 3,
 			"flags": 139,
 		},
@@ -264,7 +305,7 @@
 		"command": "key_binding_report",
 		"args": {
 			"limit_to_packages": ["Default"],
-			"key_groups": [-1],
+			"key_groups": [7],
 			"fmt": 3,
 			"flags": 11,
 		},
@@ -334,7 +375,7 @@
 		"caption": "KeyBindingReport: All Keypress Combinations for All Installed Packages (reStructuredText)",
 		"command": "key_binding_report",
 		"args": {
-			"key_groups": [-2],
+			"key_groups": [6],
 			"fmt": 3,
 			"flags": 11,
 		},
@@ -343,7 +384,7 @@
 		"caption": "KeyBindingReport: All Keypress Combinations for All Installed Packages (reStructuredText) (Separate Tables)",
 		"command": "key_binding_report",
 		"args": {
-			"key_groups": [-2],
+			"key_groups": [6],
 			"fmt": 3,
 			"flags": 139,
 		},
@@ -352,7 +393,7 @@
 		"caption": "KeyBindingReport: Key Sequences for All Installed Packages (reStructuredText)",
 		"command": "key_binding_report",
 		"args": {
-			"key_groups": [-1],
+			"key_groups": [7],
 			"fmt": 3,
 			"flags": 11,
 		},
@@ -412,38 +453,180 @@
 		},
 	},
 
+	// --------------------------------------------------------------------
+	// Output to View + Files
+	// --------------------------------------------------------------------
+	{
+		"caption": "KeyBindingReport: All Keypress Combinations in Default Package (reStructuredText) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [6],
+			"fmt": 3,
+			"flags": 267,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: All Keypress Combinations in Default Package (reStructuredText) (Separate Tables) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [6],
+			"fmt": 3,
+			"flags": 395,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Keypress Sequences in Default Package (reStructuredText) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [7],
+			"fmt": 3,
+			"flags": 267,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Number Keys in Default Package (reStructuredText) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [0],
+			"fmt": 3,
+			"flags": 267,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Letter Keys in Default Package (reStructuredText) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [1],
+			"fmt": 3,
+			"flags": 267,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Function Keys in Default Package (reStructuredText) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [2],
+			"fmt": 3,
+			"flags": 267,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Symbol Keys in Default Package (reStructuredText) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [3],
+			"fmt": 3,
+			"flags": 267,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Named Keys in Default Package (reStructuredText) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [4],
+			"fmt": 3,
+			"flags": 267,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Keypad Keys in Default Package (reStructuredText) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [5],
+			"fmt": 3,
+			"flags": 267,
+		},
+	},
 
-// key_groups      : Optional[Iterable[data.KeyGroup]] = None,
-// key_names       : Optional[Iterable[str]] = None,
-// keypress_list   : Optional[Iterable[Iterable[str]]] = None,
-// packages        : Optional[Iterable[str]] = None,
-// limit_to_context: Optional[bool] = False,
-// fmt             : Format   = Format.OUTLINED,
-// flags           : FlagBits = FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
-
-
-// class FlagBits(IntFlag):
-//     INCLUDE_UNBOUND_KEY_COMBINATIONS = 0b00000001  #   1
-//     INCLUDE_UNTRANSLATED_CONTEXTS    = 0b00000010  #   2
-//     INCLUDE_ENGLISH_CONTEXTS         = 0b00000100  #   4
-//     ADD_SOURCE_COLUMN                = 0b00001000  #   8
-//     ADD_COMMENTS_COLUMN              = 0b00010000  #  16
-
-//     NONE                             = 0b00000000  #   0
-//     ALL                              = 0b11111111  # 255
-//     ANY                              = 0b11111111  # 255
-
-
-// class KeyGroup(IntEnum):
-//     """ Non-negative values index into ``key_name_groups``. """
-//     ALL            = -2  # Equivalent to specifying all groups >= 0.
-//     KEY_SEQUENCES  = -1  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
-
-//     NUMBER_KEYS    =  0  # \
-//     LETTER_KEYS    =  1  #  \
-//     F_KEYS         =  2  #   \__ These index into ``key_name_groups``.
-//     SYMBOL_KEYS    =  3  #   /
-//     NAMED_KEYS     =  4  #  /
-//     KEYPAD_KEYS    =  5  # /
+	{
+		"caption": "KeyBindingReport: All Keypress Combinations for All Installed Packages (reStructuredText) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [6],
+			"fmt": 3,
+			"flags": 267,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: All Keypress Combinations for All Installed Packages (reStructuredText) (Separate Tables) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [6],
+			"fmt": 3,
+			"flags": 395,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Key Sequences for All Installed Packages (reStructuredText) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [7],
+			"fmt": 3,
+			"flags": 267,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Number Keys for All Installed Packages (reStructuredText) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [0],
+			"fmt": 3,
+			"flags": 267,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Letter Keys for All Installed Packages (reStructuredText) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [1],
+			"fmt": 3,
+			"flags": 267,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Function Keys for All Installed Packages (reStructuredText) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [2],
+			"fmt": 3,
+			"flags": 267,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Symbol Keys for All Installed Packages (reStructuredText) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [3],
+			"fmt": 3,
+			"flags": 267,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Named Keys for All Installed Packages (reStructuredText) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [4],
+			"fmt": 3,
+			"flags": 267,
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Keypad Keys for All Installed Packages (reStructuredText) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [5],
+			"fmt": 3,
+			"flags": 267,
+		},
+	},
 
 ]
