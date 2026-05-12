@@ -14,7 +14,7 @@ from .. import output
 # *************************************************************************
 
 _report_title = 'Keys Used in All Keymaps (Current Platform)'
-_cfg_report_short_title = 'Keys Used (Current Platform)'
+_report_short_title = 'Keys Used (Current Platform)'
 
 
 # *************************************************************************
@@ -148,7 +148,7 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
         other_key_table.set_tight_columns([True, False])
         other_key_table.set_column_alignments(['^', '>'])
 
-        content_parts = [output.heading(_report_title)]
+        content_parts = [output.report_heading(_report_title)]
         content_parts.append('')
         content_parts.append('Modifier Keys:')
         content_parts.append( mod_key_table.as_string(ascii_table.Format.OUTLINED) )
@@ -165,7 +165,7 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
 
         output_view.output_to_view(
                 None,
-                _cfg_report_short_title,
+                _report_short_title,
                 content,
                 current_view=active_view
                 )

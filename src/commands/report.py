@@ -16,7 +16,8 @@ from .. import output
 # Constants
 # *************************************************************************
 
-_report_title = 'Key-Binding Report'
+_report_title       = f'{core.package_name}:  Specified Key-Bindings'
+_report_short_title = 'Key-Binding Report'
 _flags_format_spec_bin = '014_b'
 _flags_format_spec_hex = '#04x'
 
@@ -362,7 +363,6 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         # Generate report.
         # =================================================================
         last_footnote_num = 0
-        title = f'{core.package_name}:  Specified Key-Bindings'
 
         if flags & output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS:
             note = 'Keypresses with empty Commands are not bound.'
@@ -373,7 +373,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         # Heading
         # -----------------------------------------------------------------
         content_parts = []
-        content_parts.append(output.heading(title, note))
+        content_parts.append(output.report_heading(_report_title, note))
         content_parts.append('')
 
         if key_groups:
@@ -389,7 +389,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             content_parts.append(f'{limit_to_packages = }')
 
         content_parts.append(f'{limit_to_context  = }')
-        content_parts.append(f'form              = {ascii_table.Format(fmt)!r}')
+        content_parts.append(f'format            = {ascii_table.Format(fmt)!r}')
         content_parts.append(f'flags             = {flags:{_flags_format_spec_hex}}')
 
         # Compute length of longest enumeration name with bit set.
@@ -424,21 +424,12 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             if table_pkg_list:
                 plural_suffix = 's' if len(table_pkg_list) > 1 else ''
                 heading = f'Single-Keypress Table{plural_suffix}'
-                underline = '*' * len(heading)
-                content_parts.append('')
-                content_parts.append('')
-                content_parts.append('')
-                content_parts.append(heading)
-                content_parts.append(underline)
+                content_parts.append(output.section_heading(heading, '*'))
 
                 for key_group_idx, table, footnotes, last_footnote_num in table_pkg_list:
                     if table:
                         heading = data.key_group_names[key_group_idx]
-                        underline = '=' * len(heading)
-                        content_parts.append('')
-                        content_parts.append('')
-                        content_parts.append(heading)
-                        content_parts.append(underline)
+                        content_parts.append(output.section_heading(heading, '='))
                         content_parts.append('')
 
                         tbl_and_footnotes = _table_and_footnotes(
@@ -459,12 +450,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
             if table:
                 heading = 'Single-Keypress Table'
-                underline = '*' * len(heading)
-                content_parts.append('')
-                content_parts.append('')
-                content_parts.append('')
-                content_parts.append(heading)
-                content_parts.append(underline)
+                content_parts.append(output.section_heading(heading, '*'))
                 content_parts.append('')
 
                 tbl_and_footnotes = _table_and_footnotes(
@@ -489,21 +475,12 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         if table_pkg_list:
             plural_suffix = 's' if len(table_pkg_list) > 1 else ''
             heading = f'Multi-Keypress Table{plural_suffix}'
-            underline = '*' * len(heading)
-            content_parts.append('')
-            content_parts.append('')
-            content_parts.append('')
-            content_parts.append(heading)
-            content_parts.append(underline)
+            content_parts.append(output.section_heading(heading, '*'))
 
             for lead_keypr_str, table, footnotes, last_footnote_num in table_pkg_list:
                 if table:
                     heading = _key_sequence_table_title(lead_keypr_str)
-                    underline = '=' * len(heading)
-                    content_parts.append('')
-                    content_parts.append('')
-                    content_parts.append(heading)
-                    content_parts.append(underline)
+                    content_parts.append(output.section_heading(heading, '='))
                     content_parts.append('')
 
                     tbl_and_footnotes = _table_and_footnotes(
@@ -530,7 +507,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
         rpt_view = output_view.output_to_view(
                 None,
-                _report_title,
+                _report_short_title,
                 content,
                 current_view=view
                 )

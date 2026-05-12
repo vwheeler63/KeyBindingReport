@@ -65,7 +65,7 @@ class KeyBindingReportOverridesCommand(sublime_plugin.ApplicationCommand):
         note = 'Bindings lowest in each list override bindings higher in that list.'
 
         content_parts = []
-        content_parts.append(output.heading(title, note))
+        content_parts.append(output.report_heading(title, note))
         content_parts.append('')
 
         if override_list:

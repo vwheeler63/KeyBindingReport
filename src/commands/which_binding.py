@@ -85,7 +85,7 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
         note = f'Binding Selected for {keypress_list_json} in Current Context:'
 
         content_parts = []
-        content_parts.append(output.heading(title, note))
+        content_parts.append(output.report_heading(title, note))
         content_parts.append('')
 
         if binding:

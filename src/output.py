@@ -8,58 +8,7 @@ output content.
 
 Usage:
 
-    from . import output
-    from ..lib import ascii_table
-
-    key_groups       = [KeyGroup.NUMBERS]
-    key_names        = ["q", "w", "a", "s"]
-    keypress_list    = [["ctrl+p"], ["ctrl+shift+p"], ["ctrl+k", "ctrl+u"]]
-    packages         = ["Default"]
-    limit_to_context = False
-
-    if limit_to_context:
-        view = self.view   # <-- real current view, even when in a Panel or Overlay
-    else:
-        view = None
-
-    key_data = KeyBindingData()
-    key_data.generate(key_groups, key_names, keypress_list, packages, view)
-
-    # ---------------------------------------------------------------------
-    footnotes    = []
-    footnote_num = 0
-    title        = f'{core.package_name}:  Specified Key-Bindings'
-
-    out = output.KeyBindingOutput(key_data)
-    out.set_comments_column_width(60)
-    mktable, footnotes, footnote_num = out.main_key_table(flags, fmt, footnotes, footnote_num)
-    # pprint.pp(mktable)
-    asc_tbl = ascii_table.AsciiTable(mktable)
-    asc_tbl.set_tight_columns([True, True, True, True, False, False, False, False])
-    asc_tbl.set_column_alignments(['^', '', '', '', '', '', '', ''])
-    content_parts = [self._heading(title)]
-    content_parts.append( asc_tbl.as_string(fmt) )
-    content_parts.append('')
-
-    # Insert footnotes.
-    for footnote in footnotes:
-        content_parts.append(footnote.formatted(flags))
-
-    content_parts.append('')
-    content = '\n'.join(content_parts)
-    #
-    # Keep reference to ``out`` to generate as many reports as needed.
-    # ---------------------------------------------------------------------
-
-    output_view.output_to_view(
-            view.window(),
-            _report_title,
-            content,
-            current_view=view
-            )
-
-Multiple reports can be generated from the same ``key_data``.  The input
-data goes away when the last reference to ``out`` is severed.
+    See ``report.py`` for an example.
 
 
 output Terminology
@@ -159,7 +108,7 @@ _rst_chars_to_escape_in_table = [
 # Utilities
 # *************************************************************************
 
-def heading(title: str, note: str = '') -> str:
+def report_heading(title: str, note: str = '') -> str:
     timestamp = datetime.now().strftime(core.setting__timestamp_strftime_format)
     under_over_line = '*' * len(title)
     parts = []
@@ -175,6 +124,31 @@ def heading(title: str, note: str = '') -> str:
         parts.append('Note:')
         parts.append('')
         parts.append('    ' + note)
+
+    return '\n'.join(parts)
+
+
+def section_heading(title: str, underline_char: str) ->str:
+    underline = underline_char * len(title)
+    parts = []
+
+    if underline_char == '*':
+        blank_line_above_count = 3
+    elif underline_char == '=':
+        blank_line_above_count = 2
+    elif underline_char == '-':
+        blank_line_above_count = 1
+    elif underline_char == '~':
+        blank_line_above_count = 1
+    else:
+        # Not recognized, so we will assume 3.
+        blank_line_above_count = 3
+
+    for i in range(blank_line_above_count):
+        parts.append('')
+
+    parts.append(title)
+    parts.append(underline)
 
     return '\n'.join(parts)
 
