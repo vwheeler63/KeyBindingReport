@@ -19,7 +19,7 @@ from .. import output
 _report_title       = f'{core.package_name}:  Specified Key-Bindings'
 _report_short_title = 'Key-Binding Report'
 _flags_format_spec_bin = '014_b'
-_flags_format_spec_hex = '#04x'
+_flags_format_spec_hex = '04X'
 
 
 
@@ -33,19 +33,27 @@ def _table_key(fmt: ascii_table.Format, include_win_key: bool = False) -> str:
 
     if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
         """
-        **Key:**
+        .. container:: table-key
 
-        - A = Alt
-        - C = Ctrl
-        - S = Shift
+            .. parsed-literal::
+
+                **Key:**
+                  A = Alt
+                  C = Ctrl
+                  S = Shift
         """
-        parts.append('**Key:**')
+        indent = '    '
+        indent2 = indent * 2
+        parts.append('.. container:: table-key')
         parts.append('')
+        parts.append(f'{indent}.. parsed-literal::')
+        parts.append('')
+        parts.append(f'{indent2}**Key:**')
         if win_key:
-            parts.append(f'- {data.cmd_col_hdg} = {data.cmd_key_name}')
-        parts.append(    f'- {data.alt_col_hdg} = {data.alt_key_name}')
-        parts.append(    f'- {data.ctrl_col_hdg} = {data.ctrl_key_name}')
-        parts.append(    f'- {data.shift_col_hdg} = {data.shift_key_name}')
+            parts.append(f'{indent2}  {data.cmd_col_hdg} = {data.cmd_key_name}')
+        parts.append(    f'{indent2}  {data.alt_col_hdg} = {data.alt_key_name}')
+        parts.append(    f'{indent2}  {data.ctrl_col_hdg} = {data.ctrl_key_name}')
+        parts.append(    f'{indent2}  {data.shift_col_hdg} = {data.shift_key_name}')
     else:
         parts.append('Key:')
         if win_key:
@@ -338,7 +346,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             print(f'  {limit_to_packages=}')
             print(f'  {limit_to_context=}')
             print(f'  {fmt=}')
-            print(f'  flags={flags:{_flags_format_spec_hex}}')
+            print(f'  flags=0x{flags:{_flags_format_spec_hex}}')
 
         t0 = datetime.now()
         view = self.view
@@ -390,7 +398,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
         content_parts.append(f'{limit_to_context  = }')
         content_parts.append(f'format            = {ascii_table.Format(fmt)!r}')
-        content_parts.append(f'flags             = {flags:{_flags_format_spec_hex}}')
+        content_parts.append(f'flags             = 0x{flags:{_flags_format_spec_hex}}')
 
         # Compute length of longest enumeration name with bit set.
         longest_name_len = 0
@@ -407,7 +415,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                 if flags & enum_bit._value_:
                     content_parts.append(
                             f'  - {enum_bit._name_:{longest_name_len}}:  '
-                            f'{enum_bit._value_:{_flags_format_spec_hex}}'
+                            f'0x{enum_bit._value_:{_flags_format_spec_hex}}'
                             )
 
         # -----------------------------------------------------------------
@@ -492,7 +500,6 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                             debugging,
                             lead_keypr_str
                             )
-                    print(f'>>>>>>>>>>>>>>>>>>>>\n[{tbl_and_footnotes}]')
 
                     content_parts.append(tbl_and_footnotes)
 
