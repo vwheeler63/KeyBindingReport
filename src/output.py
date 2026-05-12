@@ -255,7 +255,7 @@ class Footnote:
     def formatted_reference(self) -> str:
         """ Footnote reference appropriate for ``format`` """
         if self.format == ascii_table.Format.RESTRUCTUREDTEXT:
-            result = f'([{self.number}]_)'
+            result = f'[{self.number}]_'
         else:
             result = f'({self.number})'
 
@@ -297,7 +297,7 @@ class Footnote:
                 human_readable_keypr = '-'.join(parts).title()
                 result = (
                         f'.. [{self.number}] Context for :kbd:`{human_readable_keypr}`:\n'
-                        f'.. code-block:: json\n\n{footnote_str}\n'
+                        f'.. code-block:: json\n\n{footnote_str}'
                         )
             else:
                 result = f'({self.number}):\n{footnote_str}'
@@ -396,6 +396,7 @@ class KeyBindingOutput:
                 row.append(mod_key_applies_tpl[3])      # Shift
                 row.append(binding.command())
 
+                # Args
                 if binding.has_args():
                     if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
                         args_str = rst_table_args_str(binding.args_json())
@@ -406,6 +407,7 @@ class KeyBindingOutput:
 
                 row.append(args_str)
 
+                # Context
                 if binding.has_context():
                     if flags & FlagBits.ANY_CONTEXT_REQUESTED:
                         # User requested detailed context information

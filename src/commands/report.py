@@ -71,43 +71,71 @@ def _table_and_footnotes(
         print(f'  {flags=}')
         print(f'  {fmt=}')
         print(f'  {fmt=}')
+
+    incl_win_key = (( data.platform_name == 'OSX' or bool(flags & output.FlagBits.INCLUDE_WINDOWS_KEY) ))
+    restructuredtext = (( fmt == ascii_table.Format.RESTRUCTUREDTEXT ))
+
     asc_tbl = ascii_table.AsciiTable(table)
 
-    if flags & output.FlagBits.INCLUDE_WINDOWS_KEY:
-        #                               Key     W     A     C     S   Cmd  Args  Ctxt   Src
-        asc_tbl.set_column_alignments([ '^',   '',   '',   '',   '',   '',   '',  '^',   ''])
+    # Prep column specs.
+    # Key
+    col_alignment_specs = ['^']
+    tight_col_specs     = [True]
 
-        if fmt != ascii_table.Format.RESTRUCTUREDTEXT:
-            #                                  Key     W     A     C     S   Cmd  Args  Ctxt   Src
-            asc_tbl.set_tight_columns([True, True, True, True, True, True, True, True, False])
-    else:
-        #                               Key     A     C     S    Cmd  Args  Ctxt   Src
-        asc_tbl.set_column_alignments([ '^',   '',   '',   '',   '',   '',  '^',    ''])
+    # Windows/Command
+    if incl_win_key:
+        col_alignment_specs.append('')
+        tight_col_specs.append(True)
 
-        if fmt != ascii_table.Format.RESTRUCTUREDTEXT:
-            #                           Key     A     C     S    Cmd  Args  Ctxt   Src
-            asc_tbl.set_tight_columns([True, True, True, True, True, True, True, False])
+    # A, C, S, Cmd, Args, Context
+    col_alignment_specs.extend(['', '', '', '', '', '^'])
+    tight_col_specs.extend([True, True, True, True, True, True])
 
-    incl_win_key = bool(flags & output.FlagBits.INCLUDE_WINDOWS_KEY)
+    # Source
+    if flags & output.FlagBits.ADD_SOURCE_COLUMN:
+        col_alignment_specs.append('')
+        tight_col_specs.append(False)
+
+    # Comments
+    if flags & output.FlagBits.ADD_COMMENTS_COLUMN:
+        col_alignment_specs.append('')
+        tight_col_specs.append(False)
+
+    asc_tbl.set_column_alignments(col_alignment_specs)
+    if fmt != ascii_table.Format.RESTRUCTUREDTEXT:
+        asc_tbl.set_tight_columns(tight_col_specs)
+
     table_key = _table_key(fmt, incl_win_key)
     parts = []
 
+    if core.setting__rst_container_class and restructuredtext:
+        container_directive = '.. container:: ' + core.setting__rst_container_class
+        indent = '    '
+    else:
+        container_directive = None
+        indent = ''
+
     if flags & output.FlagBits.TABLE_KEY_AFTER_TABLE:
-        parts.append( asc_tbl.as_string(fmt) )
+        if container_directive:
+            parts.append(container_directive)
+            parts.append('')
+        parts.append( asc_tbl.as_string(fmt, indent) )
         parts.append('')
         parts.append(table_key)
-        parts.append('')
     else:
         parts.append(table_key)
         parts.append('')
-        parts.append( asc_tbl.as_string(fmt) )
-        parts.append('')
+        if container_directive:
+            parts.append(container_directive)
+            parts.append('')
+        parts.append( asc_tbl.as_string(fmt, indent) )
 
     # Insert footnotes.
     for footnote in footnotes:
+        if restructuredtext:
+            parts.append('')
         parts.append(footnote.formatted())
 
-    parts.append('')
     content = '\n'.join(parts)
 
     if core.setting__output_directory and (flags & output.FlagBits.OUTPUT_TO_FILES):
@@ -122,6 +150,8 @@ def _table_and_footnotes(
                 print(f'  Attempting to open for writing [{output_path}]....')
             with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(content)
+            if debugging:
+                print('  Success.')
         except Exception as e:
             print(f'Opening {output_path} for writing failed: {e}')
 
@@ -397,9 +427,9 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                 underline = '*' * len(heading)
                 content_parts.append('')
                 content_parts.append('')
+                content_parts.append('')
                 content_parts.append(heading)
                 content_parts.append(underline)
-                content_parts.append('')
 
                 for key_group_idx, table, footnotes, last_footnote_num in table_pkg_list:
                     if table:
@@ -432,6 +462,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                 underline = '*' * len(heading)
                 content_parts.append('')
                 content_parts.append('')
+                content_parts.append('')
                 content_parts.append(heading)
                 content_parts.append(underline)
                 content_parts.append('')
@@ -461,15 +492,16 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             underline = '*' * len(heading)
             content_parts.append('')
             content_parts.append('')
+            content_parts.append('')
             content_parts.append(heading)
             content_parts.append(underline)
-            content_parts.append('')
 
             for lead_keypr_str, table, footnotes, last_footnote_num in table_pkg_list:
                 if table:
                     heading = _key_sequence_table_title(lead_keypr_str)
-                    content_parts.append('')
                     underline = '=' * len(heading)
+                    content_parts.append('')
+                    content_parts.append('')
                     content_parts.append(heading)
                     content_parts.append(underline)
                     content_parts.append('')
@@ -483,6 +515,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                             debugging,
                             lead_keypr_str
                             )
+                    print(f'>>>>>>>>>>>>>>>>>>>>\n[{tbl_and_footnotes}]')
 
                     content_parts.append(tbl_and_footnotes)
 

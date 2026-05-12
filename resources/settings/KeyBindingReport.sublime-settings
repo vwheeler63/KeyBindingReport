@@ -43,7 +43,7 @@
 	//
 	// In this example, the CSS class "tighter-table-6" is used in
 	// formatting the final Sphinx or Docutils output.
-	"rst_container_name": "",
+	"rst_container_class": "",
 
 	// --------------------------------------------------------------------
 	// String.  Format String for Report Timestamps

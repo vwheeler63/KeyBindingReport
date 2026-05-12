@@ -89,8 +89,8 @@ class AsciiTable():
             raise AssertionError(msg)
         self.tight_columns = tight_col_list
 
-    def as_string(self, fmt: Format):
-        self.debugging = True
+    def as_string(self, fmt: Format, indent: str = ''):
+        self.debugging = False
         if self.debugging:
             print(f'In {self.__class__.__name__}.as_string()....')
             print(f'  {fmt                    = }')
@@ -102,13 +102,13 @@ class AsciiTable():
 
         """ Representation of `self` as a string """
         if fmt == Format.BARE:
-            result = self._bare_repr()
+            result = self._bare_repr(indent)
         elif fmt == Format.OUTLINED:
-            result = self._outlined_repr()
+            result = self._outlined_repr(False, indent)
         elif fmt == Format.OUTLINED_COLUMNS:
-            result = self._outlined_repr(True)
+            result = self._outlined_repr(True, indent)
         elif fmt == Format.RESTRUCTUREDTEXT:
-            result = self._restructuredtext_repr()
+            result = self._restructuredtext_repr(indent)
         else:
             result = ''
 
@@ -139,7 +139,7 @@ class AsciiTable():
     def _double_line_row_separator(self, with_col_seps: bool = False):
         return self._row_separator('=', with_col_seps)
 
-    def _bare_repr(self):
+    def _bare_repr(self, indent: str):
         """
         Package                  Shipped   Installed   Unpacked
         Default                  [S]       [ ]         [U]
@@ -160,6 +160,10 @@ class AsciiTable():
 
         for row in self.table:
             line_parts.clear()
+
+            if indent:
+                line_parts.append(indent)
+
             last_i = len(row) - 1
 
             for i, col in enumerate(row):
@@ -179,7 +183,7 @@ class AsciiTable():
         return '\n'.join(lines)
 
 
-    def _outlined_repr(self, with_col_seps: bool = False):
+    def _outlined_repr(self, with_col_seps: bool, indent: str):
         """
         with_col_seps = False:
         +---------------------------------------------------------+
@@ -219,6 +223,10 @@ class AsciiTable():
 
         for row in self.table:
             line_parts.clear()
+
+            if indent:
+                line_parts.append(indent)
+
             line_parts.append('|')
             last_i = len(row) - 1
 
@@ -242,7 +250,7 @@ class AsciiTable():
 
         return '\n'.join(lines)
 
-    def _restructuredtext_repr(self):
+    def _restructuredtext_repr(self, indent: str):
         """
         +------------------------+---------+-----------+----------+
         | Package                | Shipped | Installed | Unpacked |
@@ -260,13 +268,17 @@ class AsciiTable():
         """
         lines = []
         line_parts = []
-        row_sep = self._single_line_row_separator(True)
-        title_sep = self._double_line_row_separator(True)
+        row_sep = indent + self._single_line_row_separator(True)
+        title_sep = indent + self._double_line_row_separator(True)
 
         lines.append(row_sep)
 
         for ri, row in enumerate(self.table):
             line_parts.clear()
+
+            if indent:
+                line_parts.append(indent)
+
             line_parts.append('|')
 
             for ci, col in enumerate(row):
