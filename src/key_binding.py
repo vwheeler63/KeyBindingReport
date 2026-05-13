@@ -271,6 +271,22 @@ class KeyBinding:
     def keypresses_repr(self) -> str:
         return repr(self._keys)
 
+    def keypresses_human_friendly_repr_list(self) -> list[str]:
+        """ e.g. Alt-Shift-R """
+        result = []
+        for keypr_str in self._keys:
+            result.append(keypr_str.replace('+', '-').title())
+
+        return result
+
+    def keypresses_restructured_text_repr_list(self) -> list[str]:
+        result = []
+        hf_list = self.keypresses_human_friendly_repr_list()
+        for hf_str in hf_list:
+            result.append(f':kbd:`{hf_str}`')
+
+        return result
+
     def command(self) -> str:
         return self._command
 

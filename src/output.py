@@ -70,8 +70,9 @@ All input data goes away when the last reference to the created
 from typing import Iterable
 from enum import IntFlag
 from datetime import datetime
+
 from . import data
-from .data import KeyBindingData, ModifierKeyBits
+from .data import KeyBindingData, ReportKeyBinding
 from . import core
 from . smart_context import SmartContext
 from ..lib.debug import DebugBits, is_debugging
@@ -273,23 +274,19 @@ def include_windows_key(flags: FlagBits):
 
 class Footnote:
     """ Containers for key-binding table footnotes """
-    __slots__ = ['key_name', 'mod_code', 'number', 'context', 'flags', 'format']
+    __slots__ = ['key_binding', 'number', 'flags', 'format']
 
     def __init__(
             self,
-            key_name: str,
-            mod_code: int,
-            number  : int,
-            context : SmartContext | None,
-            flags   : FlagBits,
-            format  : ascii_table.Format
+            key_binding: ReportKeyBinding,
+            number     : int,
+            flags      : FlagBits,
+            format     : ascii_table.Format
             ):
-        self.key_name = key_name
-        self.mod_code = mod_code
-        self.number   = number
-        self.context  = context
-        self.flags    = flags
-        self.format   = format
+        self.key_binding = key_binding
+        self.number      = number
+        self.flags       = flags
+        self.format      = format
 
     def __str__(self) -> str:
         return self.formatted()
@@ -305,13 +302,13 @@ class Footnote:
 
     def formatted(self) -> str:
         """ Footnote content appropriate for ``format`` """
-        raw     = bool(self.flags & FlagBits.INCLUDE_UNTRANSLATED_CONTEXTS)
-        natural_lang = bool(self.flags & FlagBits.INCLUDE_NATURAL_LANGUAGE_CONTEXTS)
+        result = ''
+        context = self.key_binding.smart_context()
 
-        if not self.context:
-            result = ''
-        else:
-            footnote_str = self.context.formatted(2, raw=raw, natural_language=natural_lang)
+        if context:
+            raw     = bool(self.flags & FlagBits.INCLUDE_UNTRANSLATED_CONTEXTS)
+            natural_lang = bool(self.flags & FlagBits.INCLUDE_NATURAL_LANGUAGE_CONTEXTS)
+            footnote_str = context.formatted(2, raw=raw, natural_language=natural_lang)
 
             if self.format == ascii_table.Format.RESTRUCTUREDTEXT:
                 # .. [1] context for :kbd:`Alt-1`:
@@ -320,25 +317,10 @@ class Footnote:
                 #     "context": [
                 #       { "key": "group_has_multiselect", "operator": "equal", "operand": true, "match_all": false }
                 #     ]
-                parts = []
-                if self.mod_code:
-                    bit_val = ModifierKeyBits.CTRL
-                    if self.mod_code & bit_val:
-                        parts.append(data.modifier_key_names_by_modifier_code_bit[bit_val])
-                    bit_val = ModifierKeyBits.ALT
-                    if self.mod_code & bit_val:
-                        parts.append(data.modifier_key_names_by_modifier_code_bit[bit_val])
-                    bit_val = ModifierKeyBits.SHIFT
-                    if self.mod_code & bit_val:
-                        parts.append(data.modifier_key_names_by_modifier_code_bit[bit_val])
-                    bit_val = ModifierKeyBits.COMMAND
-                    if self.mod_code & bit_val:
-                        parts.append(data.modifier_key_names_by_modifier_code_bit[bit_val])
-
-                parts.append(self.key_name)
-                human_readable_keypr = '-'.join(parts).title()
+                rst_keypress_list = self.key_binding.keypresses_restructured_text_repr_list()
+                rst_keypress_str = ', '.join(rst_keypress_list)
                 result = (
-                        f'.. [{self.number}] Context for :kbd:`{human_readable_keypr}`:\n'
+                        f'.. [{self.number}] Context for {rst_keypress_str}:\n'
                         f'.. code-block:: json\n\n{footnote_str}'
                         )
             else:
@@ -444,8 +426,7 @@ class KeyBindingOutput:
                     if flags & FlagBits.ANY_CONTEXT_REQUESTED:
                         # User requested detailed context information
                         footnote_num += 1
-                        footnote = Footnote(main_key_name, modifier_code,
-                                footnote_num, binding.smart_context(), flags, fmt)
+                        footnote = Footnote(binding, footnote_num, flags, fmt)
                         footnotes.append(footnote)
                         context_ref = footnote.formatted_reference()
                     else:
