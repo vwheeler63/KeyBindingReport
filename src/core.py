@@ -442,6 +442,15 @@ setting__timestamp_strftime_format = kbr_setting.default[_cfg_stg_name__timestam
 setting__debugging                 = kbr_setting.default[_cfg_stg_name__debugging]
 
 
+def show_settings():
+    print(f'{setting__output_directory_windows  = }')
+    print(f'{setting__output_directory_linux    = }')
+    print(f'{setting__output_directory_osx      = }')
+    print(f'{setting__rst_container_class       = }')
+    print(f'{setting__timestamp_strftime_format = }')
+    print(f'{setting__debugging                 = }')
+
+
 
 # *************************************************************************
 # Utilities
@@ -496,6 +505,9 @@ def _on_pkg_settings_chgd():
     setting__rst_container_class       = kbr_setting(_cfg_stg_name__rst_container_class)
     setting__timestamp_strftime_format = kbr_setting(_cfg_stg_name__timestamp_strftime_format)
     setting__debugging                 = kbr_setting(_cfg_stg_name__debugging)
+
+    if debugging:
+        show_settings()
 
 
 def on_plugin_loaded():

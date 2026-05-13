@@ -374,9 +374,9 @@ class KeyBindingOutput:
                     data.alt_col_hdg,
                     data.ctrl_col_hdg,
                     data.shift_col_hdg,
+                    'Ctxt',
                     'Command',
                     'Args',
-                    'Context'
                     ]
         else:
             effective_min_col_count = self.min_column_count - 1
@@ -386,9 +386,9 @@ class KeyBindingOutput:
                     data.alt_col_hdg,
                     data.ctrl_col_hdg,
                     data.shift_col_hdg,
+                    'Ctxt',
                     'Command',
                     'Args',
-                    'Context'
                     ]
 
         if len(result) != effective_min_col_count:
@@ -418,6 +418,9 @@ class KeyBindingOutput:
             include_win_key = include_windows_key(flags)
 
             for binding in binding_list:
+                # ---------------------------------------------------------
+                # Keys
+                # ---------------------------------------------------------
                 if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
                     tbl_key_name = rst_table_key_name(main_key_name)
                 else:
@@ -425,24 +428,14 @@ class KeyBindingOutput:
 
                 row = [tbl_key_name]                    # 'f5'
                 if include_win_key:
-                    row.append(mod_key_applies_tpl[0])  # Command
+                    row.append(mod_key_applies_tpl[0])  # Windows/Command Key
                 row.append(mod_key_applies_tpl[1])      # Alt
                 row.append(mod_key_applies_tpl[2])      # Ctrl
                 row.append(mod_key_applies_tpl[3])      # Shift
-                row.append(binding.command())
 
-                # Args
-                if binding.has_args():
-                    if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
-                        args_str = rst_table_args_str(binding.args_json())
-                    else:
-                        args_str = binding.args_json()
-                else:
-                    args_str = ' '
-
-                row.append(args_str)
-
+                # ---------------------------------------------------------
                 # Context
+                # ---------------------------------------------------------
                 if binding.has_context():
                     if flags & FlagBits.ANY_CONTEXT_REQUESTED:
                         # User requested detailed context information
@@ -458,7 +451,27 @@ class KeyBindingOutput:
 
                 row.append(context_ref)
 
+                # ---------------------------------------------------------
+                # Command
+                # ---------------------------------------------------------
+                row.append(binding.command())
+
+                # ---------------------------------------------------------
+                # Args
+                # ---------------------------------------------------------
+                if binding.has_args():
+                    if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
+                        args_str = rst_table_args_str(binding.args_json())
+                    else:
+                        args_str = binding.args_json()
+                else:
+                    args_str = ' '
+
+                row.append(args_str)
+
+                # ---------------------------------------------------------
                 # Remaining optional columns.
+                # ---------------------------------------------------------
                 if flags & FlagBits.ADD_SOURCE_COLUMN:
                     row.append(binding.source())
                 if flags & FlagBits.ADD_COMMENTS_COLUMN:
@@ -479,6 +492,9 @@ class KeyBindingOutput:
 
         space = ' '
 
+        # -----------------------------------------------------------------
+        # Keys
+        # -----------------------------------------------------------------
         if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
             tbl_key_name = rst_table_key_name(main_key_name)
         else:
@@ -492,11 +508,25 @@ class KeyBindingOutput:
         row.append(mod_key_applies_tpl[1])      # Alt
         row.append(mod_key_applies_tpl[2])      # Ctrl
         row.append(mod_key_applies_tpl[3])      # Shift
-        row.append(space)                       # Command (not bound to any commands)
-        row.append(space)                       # Args    (not bound to any commands)
+
+        # -----------------------------------------------------------------
+        # Context
+        # -----------------------------------------------------------------
         row.append(space)                       # Context (not bound to any commands)
 
+        # -----------------------------------------------------------------
+        # Command
+        # -----------------------------------------------------------------
+        row.append(space)                       # Command (not bound to any commands)
+
+        # -----------------------------------------------------------------
+        # Args
+        # -----------------------------------------------------------------
+        row.append(space)                       # Args    (not bound to any commands)
+
+        # -----------------------------------------------------------------
         # Remaining optional columns.
+        # -----------------------------------------------------------------
         if flags & FlagBits.ADD_SOURCE_COLUMN:
             row.append(space)
         if flags & FlagBits.ADD_COMMENTS_COLUMN:

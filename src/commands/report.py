@@ -47,22 +47,24 @@ def _table_key(fmt: ascii_table.Format, include_win_key: bool = False) -> str:
         parts.append('')
         parts.append(f'{indent2}**Key:**')
         if include_win_key:
-            parts.append(f'{indent2}  {data.cmd_col_hdg} = {data.cmd_key_name}')
-        parts.append(    f'{indent2}  {data.alt_col_hdg} = {data.alt_key_name}')
-        parts.append(    f'{indent2}  {data.ctrl_col_hdg} = {data.ctrl_key_name}')
-        parts.append(    f'{indent2}  {data.shift_col_hdg} = {data.shift_key_name}')
+            parts.append(f'{indent2}     {data.cmd_col_hdg} = {data.cmd_key_name}')
+        parts.append(    f'{indent2}     {data.alt_col_hdg} = {data.alt_key_name}')
+        parts.append(    f'{indent2}     {data.ctrl_col_hdg} = {data.ctrl_key_name}')
+        parts.append(    f'{indent2}     {data.shift_col_hdg} = {data.shift_key_name}')
+        parts.append(    f'{indent2}  Ctxt = Context')
     else:
         parts.append('Key:')
         if include_win_key:
-            parts.append(f'  {data.cmd_col_hdg} = {data.cmd_key_name}')
-        parts.append(    f'  {data.alt_col_hdg} = {data.alt_key_name}')
-        parts.append(    f'  {data.ctrl_col_hdg} = {data.ctrl_key_name}')
-        parts.append(    f'  {data.shift_col_hdg} = {data.shift_key_name}')
+            parts.append(f'     {data.cmd_col_hdg} = {data.cmd_key_name}')
+        parts.append(    f'     {data.alt_col_hdg} = {data.alt_key_name}')
+        parts.append(    f'     {data.ctrl_col_hdg} = {data.ctrl_key_name}')
+        parts.append(    f'     {data.shift_col_hdg} = {data.shift_key_name}')
+        parts.append(     '  Ctxt = Context')
 
     return '\n'.join(parts)
 
 
-def _table_and_footnotes(
+def _key_table_and_footnotes(
         key_group_idx: int,
         table        : list[list[str]],
         footnotes    : list[output.Footnote],
@@ -72,7 +74,7 @@ def _table_and_footnotes(
         lead_keypr   : str | None = None,
         ) -> str:
     # if debugging:
-    #     print('In _table_and_footnotes()....')
+    #     print('In _key_table_and_footnotes()....')
     #     print(f'  {fmt=}')
     #     print(f'  {flags=}')
     #     print(f'  {fmt=}')
@@ -272,7 +274,7 @@ def _generate_report(
                     content_parts.append(output.section_heading(heading, '='))
                     content_parts.append('')
 
-                    tbl_and_footnotes = _table_and_footnotes(
+                    tbl_and_footnotes = _key_table_and_footnotes(
                             key_group_idx,
                             table,
                             footnotes,
@@ -293,7 +295,7 @@ def _generate_report(
             content_parts.append(output.section_heading(heading, '*'))
             content_parts.append('')
 
-            tbl_and_footnotes = _table_and_footnotes(
+            tbl_and_footnotes = _key_table_and_footnotes(
                     data.KeyGroup.ALL,  # All in 1 table
                     table,
                     footnotes,
@@ -323,7 +325,7 @@ def _generate_report(
                 content_parts.append(output.section_heading(heading, '='))
                 content_parts.append('')
 
-                tbl_and_footnotes = _table_and_footnotes(
+                tbl_and_footnotes = _key_table_and_footnotes(
                         data.KeyGroup.KEY_SEQUENCES,
                         table,
                         footnotes,
