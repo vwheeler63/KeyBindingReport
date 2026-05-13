@@ -20,25 +20,30 @@ import sublime
 ###----------------------------------------------------------------------------
 
 
-def find_view(window, title, current_view=None):
+def find_view(window, title, current_view=None) -> sublime.View | None:
     """
     Attempt to find a view with the given title (name) in the given window.
 
     If current_view was not a match and window is None, all open windows are
     searched for a matching view.
     """
-    if current_view is not None and current_view.name() == title:
-        return current_view
+    result = None
 
-    if window:
+    if current_view is not None and current_view.name() == title:
+        result = current_view
+    elif window:
         for view in window.views():
             if view.name() == title:
-                return view
+                result = view
+                break
     else:
         for window in sublime.windows():
             for view in window.views():
                 if view.name() == title:
-                    return view
+                    result = view
+                    break
+
+    return result
 
 
 def new_scratch_view(window, title, syntax=None):
@@ -104,7 +109,7 @@ def output_to_view(window,
                    clear=True,
                    syntax=None,
                    settings=None,
-                   current_view=None):
+                   current_view=None) -> sublime.View:
     """
     Add the content provided to a view in the given window, which has the title
     provided. This will create a new view unless one with the title provided
@@ -147,7 +152,9 @@ def output_to_view(window,
             window = view.window()
         elif current_view is not None:
             window = current_view.window()
-        else:
+
+        # Since view.window() can produce None in rare circumstances.
+        if window is None:
             window = sublime.active_window()
 
     if view is None:
