@@ -240,7 +240,7 @@ class KeyBinding:
             result = ''
 
         cmd_as_func = self.command_as_function_repr()
-        keypresses_json = json.dumps(self._command)
+        keypresses_json = json.dumps(self._keys)
         result += f'{indent}{{ {keypresses_json}, {cmd_as_func}'
 
         if self._smart_context:
