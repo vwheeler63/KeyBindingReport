@@ -596,18 +596,44 @@ class KeyBindingOutput:
             binding_lists_by_mod_code = by_main_key_dict[main_key_name]
             key_has_bindings = any(binding_lists_by_mod_code)
 
-            # There is no need to go through all 16 sub-items if
-            # ``not key_has_bindings and not include_unbound_keypresses``.
-            if not key_has_bindings and not include_unbound_keypresses:
+            # Do not iterate through (16) sub-items when none have bindings.
+            if not include_unbound_keypresses and not key_has_bindings:
                 continue
 
-            for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
-                if not binding_list and not include_unbound_keypresses:
-                    continue
+            if include_unbound_keypresses:
+                # Include unbound keypresses.
+                for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
+                    mod_key_applies_tpl = data.modifier_characters(modifier_code, self.modifier_applies_symbol)
 
-                mod_key_applies_tpl = data.modifier_characters(modifier_code, self.modifier_applies_symbol)
+                    if binding_list:
+                        footnote_num = self._append_rows_to_table_for_one_keypress(
+                                table,
+                                main_key_name,
+                                modifier_code,
+                                mod_key_applies_tpl,
+                                binding_list,
+                                flags,
+                                fmt,
+                                footnotes,
+                                footnote_num,
+                                )
+                    else:
+                        self._append_empty_row_to_table(
+                                table,
+                                main_key_name,
+                                mod_key_applies_tpl,
+                                flags,
+                                fmt,
+                                )
+            else:
+                # Do not include unbound keypresses.
+                for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
+                    if not binding_list:
+                        continue
 
-                if binding_list:
+                    # Here we know ``binding_list`` contains bindings.
+                    mod_key_applies_tpl = data.modifier_characters(modifier_code, self.modifier_applies_symbol)
+
                     footnote_num = self._append_rows_to_table_for_one_keypress(
                             table,
                             main_key_name,
@@ -619,26 +645,6 @@ class KeyBindingOutput:
                             footnotes,
                             footnote_num,
                             )
-                elif include_unbound_keypresses and key_has_bindings:
-                    # TODO: review the need for ``key_has_bindings`` in condition.
-                    # Does this prevent outputting say letter "b" when only "a" was
-                    # asked for?  Or perhaps outputting "f1" when the F-KEY group
-                    # was requested and it "f1" has no bindings?
-
-                    # The following are all True:
-                    # - `binding_list` == None,
-                    # - `include_unbound_keypresses`, and
-                    # - `key_has_bindings`
-                    self._append_empty_row_to_table(
-                            table,
-                            main_key_name,
-                            mod_key_applies_tpl,
-                            flags,
-                            fmt,
-                            )
-                else:
-                    # No output should be generated.
-                    pass
 
         return table, footnotes, footnote_num
 
@@ -714,22 +720,52 @@ class KeyBindingOutput:
                 binding_lists_by_mod_code = by_main_key_dict[main_key_name]
                 key_has_bindings = any(binding_lists_by_mod_code)
 
-                # There is no need to go through all 16 sub-items if
-                # ``not key_has_bindings and not include_unbound_keypresses``.
-                if not key_has_bindings and not include_unbound_keypresses:
+                # Do not iterate through (16) sub-items when none have bindings.
+                if not include_unbound_keypresses and not key_has_bindings:
                     continue
 
-                for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
-                    if not binding_list and not include_unbound_keypresses:
-                        continue
+                if include_unbound_keypresses:
+                    # Include unbound keypresses.
+                    for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
+                        mod_key_applies_tpl = data.modifier_characters(modifier_code, self.modifier_applies_symbol)
 
-                    mod_key_applies_tpl = data.modifier_characters(modifier_code, self.modifier_applies_symbol)
+                        if binding_list:
+                            # Now we know there is content.
+                            # Heading not added yet?  Add it now.
+                            if len(table) == 0:
+                                table.append(heading_row)
 
-                    if binding_list:
-                        # Now we know there is content.
+                            footnote_num = self._append_rows_to_table_for_one_keypress(
+                                    table,
+                                    main_key_name,
+                                    modifier_code,
+                                    mod_key_applies_tpl,
+                                    binding_list,
+                                    flags,
+                                    fmt,
+                                    footnotes,
+                                    footnote_num,
+                                    )
+                        else:
+                            self._append_empty_row_to_table(
+                                    table,
+                                    main_key_name,
+                                    mod_key_applies_tpl,
+                                    flags,
+                                    fmt,
+                                    )
+                else:
+                    # Do not include unbound keypresses.
+                    for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
+                        if not binding_list:
+                            continue
+
+                        # Here we know ``binding_list`` contains bindings.
                         # Heading not added yet?  Add it now.
                         if len(table) == 0:
                             table.append(heading_row)
+
+                        mod_key_applies_tpl = data.modifier_characters(modifier_code, self.modifier_applies_symbol)
 
                         footnote_num = self._append_rows_to_table_for_one_keypress(
                                 table,
@@ -742,26 +778,6 @@ class KeyBindingOutput:
                                 footnotes,
                                 footnote_num,
                                 )
-                    elif include_unbound_keypresses and key_has_bindings:
-                        # TODO: review the need for ``key_has_bindings`` in condition.
-                        # Does this prevent outputting say letter "b" when only "a" was
-                        # asked for?  Or perhaps outputting "f1" when the F-KEY group
-                        # was requested and it "f1" has no bindings?
-
-                        # The following are all True:
-                        # - `binding_list` == None,
-                        # - `include_unbound_keypresses`, and
-                        # - `key_has_bindings`
-                        self._append_empty_row_to_table(
-                                table,
-                                main_key_name,
-                                mod_key_applies_tpl,
-                                flags,
-                                fmt,
-                                )
-                    else:
-                        # No output should be generated.
-                        pass
 
             # We've reached the end of a key group.
             table_list.append((key_group_idx, table, footnotes, footnote_num))
