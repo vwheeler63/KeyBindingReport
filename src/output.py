@@ -241,10 +241,14 @@ def rst_table_key_name(main_key_name: str) -> str:
 def rst_table_args_str(args_str: str) -> str:
     result = args_str
 
-    for c in _rst_chars_to_escape_in_table:
-        if c in args_str:
-            escaped_c = '\\' + c
-            result = result.replace(c, escaped_c)
+    if 'res://' in result:
+        # Place whole thing in a literal.
+        result = '``' + result + '``'
+    else:
+        for c in _rst_chars_to_escape_in_table:
+            if c in args_str:
+                escaped_c = '\\' + c
+                result = result.replace(c, escaped_c)
 
     return result
 
