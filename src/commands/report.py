@@ -1,6 +1,5 @@
 import os
 from typing import Iterable
-import pprint
 from datetime import datetime
 import sublime_plugin
 import sublime

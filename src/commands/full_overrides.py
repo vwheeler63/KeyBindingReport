@@ -6,7 +6,6 @@ See ``context_overrides.py`` docstring for detailed description.
 """
 from datetime import datetime
 import sublime_plugin
-import sublime
 from ...lib.debug import DebugBits, is_debugging
 from ...lib import output_view
 from .. import core
@@ -88,7 +87,7 @@ class KeyBindingReportOverridesCommand(sublime_plugin.ApplicationCommand):
                 None,
                 _report_title,
                 content,
-                current_view=sublime.active_window().active_view()
+                current_view=None
                 )
 
         window = rpt_view.window()

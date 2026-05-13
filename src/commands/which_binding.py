@@ -6,8 +6,6 @@ This logic is launched via the ``KeyBindingReportWhichBindingCommand``
 command at the end of this file.  The details of the algorithm are in
 the docstring for that command.
 """
-import json
-import pprint
 from datetime import datetime
 import sublime_plugin
 import sublime
@@ -81,8 +79,7 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
         # Generate report.
         # =================================================================
         title = f'{core.package_name}:  Which Key Binding?'
-        keypress_list_json = json.dumps(keypress_list)
-        note = f'Binding Selected for {keypress_list_json} in Current Context:'
+        note = f'Binding Selected for {keypress_list} in Current Context:'
 
         content_parts = []
         content_parts.append(output.report_heading(title, note))

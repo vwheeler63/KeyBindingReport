@@ -1,4 +1,3 @@
-from datetime import datetime
 import sublime_plugin
 import sublime
 from ...lib.debug import DebugBits, is_debugging
