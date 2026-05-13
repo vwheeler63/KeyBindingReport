@@ -97,8 +97,8 @@ def _key_table_and_footnotes(
         col_alignment_specs.append('')
         tight_col_specs.append(True)
 
-    # A, C, S, Cmd, Args, Context
-    col_alignment_specs.extend(['', '', '', '', '', '^'])
+    # A, C, S, Context, Cmd, Args
+    col_alignment_specs.extend(['', '', '', '^', '', ''])
     tight_col_specs.extend([True, True, True, True, True, True])
 
     # Source
