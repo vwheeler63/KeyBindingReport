@@ -303,7 +303,8 @@ class Footnote:
     def formatted(self) -> str:
         """ Footnote content appropriate for ``format`` """
         result = ''
-        context = self.key_binding.smart_context()
+        binding = self.key_binding
+        context = binding.smart_context()
 
         if context:
             raw     = bool(self.flags & FlagBits.INCLUDE_UNTRANSLATED_CONTEXTS)
@@ -317,10 +318,11 @@ class Footnote:
                 #     "context": [
                 #       { "key": "group_has_multiselect", "operator": "equal", "operand": true, "match_all": false }
                 #     ]
-                rst_keypress_list = self.key_binding.keypresses_restructured_text_repr_list()
+                rst_keypress_list = binding.keypresses_restructured_text_repr_list()
                 rst_keypress_str = ', '.join(rst_keypress_list)
+                cmd_func_repr = binding.command_as_function_repr()
                 result = (
-                        f'.. [{self.number}] Context for {rst_keypress_str}:\n'
+                        f'.. [{self.number}] Context for {rst_keypress_str}:  {cmd_func_repr}\n'
                         f'.. code-block:: json\n\n{footnote_str}'
                         )
             else:

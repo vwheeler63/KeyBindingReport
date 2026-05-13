@@ -320,7 +320,7 @@ class KeyBinding:
 
     def command_as_function_repr(self) -> str:
         command = self._command
-        args_repr = self.args_repr()
+        args_repr = self.args_json()
         return f'{command}({args_repr})'
 
     def has_context(self) -> bool:
