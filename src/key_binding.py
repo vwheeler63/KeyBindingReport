@@ -473,6 +473,7 @@ class KeyBinding:
     __slots__ = [
         '_source',
         'source_entry_no',
+        '_keys',
         '_command',
         '_args',
         '_smart_context',   # None if binding had no "context" entry.
@@ -488,6 +489,8 @@ class KeyBinding:
         """
         self._source = source
         self.source_entry_no = source_entry_no
+
+        # Keys
         self._keys = decoded_key_binding[_keys_key]
 
         # Command

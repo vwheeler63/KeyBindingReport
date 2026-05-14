@@ -533,7 +533,7 @@ def on_plugin_loaded():
 
     # Tell output module to update its column headings and modifier-key
     # names based on platform.
-    output.update_key_names_based_on_platform(True)
+    output.update_key_names_based_on_platform()
 
 
     # Report.

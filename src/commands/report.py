@@ -102,18 +102,18 @@ def _table_key(fmt: ascii_table.Format, include_win_key: bool = False) -> str:
         parts.append('')
         parts.append(f'{indent2}**Key:**')
         if include_win_key:
-            parts.append(f'{indent2}     {output.cmd_col_hdg} = {output.cmd_key_name}')
-        parts.append(    f'{indent2}     {output.alt_col_hdg} = {output.alt_key_name}')
-        parts.append(    f'{indent2}     {output.ctrl_col_hdg} = {output.ctrl_key_name}')
-        parts.append(    f'{indent2}     {output.shift_col_hdg} = {output.shift_key_name}')
+            parts.append(f'{indent2}     {output.cmd_col_heading} = {output.cmd_key_name}')
+        parts.append(    f'{indent2}     {output.alt_col_heading} = {output.alt_key_name}')
+        parts.append(    f'{indent2}     {output.ctrl_col_heading} = {output.ctrl_key_name}')
+        parts.append(    f'{indent2}     {output.shift_col_heading} = {output.shift_key_name}')
         parts.append(    f'{indent2}  Ctxt = Context')
     else:
         parts.append('Key:')
         if include_win_key:
-            parts.append(f'     {output.cmd_col_hdg} = {output.cmd_key_name}')
-        parts.append(    f'     {output.alt_col_hdg} = {output.alt_key_name}')
-        parts.append(    f'     {output.ctrl_col_hdg} = {output.ctrl_key_name}')
-        parts.append(    f'     {output.shift_col_hdg} = {output.shift_key_name}')
+            parts.append(f'     {output.cmd_col_heading} = {output.cmd_key_name}')
+        parts.append(    f'     {output.alt_col_heading} = {output.alt_key_name}')
+        parts.append(    f'     {output.ctrl_col_heading} = {output.ctrl_key_name}')
+        parts.append(    f'     {output.shift_col_heading} = {output.shift_key_name}')
         parts.append(     '  Ctxt = Context')
 
     return '\n'.join(parts)
@@ -618,7 +618,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
             for platform_code in platform_code_tuple:
                 platform.set_platform(platform_code)
-                output.update_key_names_based_on_platform(True)
+                output.update_key_names_based_on_platform()
 
                 if debugging:
                     print(f'  Running for platform [{platform.platform_name}]....')
@@ -644,7 +644,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
             # Finally, set back to normal platform again.
             platform.set_current_platform()
-            output.update_key_names_based_on_platform(True)
+            output.update_key_names_based_on_platform()
 
         else:
             # Just run once.
