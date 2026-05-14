@@ -16,14 +16,69 @@ from .. import output
 # Constants
 # *************************************************************************
 
-_report_title       = f'{core.package_name}:  Specified Key-Bindings ({{$platform}})'
-_report_short_title = 'Key-Binding Report ({$platform})'
+_report_title          = f'{core.package_name}:  Specified Key-Bindings ({{$platform}})'
+_report_short_title    = 'Key-Binding Report ({$platform})'
+_flags_format_spec_bin = '014_b'
+_flags_format_spec_hex = '04X'
+
 
 
 
 # *************************************************************************
-# Classes
+# Function Definitions
 # *************************************************************************
+
+def _report_specification(
+        key_groups       : Iterable[data.KeyGroup] | None,
+        key_names        : Iterable[str]           | None,
+        keypress_list    : Iterable[Iterable[str]] | None,
+        limit_to_packages: Iterable[str]           | None,
+        limit_to_context : bool,
+        fmt              : ascii_table.Format,
+        flags            : output.FlagBits,
+        indent_level     : int = 0
+        ) -> str:
+    indent = '  ' * indent_level
+    parts = []
+    parts.append(f'{indent}Specification:')
+    parts.append('')
+
+    if key_groups:
+        key_grp_list = []
+        for kg_i in key_groups:
+            key_grp_list.append(data.KeyGroup(kg_i))
+        parts.append(f'{indent}    key_groups        = {key_grp_list}')
+    if key_names:
+        parts.append(f'{indent}    {key_names         = }')
+    if keypress_list:
+        parts.append(f'{indent}    {keypress_list     = }')
+    if limit_to_packages:
+        parts.append(f'{indent}    {limit_to_packages = }')
+
+    parts.append(f'{indent}    {limit_to_context  = }')
+    parts.append(f'{indent}    format            = {ascii_table.Format(fmt)!r}')
+    parts.append(f'{indent}    flags             = 0x{flags:{_flags_format_spec_hex}}')
+
+    # Compute length of longest FlagBits enumeration name.
+    longest_name_len = 0
+    for enum_bit_val in output.FlagBits:
+        if enum_bit_val != output.FlagBits.ALL and enum_bit_val != output.FlagBits.ANY:
+            if flags & enum_bit_val._value_:
+                name_len = len(enum_bit_val._name_)
+                if name_len > longest_name_len:
+                    longest_name_len = name_len
+
+    # Report.
+    for enum_bit_val in output.FlagBits:
+        if enum_bit_val != output.FlagBits.ALL and enum_bit_val != output.FlagBits.ANY:
+            if flags & enum_bit_val._value_:
+                parts.append(
+                        f'{indent}      - {enum_bit_val._name_:{longest_name_len}}:  '
+                        f'0x{enum_bit_val._value_:{_flags_format_spec_hex}}'
+                        )
+
+    return '\n'.join(parts)
+
 
 def _table_key(fmt: ascii_table.Format, include_win_key: bool = False) -> str:
     parts = []
@@ -47,18 +102,18 @@ def _table_key(fmt: ascii_table.Format, include_win_key: bool = False) -> str:
         parts.append('')
         parts.append(f'{indent2}**Key:**')
         if include_win_key:
-            parts.append(f'{indent2}     {platform.cmd_col_hdg} = {platform.cmd_key_name}')
-        parts.append(    f'{indent2}     {platform.alt_col_hdg} = {platform.alt_key_name}')
-        parts.append(    f'{indent2}     {platform.ctrl_col_hdg} = {platform.ctrl_key_name}')
-        parts.append(    f'{indent2}     {platform.shift_col_hdg} = {platform.shift_key_name}')
+            parts.append(f'{indent2}     {output.cmd_col_hdg} = {output.cmd_key_name}')
+        parts.append(    f'{indent2}     {output.alt_col_hdg} = {output.alt_key_name}')
+        parts.append(    f'{indent2}     {output.ctrl_col_hdg} = {output.ctrl_key_name}')
+        parts.append(    f'{indent2}     {output.shift_col_hdg} = {output.shift_key_name}')
         parts.append(    f'{indent2}  Ctxt = Context')
     else:
         parts.append('Key:')
         if include_win_key:
-            parts.append(f'     {platform.cmd_col_hdg} = {platform.cmd_key_name}')
-        parts.append(    f'     {platform.alt_col_hdg} = {platform.alt_key_name}')
-        parts.append(    f'     {platform.ctrl_col_hdg} = {platform.ctrl_key_name}')
-        parts.append(    f'     {platform.shift_col_hdg} = {platform.shift_key_name}')
+            parts.append(f'     {output.cmd_col_hdg} = {output.cmd_key_name}')
+        parts.append(    f'     {output.alt_col_hdg} = {output.alt_key_name}')
+        parts.append(    f'     {output.ctrl_col_hdg} = {output.ctrl_key_name}')
+        parts.append(    f'     {output.shift_col_hdg} = {output.shift_key_name}')
         parts.append(     '  Ctxt = Context')
 
     return '\n'.join(parts)
@@ -241,7 +296,7 @@ def _generate_report(
     content_parts.append(output.report_heading(rpt_title, note))
     content_parts.append('')
     content_parts.append(
-            output.report_specification(
+            _report_specification(
                     key_groups,
                     key_names,
                     keypress_list,
@@ -360,6 +415,11 @@ def _generate_report(
 
     return t0, t1, t2, t3
 
+
+
+# *************************************************************************
+# Classes
+# *************************************************************************
 
 class KeyBindingReportCommand(sublime_plugin.TextCommand):
     """
@@ -529,7 +589,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         debugging = is_debugging(DebugBits.KEY_BINDING_REPORT)
         if debugging:
             print('In KeyBindingReportCommand.run()....')
-            print( output.report_specification(
+            print( _report_specification(
                     key_groups,
                     key_names,
                     keypress_list,
@@ -546,7 +606,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             # print(f'  {limit_to_packages=}')
             # print(f'  {limit_to_context=}')
             # print(f'  {fmt=}')
-            # print(f'  flags=0x{flags:{output.flags_format_spec_hex}}')
+            # print(f'  flags=0x{flags:{output._flags_format_spec_hex}}')
 
         if flags & output.FlagBits.ALL_PLATFORMS:
             # Run once for each platform.
@@ -558,6 +618,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
             for platform_code in platform_code_tuple:
                 platform.set_platform(platform_code)
+                output.update_key_names_based_on_platform(True)
 
                 if debugging:
                     print(f'  Running for platform [{platform.platform_name}]....')
@@ -583,6 +644,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
             # Finally, set back to normal platform again.
             platform.set_current_platform()
+            output.update_key_names_based_on_platform(True)
 
         else:
             # Just run once.

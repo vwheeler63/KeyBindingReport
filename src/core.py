@@ -375,6 +375,7 @@ import sublime
 # which requires it.  Python 3.14 does not.
 from ..lib.debug import IntFlag, DebugBits, is_debugging, set_debugging_bits  # noqa: F401
 from ..keybindingreport import package_name
+from . import output
 
 
 
@@ -529,6 +530,11 @@ def on_plugin_loaded():
     # saving the changed configuration. Note:  Callback must be unloaded in
     # `plugin_unloaded()` to prevent a callback leak.
     kbr_setting.obj.add_on_change(_cfg_on_settings_chgd_listener_id, _on_pkg_settings_chgd)
+
+    # Tell output module to update its column headings and modifier-key
+    # names based on platform.
+    output.update_key_names_based_on_platform(True)
+
 
     # Report.
     if debugging:

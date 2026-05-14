@@ -83,8 +83,10 @@ from . import key_binding
 # Configuration
 # *************************************************************************
 
-flags_format_spec_hex = '014_b'
-flags_format_spec_hex = '04X'
+_cfg_key_col_hdg      = 'Key'
+_cfg_context_col_hdg  = 'Ctxt'
+_cfg_command_col_hdg  = 'Command'
+_cfg_args_col_hdg     = 'Args'
 
 
 
@@ -113,16 +115,86 @@ class FlagBits(IntFlag):
 
 
 
-
 # *************************************************************************
 # Data
 # *************************************************************************
+
+cmd_col_hdg            = 'W'
+cmd_key_name           = '⊞ Windows'
+alt_col_hdg            = 'A'
+alt_key_name           = 'Alt'
+ctrl_col_hdg           = 'C'
+ctrl_key_name          = 'Ctrl'
+shift_col_hdg          = 'S'
+shift_key_name         = 'Shift'
+modifier_key_names_by_modifier_code_bit = {}
 
 
 
 # *************************************************************************
 # Utilities
 # *************************************************************************
+
+def show_platform_based_names():
+    print(f'{cmd_col_hdg            = }')
+    print(f'{cmd_key_name           = }')
+    print(f'{alt_col_hdg            = }')
+    print(f'{alt_key_name           = }')
+    print(f'{ctrl_col_hdg           = }')
+    print(f'{ctrl_key_name          = }')
+    print(f'{shift_col_hdg          = }')
+    print(f'{shift_key_name         = }')
+    print(f'{modifier_key_names_by_modifier_code_bit = }')
+
+
+def update_key_names_based_on_platform(debugging: bool = False):
+    global cmd_col_hdg
+    global cmd_key_name
+    global alt_col_hdg
+    global alt_key_name
+    global ctrl_col_hdg
+    global ctrl_key_name
+    global shift_col_hdg
+    global shift_key_name
+    global modifier_key_names_by_modifier_code_bit
+
+    # Column headings rely on platform_name.
+    if platform.is_osx():
+        cmd_col_hdg    = 'C'
+        cmd_key_name   = '⌘ Command'
+        alt_col_hdg    = 'O'
+        alt_key_name   = '⌥ Option'
+        ctrl_col_hdg   = '^'
+        ctrl_key_name  = 'Ctrl'
+        shift_col_hdg  = 'S'
+        shift_key_name = 'Shift'
+
+        modifier_key_names_by_modifier_code_bit = {
+            key_binding.ModifierKeyBits.SHIFT  : 'Shift',
+            key_binding.ModifierKeyBits.CTRL   : 'Ctrl',
+            key_binding.ModifierKeyBits.ALT    : 'Option',
+            key_binding.ModifierKeyBits.COMMAND: 'Command',
+        }
+    else:
+        cmd_col_hdg    = 'W'
+        cmd_key_name   = '⊞ Windows'
+        alt_col_hdg    = 'A'
+        alt_key_name   = 'Alt'
+        ctrl_col_hdg   = 'C'
+        ctrl_key_name  = 'Ctrl'
+        shift_col_hdg  = 'S'
+        shift_key_name = 'Shift'
+
+        modifier_key_names_by_modifier_code_bit = {
+            key_binding.ModifierKeyBits.SHIFT  : 'Shift',
+            key_binding.ModifierKeyBits.CTRL   : 'Ctrl',
+            key_binding.ModifierKeyBits.ALT    : 'Alt',
+            key_binding.ModifierKeyBits.COMMAND: '⌘',
+        }
+
+    if debugging:
+        show_platform_based_names()
+
 
 def report_heading(title: str, note: str = '') -> str:
     timestamp = datetime.now().strftime(core.setting__timestamp_strftime_format)
@@ -140,58 +212,6 @@ def report_heading(title: str, note: str = '') -> str:
         parts.append('Note:')
         parts.append('')
         parts.append('    ' + note)
-
-    return '\n'.join(parts)
-
-
-def report_specification(
-        key_groups       : Iterable[data.KeyGroup] | None,
-        key_names        : Iterable[str]           | None,
-        keypress_list    : Iterable[Iterable[str]] | None,
-        limit_to_packages: Iterable[str]           | None,
-        limit_to_context : bool,
-        fmt              : ascii_table.Format,
-        flags            : FlagBits,
-        indent_level     : int = 0
-        ) -> str:
-    indent = '  ' * indent_level
-    parts = []
-    parts.append(f'{indent}Specification:')
-    parts.append('')
-
-    if key_groups:
-        key_grp_list = []
-        for kg_i in key_groups:
-            key_grp_list.append(data.KeyGroup(kg_i))
-        parts.append(f'{indent}    key_groups        = {key_grp_list}')
-    if key_names:
-        parts.append(f'{indent}    {key_names         = }')
-    if keypress_list:
-        parts.append(f'{indent}    {keypress_list     = }')
-    if limit_to_packages:
-        parts.append(f'{indent}    {limit_to_packages = }')
-
-    parts.append(f'{indent}    {limit_to_context  = }')
-    parts.append(f'{indent}    format            = {ascii_table.Format(fmt)!r}')
-    parts.append(f'{indent}    flags             = 0x{flags:{flags_format_spec_hex}}')
-
-    # Compute length of longest FlagBits enumeration name.
-    longest_name_len = 0
-    for enum_bit_val in FlagBits:
-        if enum_bit_val != FlagBits.ALL and enum_bit_val != FlagBits.ANY:
-            if flags & enum_bit_val._value_:
-                name_len = len(enum_bit_val._name_)
-                if name_len > longest_name_len:
-                    longest_name_len = name_len
-
-    # Report.
-    for enum_bit_val in FlagBits:
-        if enum_bit_val != FlagBits.ALL and enum_bit_val != FlagBits.ANY:
-            if flags & enum_bit_val._value_:
-                parts.append(
-                        f'{indent}      - {enum_bit_val._name_:{longest_name_len}}:  '
-                        f'0x{enum_bit_val._value_:{flags_format_spec_hex}}'
-                        )
 
     return '\n'.join(parts)
 
@@ -325,26 +345,26 @@ class KeyBindingOutput:
             effective_min_col_count = self.min_column_count
 
             result = [
-                    'Key',
-                    platform.cmd_col_hdg,
-                    platform.alt_col_hdg,
-                    platform.ctrl_col_hdg,
-                    platform.shift_col_hdg,
-                    'Ctxt',
-                    'Command',
-                    'Args',
+                    _cfg_key_col_hdg,
+                    cmd_col_hdg,
+                    alt_col_hdg,
+                    ctrl_col_hdg,
+                    shift_col_hdg,
+                    _cfg_context_col_hdg,
+                    _cfg_command_col_hdg,
+                    _cfg_args_col_hdg,
                     ]
         else:
             effective_min_col_count = self.min_column_count - 1
 
             result = [
-                    'Key',
-                    platform.alt_col_hdg,
-                    platform.ctrl_col_hdg,
-                    platform.shift_col_hdg,
-                    'Ctxt',
-                    'Command',
-                    'Args',
+                    _cfg_key_col_hdg,
+                    alt_col_hdg,
+                    ctrl_col_hdg,
+                    shift_col_hdg,
+                    _cfg_context_col_hdg,
+                    _cfg_command_col_hdg,
+                    _cfg_args_col_hdg,
                     ]
 
         if len(result) != effective_min_col_count:

@@ -67,7 +67,7 @@ See ``can_override()`` docstring.
 
 import json
 from enum import IntFlag
-from sublime_types import CommandArgs
+from sublime_types import CommandArgs, Value
 from . import smart_context
 from . import platform
 
@@ -471,18 +471,17 @@ class KeyBinding:
     }
     """
     __slots__ = [
-        '_smart_context',   # None if binding had no "context" entry.
         '_source',
         'source_entry_no',
-        '_keys',  # TODO: still needed?
         '_command',
         '_args',
+        '_smart_context',   # None if binding had no "context" entry.
         '_context',
         '_cached_keypress_tuple',
         'keypresses',
     ]
 
-    def __init__(self, decoded_key_binding: dict, source: str, source_entry_no: int):
+    def __init__(self, decoded_key_binding: dict[str, Value], source: str, source_entry_no: int):
         """
         :param decoded_key_binding:  key binding decoded from JSON in .sublime-keymap
         :param path:                 for improved debug output
@@ -490,12 +489,19 @@ class KeyBinding:
         self._source = source
         self.source_entry_no = source_entry_no
         self._keys = decoded_key_binding[_keys_key]
-        self._command = decoded_key_binding[_command_key]
 
+        # Command
+        self._command: str = 'Unknown'
+        command = decoded_key_binding[_command_key]
+        if isinstance(command, str):
+            self._command = command
+
+        # Args
+        self._args: CommandArgs = None
         if _args_key in decoded_key_binding:
-            self._args = decoded_key_binding[_args_key]
-        else:
-            self._args = None
+            args = decoded_key_binding[_args_key]
+            if isinstance(args, dict):
+                self._args = args
 
         self._smart_context: smart_context.SmartContext | None = None
 
@@ -695,7 +701,7 @@ class KeyBinding:
 
     def readable_context_minimal_repr(self, indent_level: int = 0) -> str:
         if self._smart_context:
-            result = self._smart_context.formatted_min(indent_level)
+            result = self._smart_context.formatted(indent_level, minimal=True)
         else:
             result = ''
 
@@ -704,7 +710,7 @@ class KeyBinding:
     def source(self) -> str:
         return self._source
 
-    def parts(self) -> tuple[tuple, str, CommandArgs, list[dict] | None, str]:
+    def parts(self) -> tuple[tuple[str], str, CommandArgs, list[dict[str, Value]] | None, str]:
         """
         Parts of JSON Key-Binding object, extracted as:
 
@@ -745,7 +751,7 @@ class ReportKeyBinding(KeyBinding):
     """
     # __slots__ = ['_smart_context', '_source', '_main_key_names', '_modifier_codes']
 
-    def __init__(self, decoded_key_binding: dict, source: str, source_entry_no: int):
+    def __init__(self, decoded_key_binding: dict[str, Value], source: str, source_entry_no: int):
         # Incorporate contents of `decoded_key_binding` into `self`.
         super().__init__(decoded_key_binding, source, source_entry_no)
 
