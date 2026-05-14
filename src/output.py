@@ -552,7 +552,7 @@ class KeyBindingOutput:
             if include_unbound_keypresses:
                 # Include unbound keypresses.
                 for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
-                    mod_key_applies_tpl = key_binding.modifier_characters(modifier_code, self.modifier_applies_symbol)
+                    mod_key_applies_tpl = key_binding.modifier_flag_characters(modifier_code, self.modifier_applies_symbol)
 
                     if binding_list:
                         footnote_num = self._append_rows_to_table_for_one_keypress(
@@ -580,7 +580,7 @@ class KeyBindingOutput:
                         continue
 
                     # Here we know ``binding_list`` contains bindings.
-                    mod_key_applies_tpl = key_binding.modifier_characters(modifier_code, self.modifier_applies_symbol)
+                    mod_key_applies_tpl = key_binding.modifier_flag_characters(modifier_code, self.modifier_applies_symbol)
 
                     footnote_num = self._append_rows_to_table_for_one_keypress(
                             table,
@@ -674,7 +674,7 @@ class KeyBindingOutput:
                 if include_unbound_keypresses:
                     # Include unbound keypresses.
                     for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
-                        mod_key_applies_tpl = key_binding.modifier_characters(modifier_code, self.modifier_applies_symbol)
+                        mod_key_applies_tpl = key_binding.modifier_flag_characters(modifier_code, self.modifier_applies_symbol)
 
                         if binding_list:
                             # Now we know there is content.
@@ -711,7 +711,7 @@ class KeyBindingOutput:
                         if len(table) == 0:
                             table.append(heading_row)
 
-                        mod_key_applies_tpl = key_binding.modifier_characters(modifier_code, self.modifier_applies_symbol)
+                        mod_key_applies_tpl = key_binding.modifier_flag_characters(modifier_code, self.modifier_applies_symbol)
 
                         footnote_num = self._append_rows_to_table_for_one_keypress(
                                 table,
@@ -834,18 +834,19 @@ class KeyBindingOutput:
                 # Finally, iterate through sorted list, pull and build
                 # tables by that sequence.
                 for scored_keypress_tuple_bep in sorted_tuple_list:
-                    mod_key_applies_tpl = key_binding.modifier_characters(
+                    keypress_tuple = scored_keypress_tuple_bep.keypress_tuple
+                    binding_list = by_key_seq_dict[keypress_tuple]
+
+                    # Extract `mod_key_flag_char_tpl` from first binding.
+                    mod_key_flag_char_tpl = key_binding.modifier_flag_characters(
                             scored_keypress_tuple_bep.mod_code,
                             self.modifier_applies_symbol
                             )
 
-                    keypress_tuple = scored_keypress_tuple_bep.keypress_tuple
-                    binding_list = by_key_seq_dict[keypress_tuple]
-
                     footnote_num = self._append_rows_to_table_for_one_keypress(
                             table,
                             scored_keypress_tuple_bep.second_main_key_name,
-                            mod_key_applies_tpl,
+                            mod_key_flag_char_tpl,
                             binding_list,
                             flags,
                             fmt,

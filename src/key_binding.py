@@ -133,6 +133,32 @@ def rst_escaped(input_str: str) -> str:
     return result
 
 
+def main_key_and_mod_key_list(keypress_str: str) -> tuple[str, list[str]]:
+    """
+    Main key and modifier-key list
+
+    :param keypress_str:  Keypress definition string compatible with
+                            Sublime Text `.sublime-keymap` "keys" entries.
+                            Example:  "ctrl+shift+p"
+
+    IMPORTANT:  This function is here at module level because not all
+    reports are accomplished by building a data structure with KeyBinding
+    objects.  Example:  Keys-Used report doesn't need anything beyond the
+    keypress strings in the bindings, and so does not undergo the overhead
+    of building KeyBinding and SmartContext objects because they simply
+    aren't needed.  This function serves that report.
+    """
+    if keypress_str.endswith('++'):
+        main_key_name     = '+'
+        mod_key_name_list = keypress_str[:-2].split('+')
+    else:
+        key_list          = keypress_str.split('+')
+        main_key_name     = key_list.pop()
+        mod_key_name_list = key_list
+
+    return main_key_name, mod_key_name_list
+
+
 def main_key_and_modifier_code(keypress_str: str) -> tuple[str, int]:
     """
     Key-modifier code from `keypress_str` (e.g. "ctrl+alt+shift+p").
@@ -147,6 +173,14 @@ def main_key_and_modifier_code(keypress_str: str) -> tuple[str, int]:
     because we have valid ``keypress_str`` values that look like
     this: "ctrl++".
 
+    IMPORTANT:  This function is here at module level because even the main
+    report that uses KeyBinding and SmartContext objects, has modes where
+    it filters out a large amount of key bindings that DO NOT have to have
+    those classes instantiated, and it is cheaper to computer merely the
+    main key and modification code than instantiate KeyBinding, Keypress
+    and SmartContext objects.  So this used (at this writing) in 4 places
+    where the wise design choice is to NOT undergo that overhead.
+
                                     OSX       Win/Linux
     | #   shift   # |
     | #   ctrl    # | <------------------------------+
@@ -157,16 +191,9 @@ def main_key_and_modifier_code(keypress_str: str) -> tuple[str, int]:
     |    primary    | -----------------+-------------+
     """
     modifier_code = 0
+    main_key_name, mod_key_name_list = main_key_and_mod_key_list(keypress_str)
 
-    if keypress_str.endswith('++'):
-        main_key_name             = '+'
-        binding_lists_by_mod_code = keypress_str[:-2].split('+')
-    else:
-        key_list                  = keypress_str.split('+')
-        main_key_name             = key_list.pop()
-        binding_lists_by_mod_code = key_list
-
-    for mod_key in binding_lists_by_mod_code:
+    for mod_key in mod_key_name_list:
         if mod_key == 'shift':
             modifier_code |= ModifierKeyBits.SHIFT
         elif mod_key in ['ctrl', 'control']:
@@ -183,88 +210,69 @@ def main_key_and_modifier_code(keypress_str: str) -> tuple[str, int]:
             else:
                 modifier_code |= ModifierKeyBits.CTRL
         else:
-            raise AssertionError(f'data.main_key_and_modifier_code(): modifier key unrecognized: [{mod_key}].')
+            raise AssertionError(f'{__package__}.main_key_and_modifier_code(): modifier key unrecognized: [{mod_key}].')
 
     return main_key_name, modifier_code
 
 
-def main_key_and_mod_key_list(keypress_str: str) -> tuple[str, list[str]]:
-    """
-    Main key and modifier-key list
-
-    :param keypress_str:  Keypress definition string compatible with
-                            Sublime Text `.sublime-keymap` "keys" entries.
-                            Example:  "ctrl+shift+p"
-    """
-    if keypress_str.endswith('++'):
-        main_key_name             = '+'
-        binding_lists_by_mod_code = keypress_str[:-2].split('+')
-    else:
-        key_list                  = keypress_str.split('+')
-        main_key_name             = key_list.pop()
-        binding_lists_by_mod_code = key_list
-
-    return main_key_name, binding_lists_by_mod_code
+# def modifier_repr(modifier_code: int) -> str:
+#     modifiers = []
+#     if modifier_code & ModifierKeyBits.CTRL:
+#         modifiers.append('ctrl')
+#     if modifier_code & ModifierKeyBits.ALT:
+#         modifiers.append('alt')
+#     if modifier_code & ModifierKeyBits.SHIFT:
+#         modifiers.append('shift')
+#     return '+'.join(modifiers)
 
 
-def modifier_repr(modifier_code: int) -> str:
-    modifiers = []
-    if modifier_code & ModifierKeyBits.CTRL:
-        modifiers.append('ctrl')
-    if modifier_code & ModifierKeyBits.ALT:
-        modifiers.append('alt')
-    if modifier_code & ModifierKeyBits.SHIFT:
-        modifiers.append('shift')
-    return '+'.join(modifiers)
+# def keypress_repr(main_key_name: str, modifier_code: int) -> str:
+#     """ This is the reverse of ``main_key_and_modifier_code(str)``. """
+#     if modifier_code:
+#         mod_repr = modifier_repr(modifier_code)
+#         keypr_repr = f'{mod_repr}+{main_key_name}'
+#     else:
+#         keypr_repr = f'{main_key_name}'
+
+#     result = f'[{keypr_repr}]'
+#     return result
 
 
-def keypress_repr(main_key_name: str, modifier_code: int) -> str:
-    """ This is the reverse of ``main_key_and_modifier_code(str)``. """
-    if modifier_code:
-        mod_repr = modifier_repr(modifier_code)
-        keypr_repr = f'{mod_repr}+{main_key_name}'
-    else:
-        keypr_repr = f'{main_key_name}'
+# def encoded_keypress_from_components(main_key_name: str, modifier_code: int) -> int:
+#     """
+#     Encoded keypress from `main_key_name` and `modifier_code`.
 
-    result = f'[{keypr_repr}]'
-    return result
+#     :param main_key_name:       Official name of key, found in `all_key_names`.
+#                                   (See Key Names in module docstring for the list.)
+#     :param modifier_code:   Integer representation of Ctrl+Alt+Shift key
+#                                   modifiers accommodating keypress.
+#                                   (See "key-modifier code" and "encoded keypress"
+#                                   in definitions in module docstring for details.)
+#     """
+#     result = -1
 
+#     if main_key_name in key_index_by_key_name_dict:
+#         i = key_index_by_key_name_dict[main_key_name]
+#         result = (i << 4) | modifier_code
 
-def encoded_keypress_from_components(main_key_name: str, modifier_code: int) -> int:
-    """
-    Encoded keypress from `main_key_name` and `modifier_code`.
-
-    :param main_key_name:       Official name of key, found in `all_key_names`.
-                                  (See Key Names in module docstring for the list.)
-    :param modifier_code:   Integer representation of Ctrl+Alt+Shift key
-                                  modifiers accommodating keypress.
-                                  (See "key-modifier code" and "encoded keypress"
-                                  in definitions in module docstring for details.)
-    """
-    result = -1
-
-    if main_key_name in key_index_by_key_name_dict:
-        i = key_index_by_key_name_dict[main_key_name]
-        result = (i << 4) | modifier_code
-
-    return result
+#     return result
 
 
-def encoded_keypress(keypress_str: str) -> int:
-    """
-    Encoded keypress from `keypress_str` (e.g. "ctrl+alt+shift+p").
+# def encoded_keypress(keypress_str: str) -> int:
+#     """
+#     Encoded keypress from `keypress_str` (e.g. "ctrl+alt+shift+p").
 
-    :param keypress_str:  Keypress definition string compatible with
-                            Sublime Text `.sublime-keymap` "keys" entries
+#     :param keypress_str:  Keypress definition string compatible with
+#                             Sublime Text `.sublime-keymap` "keys" entries
 
-    See "key-modifier code" and "encoded keypress" in definitions in
-    module docstring for details.
-    """
-    kn, mod_code = main_key_and_modifier_code(keypress_str)
-    return encoded_keypress_from_components(kn, mod_code)
+#     See "key-modifier code" and "encoded keypress" in definitions in
+#     module docstring for details.
+#     """
+#     kn, mod_code = main_key_and_modifier_code(keypress_str)
+#     return encoded_keypress_from_components(kn, mod_code)
 
 
-def modifier_characters(modifier_code: int, mod_applies_char: str) -> tuple[str, str, str, str]:
+def modifier_flag_characters(modifier_code: int, mod_applies_char: str) -> tuple[str, str, str, str]:
     """
     Tuple of ``mod_applies_char`` or space characters based on ``ModifierKeyBits``
     set in ``modifier_code``.  Example:
@@ -288,6 +296,12 @@ def modifier_characters(modifier_code: int, mod_applies_char: str) -> tuple[str,
 
     It is by design that this *not* be the same sequence as the modifier
     keys appear in `.sublime-keymap` files.
+
+    IMPORTANT:  the reason this is a module-level function is that some
+    reports generate rows that include these flags when there is not an
+    actual KEY BINDING, to show that there isn't!  But this tuple is
+    still needed.  So it is the ONE location where this logic is, and
+    the Keypress class calls this function.
     """
     space = ' '
 
@@ -307,11 +321,11 @@ def modifier_characters(modifier_code: int, mod_applies_char: str) -> tuple[str,
         A = space
 
     if modifier_code & ModifierKeyBits.COMMAND:
-        M = mod_applies_char
+        W = mod_applies_char
     else:
-        M = space
+        W = space
 
-    return M, A, C, S
+    return W, A, C, S
 
 
 
@@ -330,16 +344,11 @@ class Keypress:
     Sublime Text Key-Binding Keypresses that dovetail in with
     KeyBindingReport Package data needs.
 
-    :param keypress_str:  Keypress definition string directly from, or
-                            compatible with Sublime Text `.sublime-keymap`
-                            "keys" entries, e.g. "ctrl+alt+shift+p".
-
     See "key-modifier code" and "encoded keypress" in definitions in
     module docstring for details.
 
-    IMPORTANT!  ``keypress_str.split('+')`` is not adequate logic by itself
-    because we have valid ``keypress_str`` values that look like
-    this: "ctrl++".
+    All modifier keys map to the top 4:
+    -----------------------------------
 
                                     OSX       Win/Linux
     | #   shift   # |
@@ -358,6 +367,24 @@ class Keypress:
     ]
 
     def __init__(self, keypress_str: str):
+        """
+        :param keypress_str:  Keypress definition string directly with format
+                                of `.sublime-keymap` "keys" entries,
+                                e.g. "ctrl+alt+shift+p".
+
+        IMPORTANT!  ``keypress_str.split('+')`` is not adequate logic by itself
+        because we have valid ``keypress_str`` values that look like
+        this: "ctrl++" => [Ctrl][+].
+
+                                        OSX       Win/Linux
+        | #   shift   # |
+        | #   ctrl    # | <------------------------------+
+        | #    alt    # | <-------------+                |
+        | #  command  # | <-------------|--+--------+    |
+        |    option     | Mac's 'alt' --+  |      [Win]  |
+        |     super     | -----------------+--------+    |
+        |    primary    | -----------------+-------------+
+        """
         modifier_code = 0
 
         if keypress_str.endswith('++'):
@@ -385,7 +412,7 @@ class Keypress:
                 else:
                     modifier_code |= ModifierKeyBits.CTRL
             else:
-                raise AssertionError(f'data.main_key_and_modifier_code(): modifier key unrecognized: [{mod_key}].')
+                raise AssertionError(f'{__package__}.main_key_and_modifier_code(): modifier key unrecognized: [{mod_key}].')
 
         self.keypress_str      = keypress_str
         self.main_key_name     = main_key_name
@@ -424,30 +451,7 @@ class Keypress:
         It is by design that this *not* be the same sequence as the modifier
         keys appear in `.sublime-keymap` files.
         """
-        space = ' '
-        mod_code = self.modifier_code
-
-        if mod_code & ModifierKeyBits.SHIFT:
-            S = flag_char
-        else:
-            S = space
-
-        if mod_code & ModifierKeyBits.CTRL:
-            C = flag_char
-        else:
-            C = space
-
-        if mod_code & ModifierKeyBits.ALT:
-            A = flag_char
-        else:
-            A = space
-
-        if mod_code & ModifierKeyBits.COMMAND:
-            W = flag_char
-        else:
-            W = space
-
-        return W, A, C, S
+        return modifier_flag_characters(self.modifier_code, flag_char)
 
 
 
@@ -654,7 +658,7 @@ class KeyBinding:
     def command_as_function_repr(self) -> str:
         command = self._command
         args_repr = self.args_json()
-        return f'{command}({args_repr})'
+        return f'{command}( {args_repr} )'
 
     def has_context(self) -> bool:
         return (( self._smart_context is not None ))
@@ -737,12 +741,12 @@ class ReportKeyBinding(KeyBinding):
         # Incorporate contents of `decoded_key_binding` into `self`.
         super().__init__(decoded_key_binding, source, source_entry_no)
 
-        self._main_key_names = []
+        #self._main_key_names = []
         self._modifier_codes = []
 
         for keypress_str in self.keypress_list():
             main_key_name, mod_code = main_key_and_modifier_code(keypress_str)
-            self._main_key_names.append(main_key_name)
+            #self._main_key_names.append(main_key_name)
             self._modifier_codes.append(mod_code)
 
     def __repr__(self):
@@ -792,19 +796,19 @@ class ReportKeyBinding(KeyBinding):
 
         return result
 
-    def main_key_names(self) -> list[str]:
-        return self._main_key_names
+    # def main_key_names(self) -> list[str]:
+    #     return self._main_key_names
 
-    def main_key_name_rst_escaped(self) -> str:
-        return rst_escaped(self._main_key_names[0])
+    # def main_key_name_rst_escaped(self) -> str:
+    #     return rst_escaped(self._main_key_names[0])
 
-    def leading_key_name(self) -> str:
-        if self._main_key_names:
-            result = self._main_key_names[0]
-        else:
-            result = '?'
+    # def leading_key_name(self) -> str:
+    #     if self._main_key_names:
+    #         result = self._main_key_names[0]
+    #     else:
+    #         result = '?'
 
-        return result
+    #     return result
 
     def modifier_codes(self) -> list[int]:
         return self._modifier_codes
