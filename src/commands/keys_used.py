@@ -3,6 +3,7 @@ import sublime
 from ...lib.debug import DebugBits, is_debugging
 from ...lib import ascii_table
 from ...lib import output_view
+from .. import key_binding
 from .. import data
 from .. import output
 
@@ -64,8 +65,8 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
                 keypress_tuple = tuple(decoded_binding['keys'])
 
                 for keypress_str in keypress_tuple:
-                    main_key_name, binding_lists_by_mod_code = \
-                            data.main_key_and_bindings_by_mod_code(keypress_str)
+                    main_key_name, mod_key_list = \
+                            key_binding.main_key_and_mod_key_list(keypress_str)
 
                     if main_key_name in main_key_counts:
                         main_key_counts[main_key_name] += 1
@@ -73,7 +74,7 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
                         main_key_counts[main_key_name] = 1
                         main_key_reported[main_key_name] = False
 
-                    for mod_key in binding_lists_by_mod_code:
+                    for mod_key in mod_key_list:
                         if mod_key in mod_key_counts:
                             mod_key_counts[mod_key] += 1
                         else:

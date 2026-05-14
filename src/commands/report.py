@@ -6,6 +6,7 @@ import sublime
 from ...lib.debug import DebugBits, is_debugging
 from ...lib import ascii_table
 from ...lib import output_view
+from .. import platform
 from .. import core
 from .. import data
 from .. import output
@@ -46,18 +47,18 @@ def _table_key(fmt: ascii_table.Format, include_win_key: bool = False) -> str:
         parts.append('')
         parts.append(f'{indent2}**Key:**')
         if include_win_key:
-            parts.append(f'{indent2}     {data.cmd_col_hdg} = {data.cmd_key_name}')
-        parts.append(    f'{indent2}     {data.alt_col_hdg} = {data.alt_key_name}')
-        parts.append(    f'{indent2}     {data.ctrl_col_hdg} = {data.ctrl_key_name}')
-        parts.append(    f'{indent2}     {data.shift_col_hdg} = {data.shift_key_name}')
+            parts.append(f'{indent2}     {platform.cmd_col_hdg} = {platform.cmd_key_name}')
+        parts.append(    f'{indent2}     {platform.alt_col_hdg} = {platform.alt_key_name}')
+        parts.append(    f'{indent2}     {platform.ctrl_col_hdg} = {platform.ctrl_key_name}')
+        parts.append(    f'{indent2}     {platform.shift_col_hdg} = {platform.shift_key_name}')
         parts.append(    f'{indent2}  Ctxt = Context')
     else:
         parts.append('Key:')
         if include_win_key:
-            parts.append(f'     {data.cmd_col_hdg} = {data.cmd_key_name}')
-        parts.append(    f'     {data.alt_col_hdg} = {data.alt_key_name}')
-        parts.append(    f'     {data.ctrl_col_hdg} = {data.ctrl_key_name}')
-        parts.append(    f'     {data.shift_col_hdg} = {data.shift_key_name}')
+            parts.append(f'     {platform.cmd_col_hdg} = {platform.cmd_key_name}')
+        parts.append(    f'     {platform.alt_col_hdg} = {platform.alt_key_name}')
+        parts.append(    f'     {platform.ctrl_col_hdg} = {platform.ctrl_key_name}')
+        parts.append(    f'     {platform.shift_col_hdg} = {platform.shift_key_name}')
         parts.append(     '  Ctxt = Context')
 
     return '\n'.join(parts)
@@ -155,11 +156,11 @@ def _key_table_and_footnotes(
     # Output to file(s) if requested.
     # ---------------------------------------------------------------------
     output_dir = ''
-    if data.platform == data.windows_platform_code:
+    if platform.is_windows():
         output_dir = core.setting__output_directory_windows
-    if data.platform == data.linux_platform_code:
+    if platform.is_linux():
         output_dir = core.setting__output_directory_linux
-    if data.platform == data.osx_platform_code:
+    if platform.is_osx():
         output_dir = core.setting__output_directory_osx
 
     if output_dir and (flags & output.FlagBits.OUTPUT_TO_FILES):
@@ -235,7 +236,7 @@ def _generate_report(
     # -----------------------------------------------------------------
     # Heading
     # -----------------------------------------------------------------
-    rpt_title = _report_title.replace('{$platform}', data.platform_name)
+    rpt_title = _report_title.replace('{$platform}', platform.platform_name)
     content_parts = []
     content_parts.append(output.report_heading(rpt_title, note))
     content_parts.append('')
@@ -345,7 +346,7 @@ def _generate_report(
     # -----------------------------------------------------------------
     content = '\n'.join(content_parts)
 
-    view_tab_heading = _report_short_title.replace('{$platform}', data.platform_name)
+    view_tab_heading = _report_short_title.replace('{$platform}', platform.platform_name)
 
     rpt_view = output_view.output_to_view(
             None,
@@ -550,16 +551,16 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         if flags & output.FlagBits.ALL_PLATFORMS:
             # Run once for each platform.
             platform_code_tuple = (
-                    data.windows_platform_code,
-                    data.linux_platform_code,
-                    data.osx_platform_code
+                    platform.windows_platform_code,
+                    platform.linux_platform_code,
+                    platform.osx_platform_code
                     )
 
             for platform_code in platform_code_tuple:
-                data.set_platform(platform_code)
+                platform.set_platform(platform_code)
 
                 if debugging:
-                    print(f'  Running for platform [{data.platform_name}]....')
+                    print(f'  Running for platform [{platform.platform_name}]....')
 
                 t0, t1, t2, t3 = _generate_report(
                         self,
@@ -581,7 +582,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                     print('    Total                           : ', str(t3 - t0))
 
             # Finally, set back to normal platform again.
-            data.set_current_platform()
+            platform.set_current_platform()
 
         else:
             # Just run once.

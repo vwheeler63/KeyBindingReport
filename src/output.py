@@ -71,12 +71,12 @@ from typing import Iterable
 from enum import IntFlag
 from datetime import datetime
 
-from . import data
-from .data import KeyBindingData, ReportKeyBinding
-from . import core
-from . smart_context import SmartContext
 from ..lib.debug import DebugBits, is_debugging
 from ..lib import ascii_table
+from . import platform
+from . import core
+from . import data
+from . import key_binding
 
 
 # *************************************************************************
@@ -111,15 +111,6 @@ class FlagBits(IntFlag):
     ALL                               = 0xFFFF  # 65535
     ANY                               = 0xFFFF  # 65535
 
-
-_rst_chars_to_escape_in_table = [
-    '\\',  # Otherwise, lone '\' escapes the space ahead of it.
-    '`',   # Otherwise Docutils tries to start a default interpreted-text role.
-    '-',   # Otherwise Docutils interprets as a bullet
-    '+',   # Otherwise Docutils interprets as a bullet
-    "'",   # Otherwise Docutils converts it to an opening "smart quote" (curved).
-    '"',   # Otherwise Docutils converts it to an opening "smart quote" (curved).
-]
 
 
 
@@ -230,33 +221,9 @@ def section_heading(title: str, underline_char: str) ->str:
     return '\n'.join(parts)
 
 
-def rst_table_key_name(main_key_name: str) -> str:
-    if main_key_name in _rst_chars_to_escape_in_table:
-        result = '\\' + main_key_name
-    else:
-        result = main_key_name
-
-    return result
-
-
-def rst_table_args_str(args_str: str) -> str:
-    result = args_str
-
-    if 'res://' in result:
-        # Place whole thing in a literal.
-        result = '``' + result + '``'
-    else:
-        for c in _rst_chars_to_escape_in_table:
-            if c in args_str:
-                escaped_c = '\\' + c
-                result = result.replace(c, escaped_c)
-
-    return result
-
-
 def include_windows_key(flags: FlagBits):
     return ((
-            (data.platform == data.osx_platform_code)
+               platform.is_osx()
             or bool(flags & FlagBits.INCLUDE_WINDOWS_KEY)
             ))
 
@@ -278,7 +245,7 @@ class Footnote:
 
     def __init__(
             self,
-            key_binding: ReportKeyBinding,
+            key_binding: key_binding.ReportKeyBinding,
             number     : int,
             flags      : FlagBits,
             format     : ascii_table.Format
@@ -318,7 +285,7 @@ class Footnote:
                 #     "context": [
                 #       { "key": "group_has_multiselect", "operator": "equal", "operand": true, "match_all": false }
                 #     ]
-                rst_keypress_list = binding.keypresses_restructured_text_repr_list()
+                rst_keypress_list = binding.keypresses_human_friendly_rst_list()
                 rst_keypress_str = ', '.join(rst_keypress_list)
                 cmd_func_repr = binding.command_as_function_repr()
                 result = (
@@ -336,7 +303,7 @@ class KeyBindingOutput:
     __slots__ = ['data', 'modifier_applies_symbol', 'comments_column_width',
             'min_column_count']
 
-    def __init__(self, data: KeyBindingData):
+    def __init__(self, data: data.KeyBindingData):
         self.data = data
         self.modifier_applies_symbol = 'x'
         self.comments_column_width = 35
@@ -358,10 +325,10 @@ class KeyBindingOutput:
 
             result = [
                     'Key',
-                    data.cmd_col_hdg,
-                    data.alt_col_hdg,
-                    data.ctrl_col_hdg,
-                    data.shift_col_hdg,
+                    platform.cmd_col_hdg,
+                    platform.alt_col_hdg,
+                    platform.ctrl_col_hdg,
+                    platform.shift_col_hdg,
                     'Ctxt',
                     'Command',
                     'Args',
@@ -371,9 +338,9 @@ class KeyBindingOutput:
 
             result = [
                     'Key',
-                    data.alt_col_hdg,
-                    data.ctrl_col_hdg,
-                    data.shift_col_hdg,
+                    platform.alt_col_hdg,
+                    platform.ctrl_col_hdg,
+                    platform.shift_col_hdg,
                     'Ctxt',
                     'Command',
                     'Args',
@@ -390,15 +357,14 @@ class KeyBindingOutput:
         return result
 
     def _append_rows_to_table_for_one_keypress(self,
-            table              : list[list],
-            main_key_name      : str,
-            modifier_code      : int,
-            mod_key_applies_tpl: tuple[str, str, str, str],
-            binding_list       : list[data.ReportKeyBinding],
-            flags              : FlagBits,
-            fmt                : ascii_table.Format,
-            footnotes          : list[Footnote],
-            prev_footnote_num  : int,
+            table               : list[list],
+            main_or_2nd_key_name: str,
+            mod_key_applies_tpl : tuple[str, str, str, str],
+            binding_list        : list[key_binding.ReportKeyBinding],
+            flags               : FlagBits,
+            fmt                 : ascii_table.Format,
+            footnotes           : list[Footnote],
+            prev_footnote_num   : int,
             ):
         footnote_num = prev_footnote_num
 
@@ -410,9 +376,9 @@ class KeyBindingOutput:
                 # Keys
                 # ---------------------------------------------------------
                 if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
-                    tbl_key_name = rst_table_key_name(main_key_name)
+                    tbl_key_name = key_binding.rst_escaped(main_or_2nd_key_name)
                 else:
-                    tbl_key_name = main_key_name
+                    tbl_key_name = main_or_2nd_key_name
 
                 row = [tbl_key_name]                    # 'f5'
                 if include_win_key:
@@ -448,7 +414,7 @@ class KeyBindingOutput:
                 # ---------------------------------------------------------
                 if binding.has_args():
                     if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
-                        args_str = rst_table_args_str(binding.args_json())
+                        args_str = binding.args_rst()
                     else:
                         args_str = binding.args_json()
                 else:
@@ -483,7 +449,7 @@ class KeyBindingOutput:
         # Keys
         # -----------------------------------------------------------------
         if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
-            tbl_key_name = rst_table_key_name(main_key_name)
+            tbl_key_name = key_binding.rst_escaped(main_key_name)
         else:
             tbl_key_name = main_key_name
 
@@ -586,13 +552,12 @@ class KeyBindingOutput:
             if include_unbound_keypresses:
                 # Include unbound keypresses.
                 for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
-                    mod_key_applies_tpl = data.modifier_characters(modifier_code, self.modifier_applies_symbol)
+                    mod_key_applies_tpl = key_binding.modifier_characters(modifier_code, self.modifier_applies_symbol)
 
                     if binding_list:
                         footnote_num = self._append_rows_to_table_for_one_keypress(
                                 table,
                                 main_key_name,
-                                modifier_code,
                                 mod_key_applies_tpl,
                                 binding_list,
                                 flags,
@@ -615,12 +580,11 @@ class KeyBindingOutput:
                         continue
 
                     # Here we know ``binding_list`` contains bindings.
-                    mod_key_applies_tpl = data.modifier_characters(modifier_code, self.modifier_applies_symbol)
+                    mod_key_applies_tpl = key_binding.modifier_characters(modifier_code, self.modifier_applies_symbol)
 
                     footnote_num = self._append_rows_to_table_for_one_keypress(
                             table,
                             main_key_name,
-                            modifier_code,
                             mod_key_applies_tpl,
                             binding_list,
                             flags,
@@ -710,7 +674,7 @@ class KeyBindingOutput:
                 if include_unbound_keypresses:
                     # Include unbound keypresses.
                     for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
-                        mod_key_applies_tpl = data.modifier_characters(modifier_code, self.modifier_applies_symbol)
+                        mod_key_applies_tpl = key_binding.modifier_characters(modifier_code, self.modifier_applies_symbol)
 
                         if binding_list:
                             # Now we know there is content.
@@ -721,7 +685,6 @@ class KeyBindingOutput:
                             footnote_num = self._append_rows_to_table_for_one_keypress(
                                     table,
                                     main_key_name,
-                                    modifier_code,
                                     mod_key_applies_tpl,
                                     binding_list,
                                     flags,
@@ -748,12 +711,11 @@ class KeyBindingOutput:
                         if len(table) == 0:
                             table.append(heading_row)
 
-                        mod_key_applies_tpl = data.modifier_characters(modifier_code, self.modifier_applies_symbol)
+                        mod_key_applies_tpl = key_binding.modifier_characters(modifier_code, self.modifier_applies_symbol)
 
                         footnote_num = self._append_rows_to_table_for_one_keypress(
                                 table,
                                 main_key_name,
-                                modifier_code,
                                 mod_key_applies_tpl,
                                 binding_list,
                                 flags,
@@ -872,7 +834,7 @@ class KeyBindingOutput:
                 # Finally, iterate through sorted list, pull and build
                 # tables by that sequence.
                 for scored_keypress_tuple_bep in sorted_tuple_list:
-                    mod_key_applies_tpl = data.modifier_characters(
+                    mod_key_applies_tpl = key_binding.modifier_characters(
                             scored_keypress_tuple_bep.mod_code,
                             self.modifier_applies_symbol
                             )
@@ -883,7 +845,6 @@ class KeyBindingOutput:
                     footnote_num = self._append_rows_to_table_for_one_keypress(
                             table,
                             scored_keypress_tuple_bep.second_main_key_name,
-                            scored_keypress_tuple_bep.mod_code,
                             mod_key_applies_tpl,
                             binding_list,
                             flags,

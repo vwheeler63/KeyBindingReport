@@ -11,7 +11,7 @@ if debugging:
 # loaded since they are already present in ``sys.modules``.  But when they
 # have since been modified, this forces them to be reloaded.
 if __package__ is not None:
-    reload(__package__, ('core', 'smart_context', 'key_binding', 'data', 'output'))
+    reload(__package__, ('core', 'platform', 'key_binding', 'smart_context', 'data', 'output'))
     reload(__package__ + '.commands')  # Recurse into .commands/ subpackage.
 
 # These imports are *below* the calls to ``reload()`` because when they are

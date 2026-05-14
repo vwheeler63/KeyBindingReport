@@ -66,8 +66,10 @@ See ``can_override()`` docstring.
 ***************************************************************************"""
 
 import json
+from enum import IntFlag
 from sublime_types import CommandArgs
 from . import smart_context
+from . import platform
 
 
 
@@ -81,10 +83,32 @@ from . import smart_context
 # Constants
 # *************************************************************************
 
+class ModifierKeyBits(IntFlag):
+    SHIFT         = 0b0001
+    CTRL          = 0b0010
+    ALT           = 0b0100
+    COMMAND       = 0b1000
+
+    NONE          = 0b0000
+    ALL           = 0b1111
+    ANY           = 0b1111
+
+
 _keys_key    = 'keys'
 _command_key = 'command'
 _args_key    = 'args'
 _context_key = 'context'
+
+_rst_chars_to_escape_in_table = [
+    '\\',  # Otherwise, lone '\' escapes the space ahead of it.
+    '`',   # Otherwise Docutils tries to start a default interpreted-text role.
+    '-',   # Otherwise Docutils interprets as a bullet
+    '+',   # Otherwise Docutils interprets as a bullet
+    '*',   # Otherwise Docutils interprets as a bullet
+    '|',   # Otherwise Docutils interprets as signal to line break
+    "'",   # Otherwise Docutils converts it to an opening "smart quote" (curved).
+    '"',   # Otherwise Docutils converts it to an opening "smart quote" (curved).
+]
 
 
 
@@ -97,6 +121,197 @@ _context_key = 'context'
 # *************************************************************************
 # Utilities
 # *************************************************************************
+
+def rst_escaped(input_str: str) -> str:
+    result = input_str
+
+    for c in _rst_chars_to_escape_in_table:
+        if c in result:
+            escaped_c = '\\' + c
+            result = result.replace(c, escaped_c)
+
+    return result
+
+
+def main_key_and_modifier_code(keypress_str: str) -> tuple[str, int]:
+    """
+    Key-modifier code from `keypress_str` (e.g. "ctrl+alt+shift+p").
+
+    :param keypress_str:  Keypress definition string compatible with
+                            Sublime Text `.sublime-keymap` "keys" entries
+
+    See "key-modifier code" and "encoded keypress" in definitions in
+    module docstring for details.
+
+    IMPORTANT!  ``keypress_str.split('+')`` is not adequate logic by itself
+    because we have valid ``keypress_str`` values that look like
+    this: "ctrl++".
+
+                                    OSX       Win/Linux
+    | #   shift   # |
+    | #   ctrl    # | <------------------------------+
+    | #    alt    # | <-------------+                |
+    | #  command  # | <-------------|--+--------+    |
+    |    option     | Mac's 'alt' --+  |      [Win]  |
+    |     super     | -----------------+--------+    |
+    |    primary    | -----------------+-------------+
+    """
+    modifier_code = 0
+
+    if keypress_str.endswith('++'):
+        main_key_name             = '+'
+        binding_lists_by_mod_code = keypress_str[:-2].split('+')
+    else:
+        key_list                  = keypress_str.split('+')
+        main_key_name             = key_list.pop()
+        binding_lists_by_mod_code = key_list
+
+    for mod_key in binding_lists_by_mod_code:
+        if mod_key == 'shift':
+            modifier_code |= ModifierKeyBits.SHIFT
+        elif mod_key in ['ctrl', 'control']:
+            modifier_code |= ModifierKeyBits.CTRL
+        elif mod_key in ['alt', 'option']:
+            modifier_code |= ModifierKeyBits.ALT
+        elif mod_key in ['super', 'command']:
+            # Command key on OSX, Windows key on Windows and Linux.
+            # Either way we record this as "COMMAND" bit.
+            modifier_code |= ModifierKeyBits.COMMAND
+        elif mod_key == 'primary':
+            if platform.is_osx():
+                modifier_code |= ModifierKeyBits.COMMAND
+            else:
+                modifier_code |= ModifierKeyBits.CTRL
+        else:
+            raise AssertionError(f'data.main_key_and_modifier_code(): modifier key unrecognized: [{mod_key}].')
+
+    return main_key_name, modifier_code
+
+
+def main_key_and_mod_key_list(keypress_str: str) -> tuple[str, list[str]]:
+    """
+    Main key and modifier-key list
+
+    :param keypress_str:  Keypress definition string compatible with
+                            Sublime Text `.sublime-keymap` "keys" entries.
+                            Example:  "ctrl+shift+p"
+    """
+    if keypress_str.endswith('++'):
+        main_key_name             = '+'
+        binding_lists_by_mod_code = keypress_str[:-2].split('+')
+    else:
+        key_list                  = keypress_str.split('+')
+        main_key_name             = key_list.pop()
+        binding_lists_by_mod_code = key_list
+
+    return main_key_name, binding_lists_by_mod_code
+
+
+def modifier_repr(modifier_code: int) -> str:
+    modifiers = []
+    if modifier_code & ModifierKeyBits.CTRL:
+        modifiers.append('ctrl')
+    if modifier_code & ModifierKeyBits.ALT:
+        modifiers.append('alt')
+    if modifier_code & ModifierKeyBits.SHIFT:
+        modifiers.append('shift')
+    return '+'.join(modifiers)
+
+
+def keypress_repr(main_key_name: str, modifier_code: int) -> str:
+    """ This is the reverse of ``main_key_and_modifier_code(str)``. """
+    if modifier_code:
+        mod_repr = modifier_repr(modifier_code)
+        keypr_repr = f'{mod_repr}+{main_key_name}'
+    else:
+        keypr_repr = f'{main_key_name}'
+
+    result = f'[{keypr_repr}]'
+    return result
+
+
+def encoded_keypress_from_components(main_key_name: str, modifier_code: int) -> int:
+    """
+    Encoded keypress from `main_key_name` and `modifier_code`.
+
+    :param main_key_name:       Official name of key, found in `all_key_names`.
+                                  (See Key Names in module docstring for the list.)
+    :param modifier_code:   Integer representation of Ctrl+Alt+Shift key
+                                  modifiers accommodating keypress.
+                                  (See "key-modifier code" and "encoded keypress"
+                                  in definitions in module docstring for details.)
+    """
+    result = -1
+
+    if main_key_name in key_index_by_key_name_dict:
+        i = key_index_by_key_name_dict[main_key_name]
+        result = (i << 4) | modifier_code
+
+    return result
+
+
+def encoded_keypress(keypress_str: str) -> int:
+    """
+    Encoded keypress from `keypress_str` (e.g. "ctrl+alt+shift+p").
+
+    :param keypress_str:  Keypress definition string compatible with
+                            Sublime Text `.sublime-keymap` "keys" entries
+
+    See "key-modifier code" and "encoded keypress" in definitions in
+    module docstring for details.
+    """
+    kn, mod_code = main_key_and_modifier_code(keypress_str)
+    return encoded_keypress_from_components(kn, mod_code)
+
+
+def modifier_characters(modifier_code: int, mod_applies_char: str) -> tuple[str, str, str, str]:
+    """
+    Tuple of ``mod_applies_char`` or space characters based on ``ModifierKeyBits``
+    set in ``modifier_code``.  Example:
+
+    - ' ', ' ', ' ', ' ' <= no modifiers
+    - ' ', ' ', ' ', 'x' <=                    Shift modifier
+    - ' ', ' ', 'x', ' ' <=             Ctrl         modifier
+    - ' ', ' ', 'x', 'x' <=             Ctrl + Shift modifier
+    - ' ', 'x', ' ', ' ' <=       Alt                modifier
+    - ' ', 'x', ' ', 'x' <=       Alt +        Shift modifier
+    - ' ', 'x', 'x', ' ' <=       Alt + Ctrl         modifier
+    - ' ', 'x', 'x', 'x' <=       Alt + Ctrl + Shift modifier
+    - 'x', ' ', ' ', ' ' <= Cmd                      modifier
+    - 'x', ' ', ' ', 'x' <= Cmd +              Shift modifier
+    - 'x', ' ', 'x', ' ' <= Cmd +       Ctrl         modifier
+    - 'x', ' ', 'x', 'x' <= Cmd +       Ctrl + Shift modifier
+    - 'x', 'x', ' ', ' ' <= Cmd + Alt                modifier
+    - 'x', 'x', ' ', 'x' <= Cmd + Alt +        Shift modifier
+    - 'x', 'x', 'x', ' ' <= Cmd + Alt + Ctrl         modifier
+    - 'x', 'x', 'x', 'x' <= Cmd + Alt + Ctrl + Shift modifier
+
+    It is by design that this *not* be the same sequence as the modifier
+    keys appear in `.sublime-keymap` files.
+    """
+    space = ' '
+
+    if modifier_code & ModifierKeyBits.SHIFT:
+        S = mod_applies_char
+    else:
+        S = space
+
+    if modifier_code & ModifierKeyBits.CTRL:
+        C = mod_applies_char
+    else:
+        C = space
+
+    if modifier_code & ModifierKeyBits.ALT:
+        A = mod_applies_char
+    else:
+        A = space
+
+    if modifier_code & ModifierKeyBits.COMMAND:
+        M = mod_applies_char
+    else:
+        M = space
+
+    return M, A, C, S
 
 
 
@@ -271,22 +486,6 @@ class KeyBinding:
     def keypresses_repr(self) -> str:
         return repr(self._keys)
 
-    def keypresses_human_friendly_repr_list(self) -> list[str]:
-        """ e.g. Alt-Shift-R """
-        result = []
-        for keypr_str in self._keys:
-            result.append(keypr_str.replace('+', '-').title())
-
-        return result
-
-    def keypresses_restructured_text_repr_list(self) -> list[str]:
-        result = []
-        hf_list = self.keypresses_human_friendly_repr_list()
-        for hf_str in hf_list:
-            result.append(f':kbd:`{hf_str}`')
-
-        return result
-
     def command(self) -> str:
         return self._command
 
@@ -389,3 +588,123 @@ class KeyBinding:
         src            = self._source
 
         return keypress_tuple, cmd, args, ctxt, src
+
+
+class ReportKeyBinding(KeyBinding):
+    """
+    Representation of a KeyBinding plus some additional data needed for reporting:
+
+    - main_key_names
+    - modifier_codes
+    """
+    # __slots__ = ['_smart_context', '_source', '_main_key_names', '_modifier_codes']
+
+    def __init__(self, decoded_key_binding: dict, source: str, source_entry_no: int):
+        # Incorporate contents of `decoded_key_binding` into `self`.
+        super().__init__(decoded_key_binding, source, source_entry_no)
+
+        self._main_key_names = []
+        self._modifier_codes = []
+
+        for keypress_str in self.keypress_list():
+            main_key_name, mod_code = main_key_and_modifier_code(keypress_str)
+            self._main_key_names.append(main_key_name)
+            self._modifier_codes.append(mod_code)
+
+    def __repr__(self):
+        """
+        JSON Key Binding from Default Package:
+        --------------------------------------
+        { "keys": ["\""], "command": "move", "args": {"by": "characters", "forward": true}, "context":
+            [
+                { "key": "setting.auto_match_enabled", "operator": "equal", "operand": true },
+                { "key": "selection_empty", "operator": "equal", "operand": true, "match_all": true },
+                { "key": "following_text", "operator": "regex_contains", "operand": "^\"", "match_all": true },
+                { "key": "selector", "operator": "not_equal", "operand": "punctuation.definition.string.begin", "match_all": true },
+                { "key": "eol_selector", "operator": "not_equal", "operand": "string.quoted.double - punctuation.definition.string.end", "match_all": true },
+            ]
+        },
+
+        Produces:
+        ---------
+        ReportKeyBinding(source=Default/Default (Windows).sublime-keymap
+          { ['"'], move(({'by': 'characters', 'forward': true}))
+            "context": [
+              { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": true }
+              { "key": "selection_empty"           , "operator": "equal"         , "operand": true, "match_all": true }
+              { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": true }
+              { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": true }
+              { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": true }
+            ]
+          })
+
+        or if there is no "context" entry:
+
+        ReportKeyBinding pkg=Default { ['right'], move({'by': 'characters', 'forward': true}) }>
+
+        """
+        binding_str = self.formatted(1)
+        return f'{self.__class__.__name__}( source: {self._source}\n{binding_str})'
+
+    def args_rst(self) -> str:
+        result = self.args_json()
+
+        if result:
+            if 'res://' in result:
+                # Wrap the whole thing in a literal.
+                result = '``' + result + '``'
+            else:
+                result = rst_escaped(result)
+
+        return result
+
+    def main_key_names(self) -> list[str]:
+        return self._main_key_names
+
+    def main_key_name_rst_escaped(self) -> str:
+        return rst_escaped(self._main_key_names[0])
+
+    def leading_key_name(self) -> str:
+        if self._main_key_names:
+            result = self._main_key_names[0]
+        else:
+            result = '?'
+
+        return result
+
+    def modifier_codes(self) -> list[int]:
+        return self._modifier_codes
+
+    def leading_modifier_code(self) -> int:
+        if self._modifier_codes:
+            result = self._modifier_codes[0]
+        else:
+            result = 0
+
+        return result
+
+    def keypresses_human_friendly_list(self) -> list[str]:
+        """ e.g. Alt-Shift-R """
+        result = []
+        for keypress_str in self._keys:
+            result.append(keypress_str.replace('+', '-').title())
+
+        return result
+
+    def keypresses_human_friendly_rst_list(self) -> list[str]:
+        result = []
+        hf_list = self.keypresses_human_friendly_list()
+        for hf_str in hf_list:
+            result.append(f':kbd:`{hf_str}`')
+
+        return result
+
+    def command_as_function_rst(self) -> str:
+        result = self.command_as_function_repr()
+
+        if 'res://' in result:
+            # Wrap the whole thing in a literal.
+            result = '``' + result + '``'
+
+        return result
+
