@@ -1301,9 +1301,6 @@ class ContextCondition:
     3.  It can be requested to change ContextConditions objects as follows:
         +   Creation passes the condition dictionary from the `.sublime-keymap`
             "context" entry, which parts are then extracted and stored.
-        +   set_language(language_code)
-            +   Default:  'en'
-            +   Determines language used by `natural_language_repr()` method.
 
     Examples:
     { "key": "setting.auto_match_enabled", "operator": "equal"             , "operand": true },
@@ -1324,7 +1321,7 @@ class ContextCondition:
         'operator',
         'operand',
         'match_all',
-        'language',
+        'language_code',
         '_orig_operator',
         '_orig_operand',
         '_orig_match_all',
@@ -1364,7 +1361,7 @@ class ContextCondition:
             self.match_all = _default_match_all
             self._orig_match_all = None
 
-        self.language  = language_code
+        self.language_code = language_code
         self._hashcode = -1
 
         debugging = is_debugging(DebugBits.CONTEXT_CONDITION)
@@ -1378,7 +1375,7 @@ class ContextCondition:
             print(f'  {self._orig_operand   = }')
             print(f'  {self.match_all       = }')
             print(f'  {self._orig_match_all = }')
-            print(f'  {self.language        = }')
+            print(f'  {self.language_code   = }')
             print(f'  {hash(self)           = :{self.hash_format_spec}}')
 
     def __str__(self) -> str:
@@ -1486,21 +1483,21 @@ class ContextCondition:
                 and (other.operand == self.operand)
                 )
 
-    def set_language(self, language: str = 'en'):
-        self.language = language
-
     def formatted(self,
             longest_key_len: int = 0,
-            longest_op_len: int = 0,
-            indent_level: int = 0
+            longest_op_len : int = 0,
+            indent_level   : int = 0
             ) -> str:
         """
-        Python representation of ``self`` (same structure as .sublime-keymap
-        files) such that the keys and values are in logical order.
+        Python representation of ``self``.  Each condition presented on 1
+        line in JSON-compatible representation:
 
-        Each condition presented on 1 line in JSON-compatible representation.
+        - keys and values are in logical order,
+        - column widths for keys and operator is managed for readability,
+        - operator, operand and match_all are ALWAYS presented, with default
+          values if they were not included in the original JSON definition.
 
-        Representation (just one of these, but 2 shown to show meaning of args):
+        Example:
         ------------------------------------------------------------------------
         { "key": "selection_empty"           , "operator": "equal", "operand": false, "match_all": true }
         { "key": "setting.auto_match_enabled", "operator": "equal", "operand": true }
@@ -1525,6 +1522,57 @@ class ContextCondition:
         # match_all
         val_repr = json.dumps(self.match_all)
         parts.append(f'"match_all": {val_repr}')
+
+        # Connect parts.
+        inner_repr = ', '.join(parts)
+        result = f'{indent}{{ {inner_repr} }}'
+
+        return result
+
+    def formatted_minimal_repr(self,
+            longest_key_len: int = 0,
+            longest_op_len : int = 0,
+            indent_level   : int = 0
+            ) -> str:
+        """
+        Python representation of ``self``.  Each condition presented on 1
+        line in JSON-compatible representation:
+
+        - keys and values are in logical order,
+        - column width of keys column is managed for readability,
+        - column width of operator column is managed for readability when not default,
+        - default values for operator, operand and match_all are NOT shown
+          in representation, even if they were specified in the original
+          JSON definition.
+
+        Example:
+        ------------------------------------------------------------------------
+        { "key": "selection_empty"           , "operand": false, "match_all": true }
+        { "key": "setting.auto_match_enabled" }
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^                ^^^^^
+                      +-- longest_key_len                     +-- longest_op_len
+        """
+        parts = []
+        indent = '  ' * indent_level
+
+        field = f'"{self.condition_name()}"'
+        parts.append(f'"key": {field:{longest_key_len + 2}}')
+
+        # operator
+        if self.operator != _default_operator:
+            val_repr = json.dumps(self.operator)
+            parts.append(f'"operator": {field:{longest_op_len + 2}}')
+
+        # operand
+        # This value can be str, bool or int, so we use `json.dumps()`.
+        if self.operand != _default_operand:
+            val_repr = json.dumps(self.operand)
+            parts.append(f'"operand": {val_repr}')
+
+        # match_all
+        if self.match_all != _default_match_all:
+            val_repr = json.dumps(self.match_all)
+            parts.append(f'"match_all": {val_repr}')
 
         # Connect parts.
         inner_repr = ', '.join(parts)
@@ -1636,17 +1684,24 @@ class ContextCondition:
 
 class SmartContext:
     """
-    Sublime Text Key-Binding Contexts --- lists of conditions required
-    for Sublime Text to select a key binding.
+    Sublime Text Key-Binding Contexts---lists of conditions required
+    for Sublime Text to use a key binding.
 
-    It has:
+    1.  It has:
         +   list of ContextCondition objects
-    It can be asked:
+    2.  It can be asked:
         +   query(self, view)
         +   str(self)
         +   repr(self)
-        +   ...
-    t can be requested to change context objects as follows:
+        +   is_equivalent(other)
+        +   formatted(self)  (made more readable by managed column widths)
+    3.  It can be requested to change context objects as follows:
+        +   Creation passes the KeyBinding object created from a `.sublime-keymap`
+            binding definition.  Its context list (if present) is extracted
+            and stored.  (See __init__() precondition.)
+        +   set_language(language_code)
+            +   Default:  'en'
+            +   Determines language used by `natural_language_repr()` method.
         +   ...
             +   ...
             +   ...
@@ -1662,7 +1717,7 @@ class SmartContext:
         'binding',    # For better debugging output.
     ]
 
-    def __init__(self, binding: key_binding.KeyBinding):
+    def __init__(self, binding: key_binding.KeyBinding, language_code: str = 'en'):
         """
         Precondition:  ``binding`` must have a "context" entry.
 
@@ -1677,7 +1732,7 @@ class SmartContext:
         if len(condition_list) > 0:
             conditions = []
             for condition_dict in condition_list:
-                conditions.append(ContextCondition(condition_dict))
+                conditions.append(ContextCondition(condition_dict, language_code))
 
         self.conditions = conditions
         self.binding    = binding
@@ -1764,7 +1819,12 @@ class SmartContext:
 
         return result
 
-    def formatted(self, indent_level: int = 0, raw: bool = True, natural_language: bool = False) -> str:
+    def formatted(self,
+            indent_level    : int = 0,
+            raw             : bool = True,
+            natural_language: bool = False,
+            minimal         : bool = False
+            ) -> str:
         """
         Python representation of ``self`` (same structure as in
         .sublime-keymap files) such that the keys and values are in logical order.
@@ -1807,8 +1867,11 @@ class SmartContext:
             English:  Description of ContextCondition
         ]
 
-        :param indent_level:  Level of indentation for output
-        :param natural_language:       Include English description with raw condition repr?
+        :param indent_level:        Level of indentation for output
+        :param raw:                 Include untranslated context conditions?
+        :param natural_language:    Include Natural Language description
+                                      with raw condition repr?
+        :param minimal:             Don't show default values in conditions?
         """
         indent = '  ' * indent_level
         lines = [f'{indent}"context": [']
@@ -1829,11 +1892,16 @@ class SmartContext:
 
             # Now generate indented formatted strings.
             cond_lines = []
+            if minimal:
+                format_func = ContextCondition.formatted_minimal_repr
+            else:
+                format_func = ContextCondition.formatted
 
             for condition in self.conditions:
                 if raw and natural_language:
-                    # Raw and English
-                    cond_str = condition.formatted(
+                    # Raw and Natural Language
+                    cond_str = format_func(
+                            condition,
                             longest_key_len,
                             longest_op_len,
                             indent_level + 1
@@ -1841,11 +1909,12 @@ class SmartContext:
 
                     cond_str += '\n' + condition.natural_language_repr(indent_level + 2)
                 elif natural_language:
-                    # English only
+                    # Natural Language only
                     cond_str = condition.natural_language_repr(indent_level + 1)
                 else:
                     # Raw only
-                    cond_str = condition.formatted(
+                    cond_str = format_func(
+                            condition,
                             longest_key_len,
                             longest_op_len,
                             indent_level + 1

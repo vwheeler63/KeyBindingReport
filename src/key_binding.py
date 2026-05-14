@@ -693,6 +693,14 @@ class KeyBinding:
 
         return result
 
+    def readable_context_minimal_repr(self, indent_level: int = 0) -> str:
+        if self._smart_context:
+            result = self._smart_context.formatted_min(indent_level)
+        else:
+            result = ''
+
+        return result
+
     def source(self) -> str:
         return self._source
 
