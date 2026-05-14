@@ -325,6 +325,132 @@ def modifier_characters(modifier_code: int, mod_applies_char: str) -> tuple[str,
 # Classes
 # *************************************************************************
 
+class Keypress:
+    """
+    Sublime Text Key-Binding Keypresses that dovetail in with
+    KeyBindingReport Package data needs.
+
+    :param keypress_str:  Keypress definition string directly from, or
+                            compatible with Sublime Text `.sublime-keymap`
+                            "keys" entries, e.g. "ctrl+alt+shift+p".
+
+    See "key-modifier code" and "encoded keypress" in definitions in
+    module docstring for details.
+
+    IMPORTANT!  ``keypress_str.split('+')`` is not adequate logic by itself
+    because we have valid ``keypress_str`` values that look like
+    this: "ctrl++".
+
+                                    OSX       Win/Linux
+    | #   shift   # |
+    | #   ctrl    # | <------------------------------+
+    | #    alt    # | <-------------+                |
+    | #  command  # | <-------------|--+--------+    |
+    |    option     | Mac's 'alt' --+  |      [Win]  |
+    |     super     | -----------------+--------+    |
+    |    primary    | -----------------+-------------+
+    """
+    __slots__ = [
+        'keypress_str',
+        'main_key_name',
+        'modifier_key_list',
+        'modifier_code',
+    ]
+
+    def __init__(self, keypress_str: str):
+        modifier_code = 0
+
+        if keypress_str.endswith('++'):
+            main_key_name             = '+'
+            mod_key_name_list = keypress_str[:-2].split('+')
+        else:
+            key_list                  = keypress_str.split('+')
+            main_key_name             = key_list.pop()
+            mod_key_name_list = key_list
+
+        for mod_key in mod_key_name_list:
+            if mod_key == 'shift':
+                modifier_code |= ModifierKeyBits.SHIFT
+            elif mod_key in ['ctrl', 'control']:
+                modifier_code |= ModifierKeyBits.CTRL
+            elif mod_key in ['alt', 'option']:
+                modifier_code |= ModifierKeyBits.ALT
+            elif mod_key in ['super', 'command']:
+                # Command key on OSX, Windows key on Windows and Linux.
+                # Either way we record this as "COMMAND" bit.
+                modifier_code |= ModifierKeyBits.COMMAND
+            elif mod_key == 'primary':
+                if platform.is_osx():
+                    modifier_code |= ModifierKeyBits.COMMAND
+                else:
+                    modifier_code |= ModifierKeyBits.CTRL
+            else:
+                raise AssertionError(f'data.main_key_and_modifier_code(): modifier key unrecognized: [{mod_key}].')
+
+        self.keypress_str      = keypress_str
+        self.main_key_name     = main_key_name
+        self.modifier_key_list = mod_key_name_list
+        self.modifier_code     = modifier_code
+
+    def human_friendly_repr(self):
+        """ Ctrl=Alt-P """
+        parts = []
+        parts.extend(self.modifier_key_list)
+        parts.append(self.main_key_name)
+        return '-'.join(parts).title()
+
+    def modifier_flag_characters(self, flag_char: str) -> tuple[str, str, str, str]:
+        """
+        Tuple of ``flag_char`` or space characters based on ``ModifierKeyBits``
+        set in ``modifier_code``.  Example:
+
+        - ' ', ' ', ' ', ' ' <= no modifiers
+        - ' ', ' ', ' ', 'x' <=                    Shift modifier
+        - ' ', ' ', 'x', ' ' <=             Ctrl         modifier
+        - ' ', ' ', 'x', 'x' <=             Ctrl + Shift modifier
+        - ' ', 'x', ' ', ' ' <=       Alt                modifier
+        - ' ', 'x', ' ', 'x' <=       Alt +        Shift modifier
+        - ' ', 'x', 'x', ' ' <=       Alt + Ctrl         modifier
+        - ' ', 'x', 'x', 'x' <=       Alt + Ctrl + Shift modifier
+        - 'x', ' ', ' ', ' ' <= Cmd                      modifier
+        - 'x', ' ', ' ', 'x' <= Cmd +              Shift modifier
+        - 'x', ' ', 'x', ' ' <= Cmd +       Ctrl         modifier
+        - 'x', ' ', 'x', 'x' <= Cmd +       Ctrl + Shift modifier
+        - 'x', 'x', ' ', ' ' <= Cmd + Alt                modifier
+        - 'x', 'x', ' ', 'x' <= Cmd + Alt +        Shift modifier
+        - 'x', 'x', 'x', ' ' <= Cmd + Alt + Ctrl         modifier
+        - 'x', 'x', 'x', 'x' <= Cmd + Alt + Ctrl + Shift modifier
+
+        It is by design that this *not* be the same sequence as the modifier
+        keys appear in `.sublime-keymap` files.
+        """
+        space = ' '
+        mod_code = self.modifier_code
+
+        if mod_code & ModifierKeyBits.SHIFT:
+            S = flag_char
+        else:
+            S = space
+
+        if mod_code & ModifierKeyBits.CTRL:
+            C = flag_char
+        else:
+            C = space
+
+        if mod_code & ModifierKeyBits.ALT:
+            A = flag_char
+        else:
+            A = space
+
+        if mod_code & ModifierKeyBits.COMMAND:
+            W = flag_char
+        else:
+            W = space
+
+        return W, A, C, S
+
+
+
 class KeyBinding:
     """
     Key-binding objects from a ``.sublime-keymap`` file.
@@ -344,11 +470,12 @@ class KeyBinding:
         '_smart_context',   # None if binding had no "context" entry.
         '_source',
         'source_entry_no',
-        '_keys',
+        '_keys',  # TODO: still needed?
         '_command',
         '_args',
         '_context',
         '_cached_keypress_tuple',
+        'keypresses',
     ]
 
     def __init__(self, decoded_key_binding: dict, source: str, source_entry_no: int):
@@ -375,6 +502,13 @@ class KeyBinding:
             self._context = None
 
         self._cached_keypress_tuple = None
+
+        keypresses: list[Keypress] = []
+        for keypress_str in self._keys:
+            keypresses.append(Keypress(keypress_str))
+
+        self.keypresses = keypresses
+
 
     def __str__(self):
         return self.formatted()
@@ -686,8 +820,8 @@ class ReportKeyBinding(KeyBinding):
     def keypresses_human_friendly_list(self) -> list[str]:
         """ e.g. Alt-Shift-R """
         result = []
-        for keypress_str in self._keys:
-            result.append(keypress_str.replace('+', '-').title())
+        for keypress in self.keypresses:
+            result.append(keypress.human_friendly_repr())
 
         return result
 
