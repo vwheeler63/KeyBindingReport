@@ -1181,6 +1181,7 @@ _context_tests_by_name = {                                          # Operator G
 
     # View
     'auto_complete_visible'    : _test_auto_complete_visible,       # equality group
+    'auto_complete_primed'     : _test_auto_complete_visible,       # equality group
     'last_command'             : _test_last_command,                # equality group
     'last_modifying_command'   : _test_last_modifying_command,      # equality group
     'overlay_has_focus'        : _test_overlay_has_focus,           # equality group
@@ -1984,7 +1985,6 @@ class SmartContext:
             if not found:
                 msg = (
                         f'  {self.__class__.__name__}:  key [{key}] not recognized.\n'
-                        f'  keymap={self.binding.source()}\n'
                         f'{self.binding.formatted(1, include_source = True)}'
                       )
                 print(msg)
