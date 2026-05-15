@@ -8,6 +8,7 @@ from datetime import datetime
 import sublime_plugin
 from ...lib.debug import DebugBits, is_debugging
 from ...lib import output_view
+from .. import platform
 from .. import core
 from .. import data
 from .. import output
@@ -33,13 +34,20 @@ _report_title = 'Key-Binding Overrides'
 
 class KeyBindingReportOverridesCommand(sublime_plugin.ApplicationCommand):
     """ Report Key Bindings that override other key bindings. """
-    def run(self):
+    def run(self, platform_code: str | None = None):
         """
         Report Key Bindings that override other key bindings.
         """
         debugging = is_debugging(DebugBits.FULL_OVERRIDES_REPORT)
         if debugging:
             print(f'In {self.__class__.__name__}.run()...')
+
+        if platform_code and platform_code not in platform.platform_names_by_code:
+            raise AssertionError(f'`platform_code` must be one of {platform.platform_codes!r}.')
+
+        if platform_code:
+            platform.simulate_platform(platform_code)
+            output.update_key_names_based_on_platform()
 
         t0 = datetime.now()
         key_data = data.KeyBindingData()
@@ -94,6 +102,10 @@ class KeyBindingReportOverridesCommand(sublime_plugin.ApplicationCommand):
             window.bring_to_front()
 
         t3 = datetime.now()
+
+        if platform_code:
+            platform.set_current_platform()
+            output.update_key_names_based_on_platform()
 
         if debugging:
             print('Time to compute overrides: ', str(t1 - t0))

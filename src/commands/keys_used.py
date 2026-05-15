@@ -3,6 +3,7 @@ import sublime
 from ...lib.debug import DebugBits, is_debugging
 from ...lib import ascii_table
 from ...lib import output_view
+from .. import platform
 from .. import key_binding
 from .. import data
 from .. import output
@@ -13,8 +14,8 @@ from .. import output
 # Configuration
 # *************************************************************************
 
-_report_title = 'Keys Used in All Keymaps (Current Platform)'
-_report_short_title = 'Keys Used (Current Platform)'
+_report_title = 'Keys Used in All Keymaps'
+_report_short_title = 'Keys Used'
 
 
 # *************************************************************************
@@ -30,16 +31,28 @@ _report_short_title = 'Keys Used (Current Platform)'
 class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
     """ Report Keys-Used-In-All-Keymaps Report. """
 
-    def run(self):
+    def run(self, platform_code: str | None = None):
         """
         Generate Key-Binding Keys-Used Report.
 
         Modifier Keys Used with how many times each.
         Main Keys Used with how many times each.
+
+        :param platform_code:
+                            Platform to simulate, or None to use current platform.
+                              Constraint:  one of the strings returned by
+                              ``sublime.platform()``: "windows", "linux" or "osx".
         """
         debugging = is_debugging(DebugBits.KEYS_USED_REPORT)
         if debugging:
             print('In KeyBindingReportKeysUsedCommand.run()...')
+
+        if platform_code and platform_code not in platform.platform_names_by_code:
+            raise AssertionError(f'`platform_code` must be one of {platform.platform_codes!r}.')
+
+        if platform_code:
+            platform.simulate_platform(platform_code)
+            output.update_key_names_based_on_platform()
 
         main_key_counts = {}
         main_key_reported = {}
@@ -168,3 +181,8 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
                 content,
                 current_view=active_view
                 )
+
+        if platform_code:
+            platform.set_current_platform()
+            output.update_key_names_based_on_platform()
+
