@@ -666,8 +666,14 @@ class KeyBinding:
 
     def command_as_function_repr(self) -> str:
         command = self._command
-        args_repr = self.args_json()
-        return f'{command}( {args_repr} )'
+
+        if self._args is not None:
+            args_repr = self.args_json()
+            result = f'{command}( {args_repr} )'
+        else:
+            result = f'{command}()'
+
+        return result
 
     def has_context(self) -> bool:
         return (( self._smart_context is not None ))
