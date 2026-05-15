@@ -2,26 +2,7 @@
 Key-Binding Data
 ================
 
-This module does all the data fetching of selected key bindings.
-
-Usage:
-
-    key_groups       = [KeyGroup.NUMBERS]
-    key_names        = ["q", "w", "a", "s"]
-    keypress_list    = [["ctrl+p"], ["ctrl+shift+p"], ["ctrl+k", "ctrl+u"]]
-    packages         = ["Default"]
-    limit_to_context = False
-
-    if limit_to_context:
-        view = current_view
-    else:
-        view = None
-
-    key_data = KeyBindingData()
-    key_data.generate(key_groups, key_names, keypress_list, packages, view)
-
-    # From this point forward, ``key_data`` carries all the data needed
-    # to generate any type variety of reports and tests on key-bindings.
+This module does all the gathering of data for selected key bindings.
 
 Each time ``key_data.generate()`` is called produces a new data set.
 No memory of the previous call remains.
@@ -29,7 +10,7 @@ No memory of the previous call remains.
 import re
 import pprint
 from typing import Set, Iterable, Sequence
-from enum import IntEnum, IntFlag
+from enum import IntEnum
 import sublime
 from ..lib.debug import DebugBits, is_debugging
 from . import platform
@@ -52,7 +33,7 @@ class KeyGroup(IntEnum):
     NAMED_KEYS     =  4  #  /
     KEYPAD_KEYS    =  5  # /
 
-    LAST           =  5
+    LAST           =  5  # To be used in range checks, e.g. 0 <= x <= LAST.
     ALL            =  6  # Equivalent to specifying all groups [0-LAST].
     KEY_SEQUENCES  =  7  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
 
@@ -819,9 +800,9 @@ class KeyBindingData:
         :param self:        Instance of ``KeyBindingData``; all data is
                             connected to this instance.
 
-        :param key_groups:  List of ``KeyGroup`` integers, adding keys from these
-                            groups to the data gathered.  ``KeyGroup.ALL`` is
-                            equivalent to specifying all the other key groups.
+        :param key_groups:  List of ``KeyGroup`` enumeration values, adding keys
+                            from these groups to the data gathered.  ``KeyGroup.ALL``
+                            is equivalent to specifying all the other key groups.
                             ``None`` or ``[]`` when the only keys that should
                             be included are in ``key_names`` and ``keypress_list``.
 
@@ -880,16 +861,17 @@ class KeyBindingData:
         key_data.generate(key_groups, key_names, keypress_list, packages, view)
 
         class KeyGroup(IntEnum):
-            # Non-negative values index into ``key_name_groups``.
-            ALL            = -2  # Equivalent to specifying all groups >= 0.
-            KEY_SEQUENCES  = -1  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
-
-            LETTER_KEYS    =  0  # \
-            NUMBER_KEYS    =  1  #  \
+            // Non-negative values index into ``key_name_groups``.
+            NUMBER_KEYS    =  0  # \
+            LETTER_KEYS    =  1  #  \
             F_KEYS         =  2  #   \__ These index into ``key_name_groups``.
             SYMBOL_KEYS    =  3  #   /
             NAMED_KEYS     =  4  #  /
             KEYPAD_KEYS    =  5  # /
+
+            LAST           =  5  # To be used in range checks, e.g. 0 <= x <= LAST.
+            ALL            =  6  # Equivalent to specifying all groups [0-LAST].
+            KEY_SEQUENCES  =  7  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
 
         class FlagBits(IntFlag):
             # Output Flags
@@ -1038,6 +1020,14 @@ class KeyBindingData:
         #     keys in dictionaries.
         # ---------------------------------------------------------------------
         debugging = self._debugging_removing_arg_overlap
+        if debugging:
+            print('In data.generate()....')
+            print(f'  {key_groups        = }')
+            print(f'  {key_names         = }')
+            print(f'  {keypress_list     = }')
+            print(f'  {limit_to_packages = }')
+            print(f'  {view              = }')
+
 
         if key_groups is None or type(key_groups) is set:
             key_groups_set = key_groups
@@ -1071,23 +1061,24 @@ class KeyBindingData:
         # All of limit_to_packages, key_groups_set, key_names_set, keypress_tuple_set are now set objects.
 
         if debugging:
-            print('After removing duplicates:')
-            print(f'  {key_groups_set=}')
-            print(f'  {key_names_set=}')
-            print(f'  {keypress_tuple_set=}')
-            print(f'  {limit_to_packages_set=}')
+            print( '  After removing duplicates:')
+            print(f'    {key_groups_set=}')
+            print(f'    {key_names_set=}')
+            print(f'    {keypress_tuple_set=}')
+            print(f'    {limit_to_packages_set=}')
 
         # ---------------------------------------------------------------------
         # Prepare ``include_key_name_set`` while removing overlap from
-        # ``key_groups_set`` and ``keypress_tuple_set` if both are present, pursuant to:
+        # ``key_groups_set`` and ``keypress_tuple_set` if both are present,
+        # pursuant to:
         #
-        # 2.  If both ``key_names_set`` and ``key_groups_set`` are provided and are
-        #     not empty, the result is additive in a logical way:
+        # 2.  If both ``key_groups_set`` and ``key_names_set`` are provided
+        #     and are not empty, the result is additive in a logical way:
         #     ``key_names_set`` only has an effect for the keys specified that
         #     fall *outside* any of the other key groups specified.  This is
-        #     accomplished by removing from ``key_names_set`` any "keys" items
-        #     whose main key also appears in any of the specified key
-        #     groups.
+        #     accomplished by removing from ``key_names_set`` any "keys"
+        #     items whose main key also appears in any of the specified
+        #     key groups.
         #
         #     From these two, if either of them were specified, a list of
         #     accepted keys is built, or left as ``None`` if there are no
@@ -1104,7 +1095,7 @@ class KeyBindingData:
                     include_key_name_set.update(all_key_names)
                 else:
                     for key_grp_idx in key_groups_set:
-                        if key_grp_idx >= 0:
+                        if 0 <= key_grp_idx <= KeyGroup.LAST:
                             key_grp_list = key_name_groups[key_grp_idx]
                             include_key_name_set.update(key_grp_list)
 

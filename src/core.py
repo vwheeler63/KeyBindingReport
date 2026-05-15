@@ -337,7 +337,8 @@ names must be used with them:
 
 The above names in ALL CAPS are from the ``KeyGroup`` class.
 Note that they identify lists of key names that are mutually exclusive,
-as well as provide indexes into ``key_name_groups`` list for values >= 0.
+as well as provide indexes into ``key_name_groups`` list for values in
+range 0 <= x <= KeyGroup.LAST.
 
 Shifted key names can also be used, but *may not be used with modifier keys*.
 Attempting to do so generates no errors, but does not work.
