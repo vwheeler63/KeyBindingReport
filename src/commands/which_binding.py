@@ -11,6 +11,7 @@ import sublime_plugin
 import sublime
 from ...lib.debug import DebugBits, is_debugging
 from ...lib import output_view
+from .. import platform
 from .. import core
 from .. import data
 from .. import output
@@ -42,7 +43,8 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
     def run(
             self         : sublime_plugin.TextCommand,
             edit         : sublime.Edit,
-            keypress_list: list[str] = ["ctrl+k", "ctrl+u"]
+            keypress_list: list[str] = ["ctrl+k", "ctrl+u"],
+            platform_code: str | None = None
             ):
         """
         By specified key based on current scope Report binding selected the
@@ -50,10 +52,12 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
         binding where current scope matches key context.  Generate output
         in format `fmt`.
 
-        :param self:            KeyBindingReportCommand object connected to current View
-        :param edit:            sublime.Edit connected to current View, needed to edit Buffer
-        :param keypress_list:   "keys" list ("keys" element from JSON key binding).
-        :param fmt:             Which output format
+        :param self:           KeyBindingReportCommand object connected to current View
+        :param edit:           sublime.Edit connected to current View, needed to edit Buffer
+        :param keypress_list:  "keys" list ("keys" element from JSON key binding).
+        :param platform_code:  Platform to simulate, or None to use current platform.
+                                 Constraint:  one of the strings returned by
+                                 ``sublime.platform()``: "windows", "linux" or "osx".
         :return:  None
         """
         debugging = is_debugging(DebugBits.WHICH_BINDING_REPORT)
@@ -63,7 +67,13 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
 
         t0 = datetime.now()
         key_data = data.KeyBindingData()
+
+        if platform_code:
+            platform.simulate_platform(platform_code)
+            output.update_key_names_based_on_platform()
+
         binding = key_data.which_binding(keypress_list, self.view)
+
         t1 = datetime.now()
 
         # TODO: rmv after testing.
@@ -112,6 +122,10 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
 
         rpt_view.window().bring_to_front()
         t3 = datetime.now()
+
+        if platform_code:
+            platform.set_current_platform()
+            output.update_key_names_based_on_platform()
 
         if debugging:
             print('Time to generate data structures: ', str(t1 - t0))
