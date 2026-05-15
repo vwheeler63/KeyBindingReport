@@ -66,6 +66,7 @@ See ``can_override()`` docstring.
 ***************************************************************************"""
 
 import json
+from typing import Iterable
 from enum import IntFlag
 from sublime_types import CommandArgs, Value
 from . import smart_context
@@ -476,8 +477,8 @@ class KeyBinding:
         '_keys',
         '_command',
         '_args',
-        '_smart_context',   # None if binding had no "context" entry.
         '_context',
+        '_smart_context',   # None if binding had no "context" entry.
         '_cached_keypress_tuple',
         'keypresses',
     ]
@@ -486,26 +487,57 @@ class KeyBinding:
         """
         :param decoded_key_binding:  key binding decoded from JSON in .sublime-keymap
         :param path:                 for improved debug output
+
+        By design, original decoded JSON values are kept
         """
-        self._source = source
-        self.source_entry_no = source_entry_no
+        if _keys_key not in decoded_key_binding or _command_key not in decoded_key_binding:
+            raise AssertionError(f'Invalid `decoded_key_binding` missing "keys" or "command" entry: {decoded_key_binding!r}')
 
+        # -----------------------------------------------------------------
         # Keys
-        self._keys = decoded_key_binding[_keys_key]
+        # -----------------------------------------------------------------
+        keys = decoded_key_binding[_keys_key]
+        if keys is None or not isinstance(keys, list):
+            raise AssertionError(f'Invalid `decoded_key_binding`: "keys" entry was {keys!r}')
+        self._keys = keys
 
+        keypresses: list[Keypress] = []
+        for keypress_str in keys:
+            if isinstance(keypress_str, str):
+                keypresses.append(Keypress(keypress_str))
+            else:
+                raise AssertionError(f'Invalid `decoded_key_binding`: keypress entry was {keypress_str!r}')
+
+        self.keypresses = keypresses
+        #     TODO: use of ``Keypress`` has yet to prove that it simplifies
+        #           code downstream.  At this writing (15-May-2026 12:47) it
+        #           has only been a benefit in 1 place.  Review in a week or
+        #           so to see if it really should be preserved, or if it should
+        #           be relegated to the (necessary) module-level functions that
+        #           already exist, e.g. ``main_key_and_modifier_code()``.
+
+        # -----------------------------------------------------------------
         # Command
-        self._command: str = 'Unknown'
+        # -----------------------------------------------------------------
+        command = decoded_key_binding[_command_key]
+        if command is None:
+            raise AssertionError(f'Invalid `decoded_key_binding`: "command" entry was {command!r}')
         command = decoded_key_binding[_command_key]
         if isinstance(command, str):
             self._command = command
 
+        # -----------------------------------------------------------------
         # Args
+        # -----------------------------------------------------------------
         self._args: CommandArgs = None
         if _args_key in decoded_key_binding:
             args = decoded_key_binding[_args_key]
             if isinstance(args, dict):
                 self._args = args
 
+        # -----------------------------------------------------------------
+        # Context
+        # -----------------------------------------------------------------
         self._smart_context: smart_context.SmartContext | None = None
 
         if _context_key in decoded_key_binding:
@@ -514,104 +546,13 @@ class KeyBinding:
         else:
             self._context = None
 
+        # -----------------------------------------------------------------
+        # Source
+        # -----------------------------------------------------------------
+        self._source = source
+        self.source_entry_no = source_entry_no
+
         self._cached_keypress_tuple = None
-
-        keypresses: list[Keypress] = []
-        for keypress_str in self._keys:
-            keypresses.append(Keypress(keypress_str))
-
-        self.keypresses = keypresses
-
-
-    def __str__(self):
-        return self.formatted()
-
-    def __repr__(self):
-        """
-        KeyBinding({ ['right'], move({'by': 'characters', 'forward': true}) })
-
-        or if there is a "context" entry:
-
-        KeyBinding({ ['"'], move({'by': 'characters', 'forward': true})
-          "context": [
-            { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": true }
-            { "key": "selection_empty"           , "operator": "equal"         , "operand": true, "match_all": true }
-            { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": true }
-            { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": true }
-            { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": true }
-          ]
-        })
-
-        """
-        return f'{self.__class__.__name__}({self.formatted()})'
-
-    def applies_in_same_context(self, other) -> bool:
-        """ Does ``other`` apply in the same context as ``self``? """
-        result = False
-
-        if self._smart_context is None and other._smart_context is None:
-            result = True
-        elif self._smart_context and other._smart_context:
-            result = self._smart_context.is_equivalent(other._smart_context)
-
-        return result
-
-    def can_override(self, other) -> bool:
-        """
-        To be able to override ``other``, ``self`` and ``other`` must:
-
-        - involve the same keypresses, i.e.
-          ``self.keypress_tuple() == other.keypress_tuple()``,
-
-          and
-
-        - have an equivalent context.
-        """
-        result = False
-
-        if self.keypress_tuple() == other.keypress_tuple():
-            result = self.applies_in_same_context(other)
-
-        return result
-
-    def formatted(self, indent_level: int = 0, include_source: bool = False) -> str:
-        """
-        Python representation of ``self`` (same structure as in
-        .sublime-keymap files) such that the keys and values are in logical order.
-
-        Representation:
-        ---------------
-        { ['right'], move({'by': 'characters', 'forward': true}) }
-
-        or if there is a "context" entry:
-
-        { ['"'], move({'by': 'characters', 'forward': true})
-          "context": [
-            { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": true }
-            { "key": "selection_empty"           , "operator": "equal"         , "operand": true, "match_all": true }
-            { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": true }
-            { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": true }
-            { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": true }
-          ]
-        }
-        """
-        indent = '  ' * indent_level
-        if include_source:
-            result = f'{indent}source: {self._source}  (entry {self.source_entry_no})\n'
-        else:
-            result = ''
-
-        cmd_as_func = self.command_as_function_repr()
-        keypresses_json = json.dumps(self._keys)
-        result += f'{indent}{{ {keypresses_json}, {cmd_as_func}'
-
-        if self._smart_context:
-            result += '\n' + self.readable_context_repr(indent_level + 1)
-            result += f'\n{indent}}}'
-        else:
-            result += ' }'
-
-        return result
 
     def keypress_count(self) -> int:
         """
@@ -689,7 +630,7 @@ class KeyBinding:
 
         return result
 
-    def context_formatted_json(self) -> str:
+    def context_original_json(self) -> str:
         result = ''
 
         if self._context is not None:
@@ -697,10 +638,7 @@ class KeyBinding:
 
         return result
 
-    def smart_context(self) -> smart_context.SmartContext | None:
-        return self._smart_context
-
-    def readable_context_repr(self, indent_level: int = 0) -> str:
+    def context_readable_repr(self, indent_level: int = 0) -> str:
         if self._smart_context:
             result = self._smart_context.formatted(indent_level)
         else:
@@ -708,13 +646,16 @@ class KeyBinding:
 
         return result
 
-    def readable_context_minimal_repr(self, indent_level: int = 0) -> str:
+    def context_readable_minimal_repr(self, indent_level: int = 0) -> str:
         if self._smart_context:
             result = self._smart_context.formatted(indent_level, minimal=True)
         else:
             result = ''
 
         return result
+
+    def smart_context(self) -> smart_context.SmartContext | None:
+        return self._smart_context
 
     def source(self) -> str:
         return self._source
@@ -749,6 +690,96 @@ class KeyBinding:
         src            = self._source
 
         return keypress_tuple, cmd, args, ctxt, src
+
+    def applies_in_same_context(self, other) -> bool:
+        """ Does ``other`` apply in the same context as ``self``? """
+        result = False
+
+        if self._smart_context is None and other._smart_context is None:
+            result = True
+        elif self._smart_context and other._smart_context:
+            result = self._smart_context.is_equivalent(other._smart_context)
+
+        return result
+
+    def can_override(self, other) -> bool:
+        """
+        To be able to override ``other``, ``self`` and ``other`` must:
+
+        - involve the same keypresses, i.e.
+          ``self.keypress_tuple() == other.keypress_tuple()``,
+
+          and
+
+        - have an equivalent context.
+        """
+        result = False
+
+        if self.keypress_tuple() == other.keypress_tuple():
+            result = self.applies_in_same_context(other)
+
+        return result
+
+    def formatted(self, indent_level: int = 0, include_source: bool = False) -> str:
+        """
+        Python representation of ``self`` (same structure as in
+        .sublime-keymap files) such that the keys and values are in logical order.
+
+        Representation:
+        ---------------
+        { ['right'], move({'by': 'characters', 'forward': true}) }
+
+        or if there is a "context" entry:
+
+        { ['"'], move({'by': 'characters', 'forward': true})
+          "context": [
+            { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": true }
+            { "key": "selection_empty"           , "operator": "equal"         , "operand": true, "match_all": true }
+            { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": true }
+            { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": true }
+            { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": true }
+          ]
+        }
+        """
+        indent = '  ' * indent_level
+        if include_source:
+            result = f'{indent}source: {self._source}  (entry {self.source_entry_no})\n'
+        else:
+            result = ''
+
+        cmd_as_func = self.command_as_function_repr()
+        keypresses_json = json.dumps(self._keys)
+        result += f'{indent}{{ {keypresses_json}, {cmd_as_func}'
+
+        if self._smart_context:
+            result += '\n' + self.context_readable_repr(indent_level + 1)
+            result += f'\n{indent}}}'
+        else:
+            result += ' }'
+
+        return result
+
+    def __str__(self):
+        return self.formatted()
+
+    def __repr__(self):
+        """
+        KeyBinding({ ['right'], move({'by': 'characters', 'forward': true}) })
+
+        or if there is a "context" entry:
+
+        KeyBinding({ ['"'], move({'by': 'characters', 'forward': true})
+          "context": [
+            { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": true }
+            { "key": "selection_empty"           , "operator": "equal"         , "operand": true, "match_all": true }
+            { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": true }
+            { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": true }
+            { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": true }
+          ]
+        })
+
+        """
+        return f'{self.__class__.__name__}({self.formatted()})'
 
 
 class ReportKeyBinding(KeyBinding):

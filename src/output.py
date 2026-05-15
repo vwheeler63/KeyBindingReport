@@ -306,10 +306,15 @@ class Footnote:
         context = binding.smart_context()
 
         if context:
-            raw     = bool(self.flags & FlagBits.INCLUDE_UNTRANSLATED_CONTEXTS)
+            raw          = bool(self.flags & FlagBits.INCLUDE_UNTRANSLATED_CONTEXTS)
             natural_lang = bool(self.flags & FlagBits.INCLUDE_NATURAL_LANGUAGE_CONTEXTS)
-            footnote_str = context.formatted(2, raw=raw, natural_language=natural_lang,
-                    minimal=True)
+
+            footnote_str = context.formatted(
+                    2,
+                    raw=raw,
+                    natural_language=natural_lang,
+                    minimal=True
+                    )
 
             if self.format == ascii_table.Format.RESTRUCTUREDTEXT:
                 # .. [1] context for :kbd:`Alt-1`:

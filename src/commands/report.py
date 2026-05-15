@@ -172,7 +172,7 @@ def _key_table_and_footnotes(
         asc_tbl.set_tight_columns(tight_col_specs)
 
     # ---------------------------------------------------------------------
-    # Build table key, table and footnotes => ``content``.
+    # Build table key and table => ``content``.
     # ---------------------------------------------------------------------
     table_key = _table_key(fmt, incl_win_key)
     parts = []
@@ -199,7 +199,9 @@ def _key_table_and_footnotes(
             parts.append('')
         parts.append( asc_tbl.as_string(fmt, indent) )
 
-    # Insert footnotes.
+    # ---------------------------------------------------------------------
+    # Insert footnotes => ``content``.
+    # ---------------------------------------------------------------------
     for footnote in footnotes:
         if restructuredtext:
             parts.append('')
