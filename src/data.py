@@ -4,7 +4,7 @@ Key-Binding Data
 
 This module does all the gathering of data for selected key bindings.
 
-Each time ``key_data.generate()`` is called produces a new data set.
+Each time ``key_data.gather()`` is called produces a new data set.
 No memory of the previous call remains.
 """
 import re
@@ -560,10 +560,10 @@ class KeyBindingData:
         # =================================================================
         if view:
             # Pass None for all args except `view`,
-            self.generate(key_groups=[KeyGroup.ALL], view=view)
+            self.gather(key_groups=[KeyGroup.ALL], view=view)
         else:
             # Pass None for all args, gathering FULL set of binding data.
-            self.generate(key_groups=[KeyGroup.ALL])
+            self.gather(key_groups=[KeyGroup.ALL])
 
         # =================================================================
         # From the input data, generate list[list[ReportKeyBinding]] where
@@ -695,7 +695,7 @@ class KeyBindingData:
             key_groups        = None
             key_names         = None
             limit_to_packages = None
-            self.generate(key_groups, key_names, [keypress_list], limit_to_packages, view)
+            self.gather(key_groups, key_names, [keypress_list], limit_to_packages, view)
 
             keypress_tuple = tuple(keypress_list)
             if keypress_tuple in self.mdictByKeySquence:
@@ -734,7 +734,7 @@ class KeyBindingData:
             key_groups        = [KeyGroup.KEY_SEQUENCES]
             key_names         = None
             limit_to_packages = None
-            self.generate(key_groups, key_names, [keypress_list], limit_to_packages, view)
+            self.gather(key_groups, key_names, [keypress_list], limit_to_packages, view)
 
             main_key_name, mod_code = key_binding.main_key_and_modifier_code(keypress_list[0])
             if main_key_name in self.mdictByMainKey:
@@ -780,7 +780,7 @@ class KeyBindingData:
 
         return result
 
-    def generate(self,
+    def gather(self,
             key_groups       : Iterable[KeyGroup] | None = None,
             key_names        : Iterable[str] | None = None,
             keypress_list    : Iterable[Iterable[str]] | None = None,
@@ -858,7 +858,7 @@ class KeyBindingData:
             view = None
 
         key_data = KeyBindingData()
-        key_data.generate(key_groups, key_names, keypress_list, packages, view)
+        key_data.gather(key_groups, key_names, keypress_list, packages, view)
 
         class KeyGroup(IntEnum):
             // Non-negative values index into ``key_name_groups``.
@@ -1021,7 +1021,7 @@ class KeyBindingData:
         # ---------------------------------------------------------------------
         debugging = self._debugging_removing_arg_overlap
         if debugging:
-            print('In data.generate()....')
+            print('In data.gather()....')
             print(f'  {key_groups        = }')
             print(f'  {key_names         = }')
             print(f'  {keypress_list     = }')

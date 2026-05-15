@@ -270,7 +270,7 @@ def _generate_report(
     else:
         rpt_gen_view = None
 
-    key_data.generate(key_groups, key_names, keypress_list, limit_to_packages, rpt_gen_view)
+    key_data.gather(key_groups, key_names, keypress_list, limit_to_packages, rpt_gen_view)
     t1 = datetime.now()
 
     # TODO: rmv after testing.
