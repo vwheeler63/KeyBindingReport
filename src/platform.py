@@ -21,7 +21,13 @@ windows_platform_code = 'windows'
 linux_platform_code   = 'linux'
 osx_platform_code     = 'osx'
 
-platform_names = {
+platform_codes = (
+    windows_platform_code,
+    linux_platform_code,
+    osx_platform_code,
+)
+
+platform_names_by_code = {
     windows_platform_code: 'Windows',
     linux_platform_code  : 'Linux',
     osx_platform_code    : 'OSX',
@@ -34,7 +40,7 @@ platform_names = {
 # *************************************************************************
 
 execution_platform      = sublime.platform()
-execution_platform_name = platform_names[execution_platform]
+execution_platform_name = platform_names_by_code[execution_platform]
 platform                = sublime.platform()
 platform_name           = ''
 platform_name_w_parens  = ''
@@ -81,7 +87,7 @@ def simulate_platform(platform_code: str):
     global platform_name_w_parens
 
     platform = platform_code
-    platform_name = platform_names[platform_code]
+    platform_name = platform_names_by_code[platform_code]
     platform_name_w_parens = '(' + platform_name + ')'
 
     if debugging:

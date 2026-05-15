@@ -64,6 +64,10 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
         if debugging:
             print('In KeyBindingReportWhichBindingCommand.run()...')
             print(f'  {keypress_list=}')
+            print(f'  {platform_code=}')
+
+        if platform_code and platform_code not in platform.platform_names_by_code:
+            raise AssertionError(f'`platform_code` must be one of {platform.platform_codes!r}.')
 
         t0 = datetime.now()
         key_data = data.KeyBindingData()
