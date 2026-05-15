@@ -618,7 +618,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                     )
 
             for platform_code in platform_code_tuple:
-                platform.set_platform(platform_code)
+                platform.simulate_platform(platform_code)
                 output.update_key_names_based_on_platform()
 
                 if debugging:

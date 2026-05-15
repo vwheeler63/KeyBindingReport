@@ -61,7 +61,7 @@ def show_platform():
     print(f'{platform_name_w_parens = }')
 
 
-def set_platform(platform_code: str):
+def simulate_platform(platform_code: str):
     """ Set data` module attributes in which platform plays a role. """
     if platform_code not in (windows_platform_code, linux_platform_code, osx_platform_code):
         raise AssertionError(f'`platform_code` not recognozed: [{platform_code}].')
@@ -87,19 +87,19 @@ def set_platform(platform_code: str):
 
 
 def simulate_windows_platform():
-    set_platform(windows_platform_code)
+    simulate_platform(windows_platform_code)
 
 
 def simulate_linux_platform():
-    set_platform(linux_platform_code)
+    simulate_platform(linux_platform_code)
 
 
 def simulate_osx_platform():
-    set_platform(osx_platform_code)
+    simulate_platform(osx_platform_code)
 
 
 def set_current_platform():
-    set_platform(sublime.platform())
+    simulate_platform(sublime.platform())
 
 
 set_current_platform()
