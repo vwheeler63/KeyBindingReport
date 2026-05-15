@@ -147,7 +147,10 @@ def show_platform_based_names():
     print(f'{modifier_key_names_by_modifier_code_bit = }')
 
 
-def update_key_names_based_on_platform(debugging: bool = False):
+def update_key_names_based_on_platform(debugging: int = 0):
+    if not debugging:
+        debugging = is_debugging(DebugBits.PLATFORM)
+
     global cmd_col_heading
     global cmd_key_name
     global alt_col_heading
@@ -199,13 +202,22 @@ def update_key_names_based_on_platform(debugging: bool = False):
 def report_heading(title: str, note: str = '') -> str:
     timestamp = datetime.now().strftime(core.setting__timestamp_strftime_format)
     under_over_line = '*' * len(title)
+    exe_platform = platform.execution_platform_name
+    sim_platform = platform.platform_name
     parts = []
     parts.append('')
     parts.append(under_over_line)
     parts.append(title)
     parts.append(under_over_line)
     parts.append('')
-    parts.append(f'Report generated:  {timestamp}')
+
+    if sim_platform == exe_platform:
+        parts.append(f'As of   :  {timestamp}')
+        parts.append(f'Platform:  {exe_platform}')
+    else:
+        parts.append(f'As of    :  {timestamp}')
+        parts.append(f'Platform :  {exe_platform}')
+        parts.append(f'Simulated:  {sim_platform}')
 
     if note:
         parts.append('')
