@@ -303,7 +303,7 @@ def _generate_report(
                     limit_to_packages,
                     limit_to_context,
                     fmt,
-                    flags
+                    flags,
                     )
             )
 
@@ -442,7 +442,8 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             limit_to_packages: Iterable[str]           | None = None,
             limit_to_context : bool = False,
             fmt              : ascii_table.Format = ascii_table.Format.OUTLINED,
-            flags            : output.FlagBits = output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
+            flags            : output.FlagBits = output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS,
+            platform_code    : str | None = None
             ):
         r"""
         Generate Key-Binding Report.
@@ -499,6 +500,11 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         :param fmt:         Which output format (ascii_table.Format)
 
         :param flags:       Bitwise-OR-ed combination of ``FlagBits`` enumerators.
+
+        :param platform_code:
+                            Platform to simulate, or None to use current platform.
+                              Constraint:  one of the strings returned by
+                              ``sublime.platform()``: "windows", "linux" or "osx".
 
         :return:  None
 
@@ -609,6 +615,9 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             # print(f'  {fmt=}')
             # print(f'  flags=0x{flags:{output._flags_format_spec_hex}}')
 
+        if platform_code and platform_code not in platform.platform_names_by_code:
+            raise AssertionError(f'`platform_code` must be one of {platform.platform_codes!r}.')
+
         if flags & output.FlagBits.ALL_PLATFORMS:
             # Run once for each platform.
             platform_code_tuple = (
@@ -648,6 +657,10 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             output.update_key_names_based_on_platform()
 
         else:
+            if platform_code:
+                platform.simulate_platform(platform_code)
+                output.update_key_names_based_on_platform()
+
             # Just run once.
             t0, t1, t2, t3 = _generate_report(
                     self,
@@ -661,6 +674,10 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                     flags,
                     debugging
                     )
+
+            if platform_code:
+                platform.set_current_platform()
+                output.update_key_names_based_on_platform()
 
             if debugging:
                 print('  Time to generate data structures: ', str(t1 - t0))
