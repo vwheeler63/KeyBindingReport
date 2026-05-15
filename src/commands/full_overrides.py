@@ -39,7 +39,6 @@ class KeyBindingReportOverridesCommand(sublime_plugin.ApplicationCommand):
         """
         debugging = is_debugging(DebugBits.FULL_OVERRIDES_REPORT)
         if debugging:
-            print('>\n>\n>\n>')
             print(f'In {self.__class__.__name__}.run()...')
 
         t0 = datetime.now()
@@ -96,7 +95,8 @@ class KeyBindingReportOverridesCommand(sublime_plugin.ApplicationCommand):
 
         t3 = datetime.now()
 
-        print('Time to compute overrides: ', str(t1 - t0))
-        print('Time to write files      : ', str(t2 - t1))
-        print('Time to generate report  : ', str(t3 - t2))
-        print('Total                    : ', str(t3 - t0))
+        if debugging:
+            print('Time to compute overrides: ', str(t1 - t0))
+            print('Time to write files      : ', str(t2 - t1))
+            print('Time to generate report  : ', str(t3 - t2))
+            print('Total                    : ', str(t3 - t0))

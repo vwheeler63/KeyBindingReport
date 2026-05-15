@@ -39,7 +39,6 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
         """
         debugging = is_debugging(DebugBits.KEYS_USED_REPORT)
         if debugging:
-            print('>\n>\n>\n>')
             print('In KeyBindingReportKeysUsedCommand.run()...')
 
         main_key_counts = {}

@@ -58,7 +58,6 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
         """
         debugging = is_debugging(DebugBits.WHICH_BINDING_REPORT)
         if debugging:
-            print('>\n>\n>\n>')
             print('In KeyBindingReportWhichBindingCommand.run()...')
             print(f'  {keypress_list=}')
 
@@ -114,7 +113,8 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
         rpt_view.window().bring_to_front()
         t3 = datetime.now()
 
-        print('Time to generate data structures: ', str(t1 - t0))
-        print('Time to write files             : ', str(t2 - t1))
-        print('Time to generate report         : ', str(t3 - t2))
-        print('Total                           : ', str(t3 - t0))
+        if debugging:
+            print('Time to generate data structures: ', str(t1 - t0))
+            print('Time to write files             : ', str(t2 - t1))
+            print('Time to generate report         : ', str(t3 - t2))
+            print('Total                           : ', str(t3 - t0))
