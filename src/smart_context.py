@@ -1675,7 +1675,7 @@ class ContextCondition:
 
         # operator
         if self.operator != _default_operator:
-            val_repr = json.dumps(self.operator)
+            field = json.dumps(self.operator)
             parts.append(f'"operator": {field:{longest_op_len + 2}}')
 
         # operand
