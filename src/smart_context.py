@@ -2006,11 +2006,11 @@ class SmartContext:
             // English:  Description of ContextCondition
         ]
 
-        :param indent_level:        Level of indentation for output
-        :param raw:                 Include untranslated context conditions?
-        :param natural_language:    Include Natural Language description
-                                      with raw condition repr?
-        :param minimal:             Don't show default values in conditions?
+        :param indent_level:      Level of indentation for output
+        :param raw:               Include untranslated context conditions?
+        :param natural_language:  Include Natural Language description
+                                    with raw condition repr?
+        :param minimal:           Don't show default values in conditions?
         """
         indent = '  ' * indent_level
         lines = [f'{indent}"context": [']
@@ -2338,19 +2338,63 @@ def _english_regex_operator_translation(self: ContextCondition, val_str: str) ->
     return result
 
 
+def _english_regex_operator_expr(self: ContextCondition) -> str:
+    MA = _english_match_all_qualfier(self)
+
+    if self.operator == _operator_regex_match:
+        """ re(".*\\w").fullmatch(text). """
+        result = 'fully match'
+    elif self.operator == _operator_not_regex_match:
+        """ Not re(".*\\w").fullmatch(text). """
+        result = 'not fully match'
+    elif self.operator == _operator_regex_contains:
+        """ re(".*\\w").search(text). """
+        result = 'match any of'
+    elif self.operator == _operator_not_regex_contains:
+        """ Not re(".*\\w").search(text). """
+        result = 'match none of'
+    else:
+        result = f'[unrecognized operator [{self.operator}]]'
+
+    return result
+
+
 def _english_following_text(self: ContextCondition) -> str:
-    """ re(".*\\w").fullmatch(text between left edge of selection and EOL). """
-    return _english_regex_operator_translation(self, 'text between left edge of selection and EOL')
+    """
+    re(".*\\w").fullmatch(text between left edge of selection and EOL).
+    Does regex ".*\\w" {fully match} the text between left edge of selection and EOL?
+    Does regex ".*\\w" {not fully match} the text between left edge of selection and EOL?
+    Does regex ".*\\w" {match any of} the text between left edge of selection and EOL?
+    Does regex ".*\\w" {match none of} the text between left edge of selection and EOL?
+    """
+    # return _english_regex_operator_translation(self, 'text between left edge of selection and EOL')
+    verb_phrase = _english_regex_operator_expr(self)
+    regex = self.operand_json()
+    return f'Does regex {regex} {verb_phrase} the text between left edge of selection and EOL?'
 
 
 def _english_preceeding_text(self: ContextCondition) -> str:
-    """ re(".*\\w").fullmatch(text between BOL and the left edge of selection). """
-    return _english_regex_operator_translation(self, 'text between BOL and the left edge of selection')
+    """
+    re(".*\\w").fullmatch(text between BOL and the left edge of selection).
+    Does regex ".*\\w" {fully match} the text between BOL and the left edge of selection?
+    Does regex ".*\\w" {match any of} the text between BOL and the left edge of selection?
+    """
+    # return _english_regex_operator_translation(self, 'text between BOL and the left edge of selection')
+    verb_phrase = _english_regex_operator_expr(self)
+    regex = self.operand_json()
+    return f'Does regex {regex} {verb_phrase} the text between BOL and the left edge of selection?'
 
 
 def _english_text(self: ContextCondition) -> str:
-    """ re(".*\\w").fullmatch(selected text). """
-    return _english_regex_operator_translation(self, 'selected text')
+    """
+    re(".*\\w").fullmatch(selected text).
+    Does regex ".*\\w" {fully match} the selected text?
+    Does regex ".*\\w" {match any of} the selected text?
+    """
+    # return _english_regex_operator_translation(self, 'selected text')
+    verb_phrase = _english_regex_operator_expr(self)
+    regex = self.operand_json()
+    return f'Does regex {regex} {verb_phrase} the selected text?'
 
 
 # =========================================================================
