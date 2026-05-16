@@ -134,6 +134,7 @@ import json
 from enum import IntEnum
 import importlib
 from datetime import datetime
+from typing import Concatenate
 from xml.etree import ElementTree as ET
 import sublime
 from sublime import QueryOperator
@@ -152,9 +153,105 @@ _operator_key  = 'operator'
 _operand_key   = 'operand'
 _match_all_key = 'match_all'
 
-_default_operator  = 'equal'
+_operator_equal              = 'equal'
+_operator_not_equal          = 'not_equal'
+_operator_regex_match        = 'regex_match'
+_operator_not_regex_match    = 'not_regex_match'
+_operator_regex_contains     = 'regex_contains'
+_operator_not_regex_contains = 'not_regex_contains'
+
+_default_operator  = _operator_equal
 _default_operand   = True
 _default_match_all = False
+
+
+# -------------------------------------------------------------------------
+# Condition Names ("key" entry names)
+# -------------------------------------------------------------------------
+# Selections
+_condition_name__num_selections            = 'num_selections'
+_condition_name__selection_empty           = 'selection_empty'
+
+# Scope
+_condition_name__eol_selector              = 'eol_selector'
+_condition_name__is_javadoc                = 'is_javadoc'
+_condition_name__selector                  = 'selector'
+
+# Text
+_condition_name__following_text            = 'following_text'
+_condition_name__indented_block            = 'indented_block'
+_condition_name__preceding_text            = 'preceding_text'
+_condition_name__text                      = 'text'
+
+# View
+_condition_name__auto_complete_visible     = 'auto_complete_visible'
+_condition_name__auto_complete_primed      = 'auto_complete_primed'
+_condition_name__last_command              = 'last_command'
+_condition_name__last_modifying_command    = 'last_modifying_command'
+_condition_name__overlay_has_focus         = 'overlay_has_focus'
+_condition_name__overlay_name              = 'overlay_name'
+_condition_name__overlay_visible           = 'overlay_visible'
+_condition_name__panel_has_focus           = 'panel_has_focus'
+_condition_name__panel_type                = 'panel_type'
+_condition_name__popup_visible             = 'popup_visible'
+_condition_name__read_only                 = 'read_only'
+_condition_name__setting                   = 'setting'
+
+# Snippet (examines text around caret)
+_condition_name__has_next_field            = 'has_next_field'
+_condition_name__has_prev_field            = 'has_prev_field'
+_condition_name__has_snippet               = 'has_snippet'
+
+# Window
+_condition_name__group_has_multiselect     = 'group_has_multiselect'
+_condition_name__group_has_transient_sheet = 'group_has_transient_sheet'
+_condition_name__panel                     = 'panel'
+_condition_name__panel_visible             = 'panel_visible'
+
+# Application
+_condition_name__is_recording_macro        = 'is_recording_macro'
+
+# -------------------------------------------------------------------------
+# Languages
+# -------------------------------------------------------------------------
+_language_code_english = 'en'
+
+supported_languages_by_code = {
+    _language_code_english: 'English'
+}
+
+# This gets populated later.
+_english_translation_functions_by_name = {}
+
+
+def language_supported(language_code: str) -> bool:
+    return (( language_code in supported_languages_by_code ))
+
+
+def supported_language_codes() -> list[str]:
+    """ List of languages supported, e.g. ['English', 'German'] """
+    lang_codes = supported_languages_by_code.keys()
+    #     This is a `view` of the dictionary, with live objects, and
+    #     we don't want our dictionary to change, so we create a copy
+    #     in a way that copy.deepcopy() cannot.
+    result_list = []
+    for lang_code in lang_codes:
+        result_list.append(lang_code[:])
+
+    return result_list
+
+
+def supported_languages() -> list[str]:
+    """ List of languages supported, e.g. ['English', 'German'] """
+    lang_names = supported_languages_by_code.values()
+    #     This is a `view` of the dictionary, with live objects, and
+    #     we don't want our dictionary to change, so we create a copy
+    #     in a way that copy.deepcopy() cannot.
+    result_list = []
+    for lang_name in lang_names:
+        result_list.append(lang_name[:])
+
+    return result_list
 
 
 class Snippet:
@@ -190,12 +287,12 @@ _context_tests_by_name = {}
 
 # on_query_context() operator code look-up dictionary.
 _operator_codes_by_name = {
-    "equal"             : QueryOperator.EQUAL,
-    "not_equal"         : QueryOperator.NOT_EQUAL,
-    "regex_match"       : QueryOperator.REGEX_MATCH,
-    "not_regex_match"   : QueryOperator.NOT_REGEX_MATCH,
-    "regex_contains"    : QueryOperator.REGEX_CONTAINS,
-    "not_regex_contains": QueryOperator.NOT_REGEX_CONTAINS,
+    _operator_equal             : QueryOperator.EQUAL,
+    _operator_not_equal         : QueryOperator.NOT_EQUAL,
+    _operator_regex_match       : QueryOperator.REGEX_MATCH,
+    _operator_not_regex_match   : QueryOperator.NOT_REGEX_MATCH,
+    _operator_regex_contains    : QueryOperator.REGEX_CONTAINS,
+    _operator_not_regex_contains: QueryOperator.NOT_REGEX_CONTAINS,
 }
 
 # These lists of strings are used to compare against the current View's
@@ -807,9 +904,9 @@ def _test_selections_scope(selector_pt_func, view, operator, selector, match_all
     return result
 
 
-# -------------------------------------------------------------------------
+# =========================================================================
 # Selections
-# -------------------------------------------------------------------------
+# =========================================================================
 
 def _test_num_selections(view, operator, operand, match_all):
     test_val = len(view.sel())
@@ -825,9 +922,9 @@ def _test_selection_empty(view, operator, operand, match_all):
     return _test_selections(test_val_func, view, operator, operand, match_all)
 
 
-# -------------------------------------------------------------------------
+# =========================================================================
 # Scope
-# -------------------------------------------------------------------------
+# =========================================================================
 
 def _eol_pt(view, rgn):
     # Return pt at EOL.
@@ -871,9 +968,9 @@ def _test_is_javadoc(view, operator, operand, match_all):
     return _test_selections(test_val_func, view, operator, operand, match_all)
 
 
-# -------------------------------------------------------------------------
+# =========================================================================
 # Text
-# -------------------------------------------------------------------------
+# =========================================================================
 
 def _test_one_following_text(view, rgn):
     left_edge_pt = rgn.begin()
@@ -918,9 +1015,9 @@ def _test_text(view, operator, operand, match_all):
     return _test_selections(test_val_func, view, operator, operand, match_all)
 
 
-# -------------------------------------------------------------------------
+# =========================================================================
 # View
-# -------------------------------------------------------------------------
+# =========================================================================
 
 def _test_auto_complete_visible(view, operator, operand, match_all):
     test_val = view.is_auto_complete_visible()
@@ -1051,9 +1148,9 @@ def _test_read_only(view, operator, operand, match_all):
     return _evaluate_test(test_val, operator, operand)
 
 
-# -------------------------------------------------------------------------
+# =========================================================================
 # Snippet (examines text around caret)
-# -------------------------------------------------------------------------
+# =========================================================================
 
 def _test_one_has_snippet(view, rgn):
     r"""
@@ -1071,9 +1168,9 @@ def _test_has_snippet(view, operator, operand, match_all):
     return _test_selections(test_val_func, view, operator, operand, match_all)
 
 
-# -------------------------------------------------------------------------
+# =========================================================================
 # Window Logic
-# -------------------------------------------------------------------------
+# =========================================================================
 
 def _group_for_view(view) -> int | None:
     """ Group number for view.
@@ -1148,9 +1245,9 @@ def _test_panel_visible(view, operator, operand, match_all):
     return result
 
 
-# -------------------------------------------------------------------------
+# =========================================================================
 # Unimplemented / Infeasible
-# -------------------------------------------------------------------------
+# =========================================================================
 
 def _test_unimplemented(view, operator, operand, match_all):
     if debugging:
@@ -1158,55 +1255,55 @@ def _test_unimplemented(view, operator, operand, match_all):
     return False
 
 
-# -------------------------------------------------------------------------
+# =========================================================================
 # Populate ``_context_tests_by_name``.  This is done here because at module
 # load time, the function definitions are first available at this point.
 # This is somewhat more efficient than 27 assignments.
-# -------------------------------------------------------------------------
-_context_tests_by_name = {                                          # Operator Group
-    # Selections                                                    # --------------
-    'num_selections'           : _test_num_selections,              # equality group
-    'selection_empty'          : _test_selection_empty,             # equality group
+# =========================================================================
+_context_tests_by_name = {                                                         # Operator Group
+    # Selections                                                                   # --------------
+    _condition_name__num_selections           : _test_num_selections,              # equality group
+    _condition_name__selection_empty          : _test_selection_empty,             # equality group
 
     # Scope
-    'eol_selector'             : _test_eol_selector,                # equality group
-    'is_javadoc'               : _test_is_javadoc,                  # equality group
-    'selector'                 : _test_selector,                    # equality group
+    _condition_name__eol_selector             : _test_eol_selector,                # equality group
+    _condition_name__is_javadoc               : _test_is_javadoc,                  # equality group
+    _condition_name__selector                 : _test_selector,                    # equality group
 
     # Text
-    'following_text'           : _test_following_text,              # regex group
-    'indented_block'           : _test_indented_block,              # equality group
-    'preceding_text'           : _test_preceding_text,              # regex group
-    'text'                     : _test_text,                        # regex group
+    _condition_name__following_text           : _test_following_text,              # regex group
+    _condition_name__indented_block           : _test_indented_block,              # equality group
+    _condition_name__preceding_text           : _test_preceding_text,              # regex group
+    _condition_name__text                     : _test_text,                        # regex group
 
     # View
-    'auto_complete_visible'    : _test_auto_complete_visible,       # equality group
-    'auto_complete_primed'     : _test_auto_complete_visible,       # equality group
-    'last_command'             : _test_last_command,                # equality group
-    'last_modifying_command'   : _test_last_modifying_command,      # equality group
-    'overlay_has_focus'        : _test_overlay_has_focus,           # equality group
-    'overlay_name'             : _test_overlay_name,                # equality group
-    'overlay_visible'          : _test_overlay_has_focus,  # Kludge, but no other option appears possible.
-    'panel_has_focus'          : _test_panel_has_focus,             # equality group
-    'panel_type'               : _test_panel_type,                  # equality group
-    'popup_visible'            : _test_popup_visible,               # equality group
-    'read_only'                : _test_read_only,                   # equality group
+    _condition_name__auto_complete_visible    : _test_auto_complete_visible,       # equality group
+    _condition_name__auto_complete_primed     : _test_auto_complete_visible,  # Kludge, but no other option appears possible.
+    _condition_name__last_command             : _test_last_command,                # equality group
+    _condition_name__last_modifying_command   : _test_last_modifying_command,      # equality group
+    _condition_name__overlay_has_focus        : _test_overlay_has_focus,           # equality group
+    _condition_name__overlay_name             : _test_overlay_name,                # equality group
+    _condition_name__overlay_visible          : _test_overlay_has_focus,      # Kludge, but no other option appears possible.
+    _condition_name__panel_has_focus          : _test_panel_has_focus,             # equality group
+    _condition_name__panel_type               : _test_panel_type,                  # equality group
+    _condition_name__popup_visible            : _test_popup_visible,               # equality group
+    _condition_name__read_only                : _test_read_only,                   # equality group
     # setting.xxxx  is implemented in `_condition_test()` since     # equality group
     # its test pattern is different from all the other tests.
 
     # Snippet (examines text around caret)
-    'has_next_field'           : _test_unimplemented,               # equality group
-    'has_prev_field'           : _test_unimplemented,               # equality group
-    'has_snippet'              : _test_has_snippet,                 # equality group
+    _condition_name__has_next_field           : _test_unimplemented,               # equality group
+    _condition_name__has_prev_field           : _test_unimplemented,               # equality group
+    _condition_name__has_snippet              : _test_has_snippet,                 # equality group
 
     # Window
-    'group_has_multiselect'    : _test_group_has_multiselect,       # equality group
-    'group_has_transient_sheet': _test_group_has_transient_sheet,   # equality group
-    'panel'                    : _test_panel,                       # equality group
-    'panel_visible'            : _test_panel_visible,               # equality group
+    _condition_name__group_has_multiselect    : _test_group_has_multiselect,       # equality group
+    _condition_name__group_has_transient_sheet: _test_group_has_transient_sheet,   # equality group
+    _condition_name__panel                    : _test_panel,                       # equality group
+    _condition_name__panel_visible            : _test_panel_visible,               # equality group
 
     # Application
-    'is_recording_macro'       : _test_unimplemented,               # equality group
+    _condition_name__is_recording_macro       : _test_unimplemented,               # equality group
 }
 
 _context_entry_numbers_by_name = {}
@@ -1219,7 +1316,6 @@ for i, key in enumerate(_context_tests_by_name, 1):
     _context_entry_numbers_by_name[key] = i
 
 del i, key
-
 
 
 
@@ -1328,9 +1424,10 @@ class ContextCondition:
         '_orig_match_all',
         '_orig_definition_dict',
         '_hashcode',
+        '_language_code_not_recognized_msg'
     ]
 
-    def __init__(self, condition_dict: dict, language_code: str = 'en'):
+    def __init__(self, condition_dict: dict, language_code: str = _language_code_english):
         self._orig_definition_dict = condition_dict
 
         key = condition_dict[_key_key]
@@ -1364,6 +1461,12 @@ class ContextCondition:
 
         self.language_code = language_code
         self._hashcode = -1
+
+        if language_code in supported_languages_by_code:
+            self._language_code_not_recognized_msg = ''
+        else:
+            self._language_code_not_recognized_msg = f'Language code [{language_code}] not supported.'
+
 
         debugging = is_debugging(DebugBits.CONTEXT_CONDITION)
         if debugging:
@@ -1441,6 +1544,17 @@ class ContextCondition:
             result = key
 
         return result
+
+    def operand_as_string(self) -> str:
+        result = self.operand
+
+        if not isinstance(result, str):
+            result = str(self.operand)
+
+        return result
+
+    def operand_json(self) -> str:
+        return json.dumps(self.operand)
 
     def is_equivalent(self, other) -> bool:
         """
@@ -1678,9 +1792,45 @@ class ContextCondition:
 
         return result
 
+    def english_repr(self) -> str:
+        """ English representation. """
+        debugging = is_debugging(DebugBits.ENGLISH_TRANSLATION)
+        if debugging:
+            print(f'In {self.__class__.__name__}.english_repr()....')
+        result = 'Something went wrong.'
+        cond = self.key
+
+        if isinstance(cond, str):
+            if cond in _english_translation_functions_by_name:
+                translate_func = _english_translation_functions_by_name[cond]
+                result = translate_func(self)
+            else:
+                # Not a recognized condition.  Generalize.
+                # Condition name [{condition_name}] {operator} {operand_json} (match_all: true)?
+                op   = self.operator
+                val  = self.operand_json()
+                MA   = json.dumps(self.match_all)
+                result = f'Condition name [{cond}] {op} {val} (match_all: {MA})?'
+        else:
+            if debugging:
+                print(f'  self.condition_name type was [{type(cond)}]!')
+
+        if debugging:
+            print(f'  {result=}')
+
+        return result
+
     def natural_language_repr(self, indent_level: int = 0) -> str:
         indent = '  ' * indent_level
-        return f'{indent}English:  Description of ContextCondition'
+
+        if self._language_code_not_recognized_msg:
+            result = self._language_code_not_recognized_msg
+        elif self.language_code == _language_code_english:
+            result = f'{indent}// {self.english_repr()}'
+        else:
+            raise AssertionError(f'Language code [{self.language_code}] not implemented.')
+
+        return result
 
 
 class SmartContext:
@@ -1706,7 +1856,7 @@ class SmartContext:
         'binding',    # For better debugging output and error messages.
     ]
 
-    def __init__(self, binding: key_binding.KeyBinding, language_code: str = 'en'):
+    def __init__(self, binding: key_binding.KeyBinding, language_code: str = _language_code_english):
         """
         Precondition:  ``binding`` must have a "context" entry.
 
@@ -1834,26 +1984,26 @@ class SmartContext:
         natural_language:
         --------
         "context": [
-          English:  Description of ContextCondition,
-          English:  Description of ContextCondition,
-          English:  Description of ContextCondition,
-          English:  Description of ContextCondition,
-          English:  Description of ContextCondition
+          // English:  Description of ContextCondition,
+          // English:  Description of ContextCondition,
+          // English:  Description of ContextCondition,
+          // English:  Description of ContextCondition,
+          // English:  Description of ContextCondition
         ]
 
         raw and natural_language:
         ----------------
         "context": [
           { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": true }
-            English:  Description of ContextCondition,
+            // English:  Description of ContextCondition,
           { "key": "selection_empty"           , "operator": "equal"         , "operand": true, "match_all": true }
-            English:  Description of ContextCondition,
+            // English:  Description of ContextCondition,
           { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": true }
-            English:  Description of ContextCondition,
+            // English:  Description of ContextCondition,
           { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": true }
-            English:  Description of ContextCondition,
+            // English:  Description of ContextCondition,
           { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": true }
-            English:  Description of ContextCondition
+            // English:  Description of ContextCondition
         ]
 
         :param indent_level:        Level of indentation for output
@@ -2021,3 +2171,388 @@ class SmartContext:
             print(indent, underline)
 
         return all_tests_passed
+
+
+
+# *************************************************************************
+# Natural Language Logic
+# *************************************************************************
+
+def _english_match_all_qualfier(self: ContextCondition) -> str:
+    if self.match_all:
+        result = ' (for all selections)'
+    else:
+        result = ''
+
+    return result
+
+
+def _english_is_any(self: ContextCondition) -> tuple[str, str]:
+    not_str      = _english_not_string(self, bool)
+    is_any       = 'Is any'
+    are_there_no = 'Are there no'
+
+    if not_str:
+        # equal false or not_equal true
+        result = are_there_no
+        plural_suffix = 's'
+    else:
+        # equal true or not_equal false
+        result = is_any
+        plural_suffix = ''
+
+    return result, plural_suffix
+
+
+def _english_not_string(self: ContextCondition, operand_type: type) -> str:
+    empty = ''
+    not_str = 'NOT '
+
+    if self.operator == _operator_equal:
+        if operand_type is bool:
+            if self.operand:
+                # equal true
+                result = empty
+            else:
+                # equal false
+                result = not_str
+        else:
+            # Operand type is str or int.
+            result = empty
+    elif self.operator == _operator_not_equal:
+        if operand_type is bool:
+            if self.operand:
+                # not equal true (same as equal false)
+                result = not_str
+            else:
+                # not equal false (same as equal true)
+                result = empty
+        else:
+            # Operand type is str or int.
+            result = not_str
+    else:
+        result = f'[unrecognized operator [{self.operator}]]'
+        print(f'smart_context._english_not_string(): {result}!')
+
+    return result
+
+
+def _english_equality_operator_translation(self: ContextCondition) -> str:
+    if self.operator == _operator_equal:
+        result = '=='
+    elif self.operator == _operator_not_equal:
+        result = '!='
+    else:
+        result = f'[unrecognized operator [{self.operator}]]'
+
+    return result
+
+
+# =========================================================================
+# Selections
+# =========================================================================
+
+def _english_num_selections(self: ContextCondition) -> str:
+    """ Number of selections == 2? """
+    op = _english_equality_operator_translation(self)
+    return f'Number of selections {op} {self.operand_json()}?'
+
+
+def _english_selection_empty(self: ContextCondition) -> str:
+    """ Is selection empty? """
+    not_str = _english_not_string(self, bool)
+    MA = _english_match_all_qualfier(self)
+    return f'Is selection {not_str}empty{MA}?'
+
+
+# =========================================================================
+# Scope
+# =========================================================================
+
+def _english_eol_selector(self: ContextCondition) -> str:
+    """ Does selector [{self.operand}] {not_str}match scope at EOL?  """
+    not_str = _english_not_string(self, str)
+    MA = _english_match_all_qualfier(self)
+    return f'Does selector [{self.operand}] {not_str}match scope at EOL{MA}?'
+
+
+def _english_is_javadoc(self: ContextCondition) -> str:
+    """ Is selection {preposition} a Javadoc comment? """
+    not_str = _english_not_string(self, bool)
+    within  = 'within'
+    outside = 'outside of'
+
+    if self.operator == _operator_equal:
+        if not_str:
+            preposition = outside
+        else:
+            preposition = within
+    elif self.operator == _operator_not_equal:
+        if not_str:
+            preposition = within
+        else:
+            preposition = outside
+    else:
+        preposition = f'[unrecognized operator [{self.operator}]]'
+
+    MA = _english_match_all_qualfier(self)
+    return f'Is selection {preposition} a Javadoc comment{MA}?'
+
+
+def _english_selector(self: ContextCondition) -> str:
+    """ Does selector [{self.operand}] {not_str}match scope at selection?  """
+    not_str = _english_not_string(self, str)
+    MA = _english_match_all_qualfier(self)
+    return f'Does selector [{self.operand}] {not_str}match scope at selection{MA}?'
+
+
+# =========================================================================
+# Text
+# =========================================================================
+
+def _english_indented_block(self: ContextCondition) -> str:
+    """ Is current block indented? """
+    not_str = _english_not_string(self, bool)
+    MA = _english_match_all_qualfier(self)
+    return f'Is current block {not_str}indented{MA}?'
+
+
+def _english_regex_operator_translation(self: ContextCondition, val_str: str) -> str:
+    MA = _english_match_all_qualfier(self)
+
+    if self.operator == _operator_regex_match:
+        """ re(".*\\w").fullmatch(text). """
+        result = f're({self.operand_json()}).fullmatch({val_str}){MA}.'
+    elif self.operator == _operator_not_regex_match:
+        """ Not re(".*\\w").fullmatch(text). """
+        result = f'Not re({self.operand_json()}).fullmatch({val_str}){MA}.'
+    elif self.operator == _operator_regex_contains:
+        """ re(".*\\w").search(text). """
+        result = f're({self.operand_json()}).search({val_str}){MA}.'
+    elif self.operator == _operator_not_regex_contains:
+        """ Not re(".*\\w").search(text). """
+        result = f'Not re({self.operand_json()}).search({val_str}){MA}.'
+    else:
+        result = f'[unrecognized operator [{self.operator}]]'
+
+    return result
+
+
+def _english_following_text(self: ContextCondition) -> str:
+    """ re(".*\\w").fullmatch(text between left edge of selection and EOL). """
+    return _english_regex_operator_translation(self, 'text between left edge of selection and EOL')
+
+
+def _english_preceeding_text(self: ContextCondition) -> str:
+    """ re(".*\\w").fullmatch(text between BOL and the left edge of selection). """
+    return _english_regex_operator_translation(self, 'text between BOL and the left edge of selection')
+
+
+def _english_text(self: ContextCondition) -> str:
+    """ re(".*\\w").fullmatch(selected text). """
+    return _english_regex_operator_translation(self, 'selected text')
+
+
+# =========================================================================
+# View
+# =========================================================================
+
+def _english_auto_complete_primed(self: ContextCondition) -> str:
+    not_str = _english_not_string(self, bool)
+    return f'Is actual auto-complete popup {not_str}visible?'
+
+
+def _english_auto_complete_visible(self: ContextCondition) -> str:
+    not_str = _english_not_string(self, bool)
+    return f'Is auto-complete, mini-auto-complete or async-auto-complete popup {not_str}visible?'
+
+
+def _english_last_command(self: ContextCondition) -> str:
+    """ Does last command run in View == {operand}? """
+    op = _english_equality_operator_translation(self)
+    return f'Does last command run in View {op} {self.operand_json()}?'
+
+
+def _english_last_modifying_command(self: ContextCondition) -> str:
+    """ Does last command that changed View's buffer == {operand}? """
+    op = _english_equality_operator_translation(self)
+    return f"Does last command that changed View's buffer {op} {self.operand_json()}?"
+
+
+def _english_overlay_has_focus(self: ContextCondition) -> str:
+    not_str = _english_not_string(self, bool)
+    return f'Does an Overlay or Quick Panel {not_str}have focus?'
+
+
+def _english_overlay_name(self: ContextCondition) -> str:
+    """ Does current Overlay's name == {operand}? """
+    op = _english_equality_operator_translation(self)
+    return f"Does current Overlay's name {op} {self.operand_json()}?"
+
+
+def _english_overlay_visible(self: ContextCondition) -> str:
+    is_any, plural_suffix = _english_is_any(self)
+    return f'{is_any} Overlay{plural_suffix} or Quick Panel{plural_suffix} visible?'
+
+
+def _english_panel_has_focus(self: ContextCondition) -> str:
+    is_any, plural_suffix = _english_is_any(self)
+    return f'{is_any} Panel{plural_suffix} visible with focus?'
+
+
+def _english_panel_type(self: ContextCondition) -> str:
+    """ Does focused Panel's type == {operand}? """
+    op = _english_equality_operator_translation(self)
+    return f"Does focused Panel's type {op} {self.operand_json()}?"
+
+
+def _english_popup_visible(self: ContextCondition) -> str:
+    is_any, plural_suffix = _english_is_any(self)
+    return f'{is_any} Popup{plural_suffix} currently being displayed?'
+
+
+def _english_read_only(self: ContextCondition) -> str:
+    not_str   = _english_not_string(self, bool)
+    read_only = 'Is current buffer read only?'
+    editable  = 'Is current buffer editable (not read only)?'
+
+    if self.operator == _operator_equal:
+        if not_str:
+            # equal false
+            result = editable
+        else:
+            # equal true
+            result = read_only
+    elif self.operator == _operator_not_equal:
+        if not_str:
+            # not_equal false (same as equal true)
+            result = read_only
+        else:
+            # not_equal true (same as equal false)
+            result = editable
+    else:
+        result = f'[unrecognized operator [{self.operator}]]'
+
+    return result
+
+
+def _english_setting(self: ContextCondition) -> str:
+    """ Is the View-setting [{setting_name}] == {operand}? """
+    op = _english_equality_operator_translation(self)
+    return f"Is the View-setting [{self.setting_name}] {op} {self.operand_json()}?"
+
+
+# =========================================================================
+# Snippets
+# =========================================================================
+
+def _english_has_next_field(self: ContextCondition) -> str:
+    not_str = _english_not_string(self, bool)
+    return f'Is selection {not_str}in Snippet field list with subsequent fields?'
+
+
+def _english_has_prev_field(self: ContextCondition) -> str:
+    not_str = _english_not_string(self, bool)
+    return f'Is selection {not_str}in Snippet field list with previous fields?'
+
+
+def _english_has_snippet(self: ContextCondition) -> str:
+    not_str = _english_not_string(self, bool)
+    return f'Can preceding word {not_str}trigger a Snippet?'
+
+
+# =========================================================================
+# Window / Application
+# =========================================================================
+
+def _english_group_has_multiselect(self: ContextCondition) -> str:
+    not_str = _english_not_string(self, bool)
+    return f'Does View group {not_str}have multi-select?'
+
+
+def _english_group_has_transient_sheet(self: ContextCondition) -> str:
+    not_str = _english_not_string(self, bool)
+    return f'Does View group {not_str}have a transient sheet?'
+
+
+def _english_panel(self: ContextCondition) -> str:
+    """ Is current visible Panel's name == {operand}? """
+    op = _english_equality_operator_translation(self)
+    return f"Is current visible Panel's name {op} {self.operand_json()}?"
+
+
+def _english_panel_visible(self: ContextCondition) -> str:
+    is_any, plural_suffix = _english_is_any(self)
+    return f'{is_any} Panel{plural_suffix} visible?'
+
+
+# =========================================================================
+# Application
+# =========================================================================
+
+def _english_is_recording_macro(self: ContextCondition) -> str:
+    not_str = _english_not_string(self, bool)
+    return f'Is user currently {not_str}recording a macro?'
+
+
+# =========================================================================
+# Unimplemented / Infeasible
+# =========================================================================
+
+def _english_unimplemented(self: ContextCondition) -> str:
+    if debugging:
+        print('    >>>> UNIMPLEMENTED.')
+    return 'Unimplemented'
+
+
+# -------------------------------------------------------------------------
+# Populate ``_context_tests_by_name``.  This is done here because at module
+# load time, the function definitions are first available at this point.
+# This is somewhat more efficient than 27 assignments.
+# -------------------------------------------------------------------------
+_english_translation_functions_by_name = {
+    # Selections
+    _condition_name__num_selections           : _english_num_selections,
+    _condition_name__selection_empty          : _english_selection_empty,
+
+    # Scope
+    _condition_name__eol_selector             : _english_eol_selector,
+    _condition_name__is_javadoc               : _english_is_javadoc,
+    _condition_name__selector                 : _english_selector,
+
+    # Text
+    _condition_name__indented_block           : _english_indented_block,
+    _condition_name__following_text           : _english_following_text,   # regex group
+    _condition_name__preceding_text           : _english_preceeding_text,  # regex group
+    _condition_name__text                     : _english_text,             # regex group
+
+    # View
+    _condition_name__auto_complete_primed     : _english_auto_complete_primed,
+    _condition_name__auto_complete_visible    : _english_auto_complete_visible,
+    _condition_name__last_command             : _english_last_command,
+    _condition_name__last_modifying_command   : _english_last_modifying_command,
+    _condition_name__overlay_has_focus        : _english_overlay_has_focus,
+    _condition_name__overlay_name             : _english_overlay_name,
+    _condition_name__overlay_visible          : _english_overlay_visible,
+    _condition_name__panel_has_focus          : _english_panel_has_focus,
+    _condition_name__panel_type               : _english_panel_type,
+    _condition_name__popup_visible            : _english_popup_visible,
+    _condition_name__read_only                : _english_read_only,
+    _condition_name__setting                  : _english_setting,
+
+    # Snippet (examines text around caret)
+    _condition_name__has_next_field           : _english_has_next_field,
+    _condition_name__has_prev_field           : _english_has_prev_field,
+    _condition_name__has_snippet              : _english_has_snippet,
+
+    # Window
+    _condition_name__group_has_multiselect    : _english_group_has_multiselect,
+    _condition_name__group_has_transient_sheet: _english_group_has_transient_sheet,
+    _condition_name__panel                    : _english_panel,
+    _condition_name__panel_visible            : _english_panel_visible,
+
+    # Application
+    _condition_name__is_recording_macro       : _english_is_recording_macro,
+}
+
+
