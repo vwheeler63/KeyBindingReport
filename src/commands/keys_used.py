@@ -52,7 +52,6 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
 
         if platform_code:
             platform.simulate_platform(platform_code)
-            output.update_key_names_based_on_platform()
 
         main_key_counts = {}
         main_key_reported = {}
@@ -184,5 +183,4 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
 
         if platform_code:
             platform.set_current_platform()
-            output.update_key_names_based_on_platform()
 

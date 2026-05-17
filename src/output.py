@@ -67,10 +67,9 @@ All input data goes away when the last reference to the created
 @version  1.0  22-Apr-2026 15:54  vw  - Created.
 ***************************************************************************"""
 
-from typing import Iterable
 from enum import IntFlag
 from datetime import datetime
-
+import sublime
 from ..lib.debug import DebugBits, is_debugging
 from ..lib import ascii_table
 from . import platform
@@ -82,11 +81,6 @@ from . import key_binding
 # *************************************************************************
 # Configuration
 # *************************************************************************
-
-_cfg_key_col_heading      = 'Key'
-_cfg_context_col_heading  = 'Ctxt'
-_cfg_command_col_heading  = 'Command'
-_cfg_args_col_heading     = 'Args'
 
 
 
@@ -119,85 +113,11 @@ class FlagBits(IntFlag):
 # Data
 # *************************************************************************
 
-cmd_col_heading   = 'W'
-cmd_key_name      = '⊞ Windows'
-alt_col_heading   = 'A'
-alt_key_name      = 'Alt'
-ctrl_col_heading  = 'C'
-ctrl_key_name     = 'Ctrl'
-shift_col_heading = 'S'
-shift_key_name    = 'Shift'
-modifier_key_names_by_modifier_code_bit = {}
-
 
 
 # *************************************************************************
 # Utilities
 # *************************************************************************
-
-def show_platform_based_names():
-    print(f'{cmd_col_heading   = }')
-    print(f'{cmd_key_name      = }')
-    print(f'{alt_col_heading   = }')
-    print(f'{alt_key_name      = }')
-    print(f'{ctrl_col_heading  = }')
-    print(f'{ctrl_key_name     = }')
-    print(f'{shift_col_heading = }')
-    print(f'{shift_key_name    = }')
-    print(f'{modifier_key_names_by_modifier_code_bit = }')
-
-
-def update_key_names_based_on_platform(debugging: int = 0):
-    if not debugging:
-        debugging = is_debugging(DebugBits.PLATFORM)
-
-    global cmd_col_heading
-    global cmd_key_name
-    global alt_col_heading
-    global alt_key_name
-    global ctrl_col_heading
-    global ctrl_key_name
-    global shift_col_heading
-    global shift_key_name
-    global modifier_key_names_by_modifier_code_bit
-
-    # Column headings rely on platform_name.
-    if platform.is_osx():
-        cmd_col_heading   = 'C'
-        cmd_key_name      = '⌘ Command'
-        alt_col_heading   = 'O'
-        alt_key_name      = '⌥ Option'
-        ctrl_col_heading  = '^'
-        ctrl_key_name     = 'Ctrl'
-        shift_col_heading = 'S'
-        shift_key_name    = 'Shift'
-
-        modifier_key_names_by_modifier_code_bit = {
-            key_binding.ModifierKeyBits.SHIFT  : 'Shift',
-            key_binding.ModifierKeyBits.CTRL   : 'Ctrl',
-            key_binding.ModifierKeyBits.ALT    : 'Option',
-            key_binding.ModifierKeyBits.COMMAND: 'Command',
-        }
-    else:
-        cmd_col_heading   = 'W'
-        cmd_key_name      = '⊞ Windows'
-        alt_col_heading   = 'A'
-        alt_key_name      = 'Alt'
-        ctrl_col_heading  = 'C'
-        ctrl_key_name     = 'Ctrl'
-        shift_col_heading = 'S'
-        shift_key_name    = 'Shift'
-
-        modifier_key_names_by_modifier_code_bit = {
-            key_binding.ModifierKeyBits.SHIFT  : 'Shift',
-            key_binding.ModifierKeyBits.CTRL   : 'Ctrl',
-            key_binding.ModifierKeyBits.ALT    : 'Alt',
-            key_binding.ModifierKeyBits.COMMAND: '⌘',
-        }
-
-    if debugging:
-        show_platform_based_names()
-
 
 def report_heading(title: str, note: str = '') -> str:
     timestamp = datetime.now().strftime(core.setting__timestamp_strftime_format)
@@ -362,26 +282,26 @@ class KeyBindingOutput:
             effective_min_col_count = self.min_column_count
 
             result = [
-                    _cfg_key_col_heading,
-                    cmd_col_heading,
-                    alt_col_heading,
-                    ctrl_col_heading,
-                    shift_col_heading,
-                    _cfg_context_col_heading,
-                    _cfg_command_col_heading,
-                    _cfg_args_col_heading,
+                    platform.cfg_key_col_heading,
+                    platform.cmd_col_heading,
+                    platform.alt_col_heading,
+                    platform.ctrl_col_heading,
+                    platform.shift_col_heading,
+                    platform.cfg_context_col_heading,
+                    platform.cfg_command_col_heading,
+                    platform.cfg_args_col_heading,
                     ]
         else:
             effective_min_col_count = self.min_column_count - 1
 
             result = [
-                    _cfg_key_col_heading,
-                    alt_col_heading,
-                    ctrl_col_heading,
-                    shift_col_heading,
-                    _cfg_context_col_heading,
-                    _cfg_command_col_heading,
-                    _cfg_args_col_heading,
+                    platform.cfg_key_col_heading,
+                    platform.alt_col_heading,
+                    platform.ctrl_col_heading,
+                    platform.shift_col_heading,
+                    platform.cfg_context_col_heading,
+                    platform.cfg_command_col_heading,
+                    platform.cfg_args_col_heading,
                     ]
 
         if len(result) != effective_min_col_count:
@@ -895,3 +815,7 @@ class KeyBindingOutput:
                 table_list.append((lead_keypr_str, table, footnotes, footnote_num))
 
         return table_list
+
+
+set_current_platform()
+

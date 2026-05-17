@@ -303,7 +303,6 @@ class KeyBindingReportContextOverridesCommand(sublime_plugin.TextCommand):
 
         if platform_code:
             platform.simulate_platform(platform_code)
-            output.update_key_names_based_on_platform()
 
         t0 = datetime.now()
         key_data = data.KeyBindingData()
@@ -361,7 +360,6 @@ class KeyBindingReportContextOverridesCommand(sublime_plugin.TextCommand):
 
         if platform_code:
             platform.set_current_platform()
-            output.update_key_names_based_on_platform()
 
         if debugging:
             print('Time to compute overrides: ', str(t1 - t0))

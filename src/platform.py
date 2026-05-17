@@ -11,6 +11,11 @@ from ..lib.debug import DebugBits, is_debugging
 # Configuration
 # *************************************************************************
 
+cfg_key_col_heading      = 'Key'
+cfg_context_col_heading  = 'Ctxt'
+cfg_command_col_heading  = 'Command'
+cfg_args_col_heading     = 'Args'
+
 
 
 # *************************************************************************
@@ -45,11 +50,38 @@ platform                = sublime.platform()
 platform_name           = ''
 platform_name_w_parens  = ''
 
+cmd_col_heading   = ''
+cmd_key_name      = ''
+alt_col_heading   = ''
+alt_key_name      = ''
+ctrl_col_heading  = ''
+ctrl_key_name     = ''
+shift_col_heading = ''
+shift_key_name    = ''
+modifier_key_names_by_modifier_code_bit = {}
+
 
 
 # *************************************************************************
 # Utilities
 # *************************************************************************
+
+def show_platform():
+    print(f'{platform               = }')
+    print(f'{platform_name          = }')
+    print(f'{platform_name_w_parens = }')
+
+
+def show_platform_based_key_names():
+    print(f'{cmd_col_heading   = }')
+    print(f'{cmd_key_name      = }')
+    print(f'{alt_col_heading   = }')
+    print(f'{alt_key_name      = }')
+    print(f'{ctrl_col_heading  = }')
+    print(f'{ctrl_key_name     = }')
+    print(f'{shift_col_heading = }')
+    print(f'{shift_key_name    = }')
+    print(f'{modifier_key_names_by_modifier_code_bit = }')
 
 
 
@@ -69,16 +101,10 @@ def is_osx() -> bool:
     return (( platform == osx_platform_code ))
 
 
-def show_platform():
-    print(f'{platform               = }')
-    print(f'{platform_name          = }')
-    print(f'{platform_name_w_parens = }')
-
-
 def simulate_platform(platform_code: str):
     """ Set data` module attributes in which platform plays a role. """
     if platform_code not in (windows_platform_code, linux_platform_code, osx_platform_code):
-        raise AssertionError(f'`platform_code` not recognozed: [{platform_code}].')
+        raise AssertionError(f'`platform_code` not recognized: [{platform_code}].')
 
     debugging = is_debugging(DebugBits.PLATFORM)
 
@@ -92,6 +118,8 @@ def simulate_platform(platform_code: str):
 
     if debugging:
         show_platform()
+
+    update_platform_based_key_names()
 
 
 def simulate_windows_platform():
@@ -108,6 +136,57 @@ def simulate_osx_platform():
 
 def set_current_platform():
     simulate_platform(execution_platform)
+
+
+def update_platform_based_key_names():
+    debugging = is_debugging(DebugBits.PLATFORM)
+
+    global cmd_col_heading
+    global cmd_key_name
+    global alt_col_heading
+    global alt_key_name
+    global ctrl_col_heading
+    global ctrl_key_name
+    global shift_col_heading
+    global shift_key_name
+    global modifier_key_names_by_modifier_code_bit
+
+    # Column headings rely on platform_name.
+    if is_osx():
+        cmd_col_heading   = 'C'
+        cmd_key_name      = '⌘ Command'
+        alt_col_heading   = 'O'
+        alt_key_name      = '⌥ Option'
+        ctrl_col_heading  = '^'
+        ctrl_key_name     = 'Ctrl'
+        shift_col_heading = 'S'
+        shift_key_name    = 'Shift'
+
+        modifier_key_names_by_modifier_code_bit = {
+            1  : 'Shift',
+            2   : 'Ctrl',
+            4    : 'Option',
+            8: 'Command',
+        }
+    else:
+        cmd_col_heading   = 'W'
+        cmd_key_name      = '⊞ Windows'
+        alt_col_heading   = 'A'
+        alt_key_name      = 'Alt'
+        ctrl_col_heading  = 'C'
+        ctrl_key_name     = 'Ctrl'
+        shift_col_heading = 'S'
+        shift_key_name    = 'Shift'
+
+        modifier_key_names_by_modifier_code_bit = {
+            1  : 'Shift',
+            2   : 'Ctrl',
+            4    : 'Alt',
+            8: '⌘',
+        }
+
+    if debugging:
+        show_platform_based_key_names()
 
 
 set_current_platform()

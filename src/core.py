@@ -376,7 +376,7 @@ import sublime
 # which requires it.  Python 3.14 does not.
 from ..lib.debug import IntFlag, DebugBits, is_debugging, set_debugging_bits  # noqa: F401
 from ..keybindingreport import package_name
-from . import output
+from . import platform
 
 
 
@@ -534,7 +534,7 @@ def on_plugin_loaded():
 
     # Tell output module to update its column headings and modifier-key
     # names based on platform.
-    output.update_key_names_based_on_platform()
+    platform.set_current_platform()
 
 
     # Report.

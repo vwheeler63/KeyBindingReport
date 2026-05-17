@@ -74,7 +74,6 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
 
         if platform_code:
             platform.simulate_platform(platform_code)
-            output.update_key_names_based_on_platform()
 
         binding = key_data.which_binding(keypress_list, self.view)
 
@@ -129,7 +128,6 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
 
         if platform_code:
             platform.set_current_platform()
-            output.update_key_names_based_on_platform()
 
         if debugging:
             print('Time to generate data structures: ', str(t1 - t0))

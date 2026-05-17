@@ -102,18 +102,18 @@ def _table_key(fmt: ascii_table.Format, include_win_key: bool = False) -> str:
         parts.append('')
         parts.append(f'{indent2}**Key:**')
         if include_win_key:
-            parts.append(f'{indent2}     {output.cmd_col_heading} = {output.cmd_key_name}')
-        parts.append(    f'{indent2}     {output.alt_col_heading} = {output.alt_key_name}')
-        parts.append(    f'{indent2}     {output.ctrl_col_heading} = {output.ctrl_key_name}')
-        parts.append(    f'{indent2}     {output.shift_col_heading} = {output.shift_key_name}')
+            parts.append(f'{indent2}     {platform.cmd_col_heading} = {platform.cmd_key_name}')
+        parts.append(    f'{indent2}     {platform.alt_col_heading} = {platform.alt_key_name}')
+        parts.append(    f'{indent2}     {platform.ctrl_col_heading} = {platform.ctrl_key_name}')
+        parts.append(    f'{indent2}     {platform.shift_col_heading} = {platform.shift_key_name}')
         parts.append(    f'{indent2}  Ctxt = Context')
     else:
         parts.append('Key:')
         if include_win_key:
-            parts.append(f'     {output.cmd_col_heading} = {output.cmd_key_name}')
-        parts.append(    f'     {output.alt_col_heading} = {output.alt_key_name}')
-        parts.append(    f'     {output.ctrl_col_heading} = {output.ctrl_key_name}')
-        parts.append(    f'     {output.shift_col_heading} = {output.shift_key_name}')
+            parts.append(f'     {platform.cmd_col_heading} = {platform.cmd_key_name}')
+        parts.append(    f'     {platform.alt_col_heading} = {platform.alt_key_name}')
+        parts.append(    f'     {platform.ctrl_col_heading} = {platform.ctrl_key_name}')
+        parts.append(    f'     {platform.shift_col_heading} = {platform.shift_key_name}')
         parts.append(     '  Ctxt = Context')
 
     return '\n'.join(parts)
@@ -630,7 +630,6 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
             for platform_code in platform_code_tuple:
                 platform.simulate_platform(platform_code)
-                output.update_key_names_based_on_platform()
 
                 if debugging:
                     print(f'  Running for platform [{platform.platform_name}]....')
@@ -656,12 +655,10 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
             # Finally, set back to normal platform again.
             platform.set_current_platform()
-            output.update_key_names_based_on_platform()
 
         else:
             if platform_code:
                 platform.simulate_platform(platform_code)
-                output.update_key_names_based_on_platform()
 
             # Just run once.
             t0, t1, t2, t3 = _generate_report(
@@ -679,7 +676,6 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
             if platform_code:
                 platform.set_current_platform()
-                output.update_key_names_based_on_platform()
 
             if debugging:
                 print('  Time to generate data structures: ', str(t1 - t0))
