@@ -11,16 +11,6 @@ Usage:
     See ``report.py`` for an example.
 
 
-output Terminology
-=============================
-
-term
-    definition
-
-term
-    definition
-
-
 output Design
 ========================
 
@@ -29,26 +19,21 @@ A.  There is a concept of a KeyBindingOutput object.
     1.  It has:
         +   its own copy of the gathered key-binding data to generate
             any number of reports.
+        +   Current modifier-flag symbol; default:  'x'.
+        +   Current comments-column width; default:  35.
+        +   Minimum column count:  8  (used to pre-allocate arrays)
     2.  It can be asked:
         +   main_key_table
+            +   Used by caller when output is to be in 1 table.
             +   returns content of gathered main-key binding data as a table
-            +   ...
+        +   main_key_tables (plural)
+            +   Used by caller when output is to be in 1 table per key group.
+            +   returns content of gathered main-key binding data as a table
         +   key_sequence_table
+            +   Used by caller when there are multi-keypress key bindings in output.
             +   returns content of gathered key-sequence binding data as a table
-            +   ...
-        +   ...
-            +   ...
-            +   ...
     3.  It can be requested to change output objects as follows:
-        +   ...
-            +   ...
-            +   ...
-        +   ...
-            +   ...
-            +   ...
-        +   ...
-            +   ...
-            +   ...
+        +   Instantiation establishes the input data to be used for reporting.
 
 
 KeyBindingOutput Data Flow
@@ -257,20 +242,20 @@ class Footnote:
 
 class KeyBindingOutput:
     """ Managers of Key-Binding Report output """
-    __slots__ = ['data', 'modifier_applies_symbol', 'comments_column_width',
+    __slots__ = ['data', 'modifier_flag_symbol', 'comments_column_width',
             'min_column_count']
 
     def __init__(self, data: data.KeyBindingData):
         self.data = data
-        self.modifier_applies_symbol = 'x'
+        self.modifier_flag_symbol = 'x'
         self.comments_column_width = 35
         self.min_column_count = 8
 
-    def set_modifier_applies_symbol(self, sym: str):
+    def set_modifier_flag_symbol(self, sym: str):
         """ Set modifier-applies symbol to first character in ``sym``. """
         if len(sym) == 0:
-            raise AssertionError('set_modifier_applies_symbol:  `sym` must be at least 1 character long.  Got empty string.')
-        self.modifier_applies_symbol = sym[0]
+            raise AssertionError('set_modifier_flag_symbol:  `sym` must be at least 1 character long.  Got empty string.')
+        self.modifier_flag_symbol = sym[0]
 
     def set_comments_column_width(self, width: int):
         """ Set new comments-column width. """
@@ -509,7 +494,7 @@ class KeyBindingOutput:
             if include_unbound_keypresses:
                 # Include unbound keypresses.
                 for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
-                    mod_key_applies_tpl = key_binding.modifier_flag_characters(modifier_code, self.modifier_applies_symbol)
+                    mod_key_applies_tpl = key_binding.modifier_flag_characters(modifier_code, self.modifier_flag_symbol)
 
                     if binding_list:
                         footnote_num = self._append_rows_to_table_for_one_keypress(
@@ -537,7 +522,7 @@ class KeyBindingOutput:
                         continue
 
                     # Here we know ``binding_list`` contains bindings.
-                    mod_key_applies_tpl = key_binding.modifier_flag_characters(modifier_code, self.modifier_applies_symbol)
+                    mod_key_applies_tpl = key_binding.modifier_flag_characters(modifier_code, self.modifier_flag_symbol)
 
                     footnote_num = self._append_rows_to_table_for_one_keypress(
                             table,
@@ -631,7 +616,7 @@ class KeyBindingOutput:
                 if include_unbound_keypresses:
                     # Include unbound keypresses.
                     for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
-                        mod_key_applies_tpl = key_binding.modifier_flag_characters(modifier_code, self.modifier_applies_symbol)
+                        mod_key_applies_tpl = key_binding.modifier_flag_characters(modifier_code, self.modifier_flag_symbol)
 
                         if binding_list:
                             # Now we know there is content.
@@ -668,7 +653,7 @@ class KeyBindingOutput:
                         if len(table) == 0:
                             table.append(heading_row)
 
-                        mod_key_applies_tpl = key_binding.modifier_flag_characters(modifier_code, self.modifier_applies_symbol)
+                        mod_key_applies_tpl = key_binding.modifier_flag_characters(modifier_code, self.modifier_flag_symbol)
 
                         footnote_num = self._append_rows_to_table_for_one_keypress(
                                 table,
@@ -797,7 +782,7 @@ class KeyBindingOutput:
                     # Extract `mod_key_flag_char_tpl` from first binding.
                     mod_key_flag_char_tpl = key_binding.modifier_flag_characters(
                             scored_keypress_tuple_bep.mod_code,
-                            self.modifier_applies_symbol
+                            self.modifier_flag_symbol
                             )
 
                     footnote_num = self._append_rows_to_table_for_one_keypress(
