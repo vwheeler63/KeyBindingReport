@@ -28,7 +28,7 @@ _flags_format_spec_hex = '04X'
 # Function Definitions
 # *************************************************************************
 
-def _report_specification(
+def _report_specification_repr(
         key_groups       : Iterable[data.KeyGroup] | None,
         key_names        : Iterable[str]           | None,
         keypress_list    : Iterable[Iterable[str]] | None,
@@ -80,7 +80,7 @@ def _report_specification(
     return '\n'.join(parts)
 
 
-def _table_key(fmt: ascii_table.Format, include_win_key: bool = False) -> str:
+def _table_key_repr(fmt: ascii_table.Format, include_win_key: bool = False) -> str:
     parts = []
 
     if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
@@ -119,7 +119,7 @@ def _table_key(fmt: ascii_table.Format, include_win_key: bool = False) -> str:
     return '\n'.join(parts)
 
 
-def _key_table_and_footnotes(
+def _key_table_and_footnotes_repr(
         key_group_idx: int,
         table        : list[list[str]],
         footnotes    : list[output.Footnote],
@@ -129,7 +129,7 @@ def _key_table_and_footnotes(
         lead_keypr   : str | None = None,
         ) -> str:
     # if debugging:
-    #     print('In _key_table_and_footnotes()....')
+    #     print('In _key_table_and_footnotes_repr()....')
     #     print(f'  {fmt=}')
     #     print(f'  {flags=}')
     #     print(f'  {fmt=}')
@@ -174,7 +174,7 @@ def _key_table_and_footnotes(
     # ---------------------------------------------------------------------
     # Build table key and table => ``content``.
     # ---------------------------------------------------------------------
-    table_key = _table_key(fmt, incl_win_key)
+    table_key = _table_key_repr(fmt, incl_win_key)
     parts = []
 
     if core.setting__rst_container_class and restructuredtext:
@@ -298,7 +298,7 @@ def _generate_report(
     content_parts.append(output.report_heading(rpt_title, note))
     content_parts.append('')
     content_parts.append(
-            _report_specification(
+            _report_specification_repr(
                     key_groups,
                     key_names,
                     keypress_list,
@@ -331,7 +331,7 @@ def _generate_report(
                     content_parts.append(output.section_heading(heading, '='))
                     content_parts.append('')
 
-                    tbl_and_footnotes = _key_table_and_footnotes(
+                    tbl_and_footnotes = _key_table_and_footnotes_repr(
                             key_group_idx,
                             table,
                             footnotes,
@@ -352,7 +352,7 @@ def _generate_report(
             content_parts.append(output.section_heading(heading, '*'))
             content_parts.append('')
 
-            tbl_and_footnotes = _key_table_and_footnotes(
+            tbl_and_footnotes = _key_table_and_footnotes_repr(
                     data.KeyGroup.ALL,  # All in 1 table
                     table,
                     footnotes,
@@ -382,7 +382,7 @@ def _generate_report(
                 content_parts.append(output.section_heading(heading, '='))
                 content_parts.append('')
 
-                tbl_and_footnotes = _key_table_and_footnotes(
+                tbl_and_footnotes = _key_table_and_footnotes_repr(
                         data.KeyGroup.KEY_SEQUENCES,
                         table,
                         footnotes,
@@ -450,63 +450,76 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         r"""
         Generate Key-Binding Report.
 
-        Precondition:   `key_groups``, ``key_names``, ``keypress_list`` and ``limit_to_packages``
-                        must each be a list, set, tuple or ``None``.
+        Precondition #1:  The data type of `key_groups``, ``key_names``,
+                          ``keypress_list`` and ``limit_to_packages`` must
+                          each be a ``list``, ``set``, ``tuple`` or ``None``.
 
-        These arguments are interpreted "additively":
-        ---------------------------------------------
+        Precondition #2:  If specified, ``platform_code`` must be one of
+                          "windows", "linux" or "osx" (in lower case).
+
+        These arguments ADD to the report content:
+        -----------------------------------------------------------------
         - key_groups      e.g. [KeyGroup.NUMBER_KEYS],
         - key_names       e.g. ['f1', 'f2'], and
         - keypress_list   e.g. [['ctrl+k', 'ctrl+u'], ['alt+break'], ...]
 
-        These arguments serve to LIMIT the output of the report:
-        --------------------------------------------------------
+        These arguments LIMIT the report content:
+        -----------------------------------------------------------------
         - limit_to_packages  e.g. ['Default', 'User']
         - limit_to_context   e.g. True
 
         Parameters:
         -----------
-        :param self:        Command object connected to Application
+        :param self:
+            Command object connected to Application
 
-        :param key_groups:  List of ``KeyGroup`` integers, adding keys from these
-                            groups to the data gathered.  ``KeyGroup.ALL`` is
-                            equivalent to specifying all the other key groups.
-                            ``None`` or ``[]`` when the only keys that should
-                            be included are in ``key_names`` and ``keypress_list``.
+        :param key_groups:
+            Optional:  possibly empty list of integers from the ``KeyGroup``
+            enumeration.  Keys from the specified groups will be added to the
+            data gathered.  ``[KeyGroup.ALL]`` is equivalent to specifying all
+            the other key groups. ``None`` or ``[]`` when not applicable.
+            Default:  ``None``.
 
-        :param key_names:   List of individual key names.  Each key in this list
-                            specifies including all possible key-modifier
-                            combinations with this key.  Each key only has
-                            an impact on data gathered if it is found in
-                            ``data.all_key_names``.
-                            ``None`` or ``[]`` when not applicable.
+        :param key_names:
+            Optional:  list of individual key names.  Each key in this list
+            will be included in the data gathered, including all possible
+            key-modifier combinations with this key.  Each key only has an
+            impact on data gathered if it is found in
+            ``data.all_key_names``. ``None`` or ``[]`` when not applicable.
+            Default:  ``None``.
 
         :param keypress_list:
-                            List of "keys" (same format as "keys" elements
-                            from JSON key bindings) e.g.
+            Optional:  list of lists of "keypresses".  The inner lists have
+            the same format as "keys" elements from JSON key bindings, with
+            specific modifier keys.  Example:
 
-                                [["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]].
+                [["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]].
 
-                            Meaning:  include key bindings with these specific
-                            keypresses/keypress sequences.
-                            ``None`` or ``[]`` when not applicable.
+            Meaning:  include specific keypress/keypress sequences in report.
+            ``None`` or ``[]`` when not applicable.  Default:  ``None``.
 
         :param limit_to_packages:
-                            List of package names data should be limited to;
-                            ``None`` or ``[]`` when packages are not limited.
+            Optional:  list of package names that the gathered key-binding
+            data should be limited to. ``None`` or ``[]`` means to gather
+            data from all installed packages.  Default:  ``None``.
 
         :param limit_to_context:
-                            Do not include key bindings that do not match the
-                            current context in the active View.
+            True means:  exclude from data gathered:  key bindings whose
+            "context" entries do not match the current circumstances
+            (editing context) in the active View.  Default:  ``False``
 
-        :param fmt:         Which output format (ascii_table.Format)
+        :param fmt:
+            Output format:  integer from ``ascii_table.Format`` enumeration.
+            Default:  ``ascii_table.Format.OUTLINED``
 
-        :param flags:       Bitwise-OR-ed combination of ``FlagBits`` enumerators.
+        :param flags:
+            Bitwise-OR-ed combination of ``output.FlagBits`` flag bits.
+            Default:  ``output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS``
 
         :param platform_code:
-                            Platform to simulate, or None to use current platform.
-                              Constraint:  one of the strings returned by
-                              ``sublime.platform()``: "windows", "linux" or "osx".
+            Optional:  Platform to simulate, or None to use current platform.
+            Constraint:  ``None`` (means use current platform) or one of these
+            strings:  "windows", "linux" or "osx".  Default:  ``None``
 
         :return:  None
 
@@ -514,10 +527,18 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         Usage:
         ------
 
-        Example Binding to a Key:
+        1.  Run one of the commands that start with "KeyBindingReport:"" in the
+            Command Palette.
+
+        2.  Example running the command from a Plugin:
+
+                args = {'key_groups': [1], 'key_names': ['q', 'w', 'e', 's']}
+                view.run_command('key_binding_report', args)
+
+        3.  Example Binding to a Key:
 
         {
-            "keys": ["ctrl+alt+shift+f4"],
+            "keys": ["f4"],
             "command": "key_binding_report",
             "args": {
                 // class KeyGroup(IntEnum):
@@ -528,8 +549,8 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                 //     SYMBOL_KEYS    =  3  #   /
                 //     NAMED_KEYS     =  4  #  /
                 //     KEYPAD_KEYS    =  5  # /
+                //     LAST           =  5  # Used in range checks, e.g. 0 <= x <= LAST.
                 //
-                //     LAST           =  5  # To be used in range checks, e.g. 0 <= x <= LAST.
                 //     ALL            =  6  # Equivalent to specifying all groups [0-LAST].
                 //     KEY_SEQUENCES  =  7  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
                 "key_groups"   : [1],
@@ -563,42 +584,56 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                 //     NONE                              = 0x0000  #     0
                 //     ALL                               = 0xFFFF  # 65535
                 //     ANY                               = 0xFFFF  # 65535
-                "flags": 255,
+                "flags":  11,  // unbound key combinations, contexts, source Package
+                // "flags":  78,  // NO unbound key combinations, windows key, contexts, natural language, source Package
+                // "flags": 139,  // separate tables tables
+                // "flags": 267,  // all 1 table, to files
+                // "flags": 395,  // separate tables tables, to files
+                // "flags": 387,  // separate tables tables, no source col, to files
+                // "flags": 899,  // separate tables tables, no source col, to files, all platforms
+                // "flags": 963,  // separate tables tables, no source col, include_windows_key, to files, all platforms
+                // "flags": 903,  // separate tables tables, no source col, to files, all platforms, natural language translation
+
+                // "platform_code": "osx",
             },
         },
+
+
+        Ways to Use This Report
+        -----------------------
 
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
         | Description                   |packages   |key_groups   |key_names | keypress_list                          |
         +===============================+===========+=============+==========+========================================+
-        | By Package:  output all key   |['pkgname']| None or []  |None or []| None or []                             |
+        | By Package:  output all key   |['pkgname']|    None     |   None   |    None                                |
         | bindings contained in Package |           |             |          |                                        |
         | (e.g. Default or a 3rd-party  |           |             |          |                                        |
         | Package)                      |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified key limited      |['pkgname']| None or []  |['a', ...]| None or []                             |
+        | By specified key limited      |['pkgname']|    None     |['a', ...]|    None                                |
         | to a Package:  output all     |           |             |          |                                        |
         | of key's binding(s)           |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified key:  output     |None or [] | None or []  |['a', ...]| None or []                             |
+        | By specified key:  output     |   None    |    None     |['a', ...]|    None                                |
         | that key's bindings in all    |           |             |          |                                        |
         | Packages that contain         |           |             |          |                                        |
         | binding(s) for that key       |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified ``KeyGroup``     |None or [] |[F_KEYS, ...]|None or []| None or []                             |
+        | By specified ``KeyGroup``     |   None    |[F_KEYS, ...]|   None   |    None                                |
         | using bindings from all       |           |             |          |                                        |
         | Packages.                     |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified ``KeyGroup``     |['pkgname']|[F_KEYS, ...]|None or []| None or []                             |
+        | By specified ``KeyGroup``     |['pkgname']|[F_KEYS, ...]|   None   |    None                                |
         | limited to a Package.         |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified ``keypress_list``|None or [] | None or []  |None or []|[["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]]|
+        | By specified ``keypress_list``|   None    |    None     |   None   |[["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]]|
         | for all Packages.             |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
         """
         debugging = is_debugging(DebugBits.KEY_BINDING_REPORT)
         if debugging:
             print('In KeyBindingReportCommand.run()....')
-            print( _report_specification(
+            print(_report_specification_repr(
                     key_groups,
                     key_names,
                     keypress_list,
@@ -609,13 +644,6 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                     indent_level = 1
                     )
                  )
-            # print(f'  {key_groups=}')
-            # print(f'  {key_names=}')
-            # print(f'  {keypress_list=}')
-            # print(f'  {limit_to_packages=}')
-            # print(f'  {limit_to_context=}')
-            # print(f'  {fmt=}')
-            # print(f'  flags=0x{flags:{output._flags_format_spec_hex}}')
 
         if platform_code and platform_code not in platform.platform_names_by_code:
             raise AssertionError(f'`platform_code` must be one of {platform.platform_codes!r}.')

@@ -69,7 +69,6 @@ All input data goes away when the last reference to the created
 
 from enum import IntFlag
 from datetime import datetime
-import sublime
 from ..lib.debug import DebugBits, is_debugging
 from ..lib import ascii_table
 from . import platform
@@ -815,7 +814,4 @@ class KeyBindingOutput:
                 table_list.append((lead_keypr_str, table, footnotes, footnote_num))
 
         return table_list
-
-
-set_current_platform()
 

@@ -32,8 +32,8 @@ class KeyGroup(IntEnum):
     SYMBOL_KEYS    =  3  #   /
     NAMED_KEYS     =  4  #  /
     KEYPAD_KEYS    =  5  # /
+    LAST           =  5  # Used in range checks, e.g. 0 <= x <= LAST.
 
-    LAST           =  5  # To be used in range checks, e.g. 0 <= x <= LAST.
     ALL            =  6  # Equivalent to specifying all groups [0-LAST].
     KEY_SEQUENCES  =  7  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
 
@@ -868,8 +868,8 @@ class KeyBindingData:
             SYMBOL_KEYS    =  3  #   /
             NAMED_KEYS     =  4  #  /
             KEYPAD_KEYS    =  5  # /
+            LAST           =  5  # Used in range checks, e.g. 0 <= x <= LAST.
 
-            LAST           =  5  # To be used in range checks, e.g. 0 <= x <= LAST.
             ALL            =  6  # Equivalent to specifying all groups [0-LAST].
             KEY_SEQUENCES  =  7  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
 
