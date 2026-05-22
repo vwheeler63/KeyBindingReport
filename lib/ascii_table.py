@@ -93,10 +93,10 @@ class AsciiTable():
             raise AssertionError(msg)
         self.tight_columns = tight_col_list
 
-    def as_string(self, fmt: Format, indent: str = ''):
+    def to_string(self, fmt: Format, indent: str = ''):
         self.debugging = False
         if self.debugging:
-            print(f'In {self.__class__.__name__}.as_string()....')
+            print(f'In {self.__class__.__name__}.to_string()....')
             print(f'  {fmt                    = }')
             print(f'  {self.row_count         = }')
             print(f'  {self.column_count      = }')
@@ -331,6 +331,6 @@ if __name__ == '__main__':
     table = AsciiTable(rows)
     # table.set_column_alignments(['', '^', '^', '^'])
     print(repr(table))
-    print(table.as_string(Format.BARE))
-    print(table.as_string(Format.OUTLINED))
-    print(table.as_string(Format.RESTRUCTUREDTEXT))
+    print(table.to_string(Format.BARE))
+    print(table.to_string(Format.OUTLINED))
+    print(table.to_string(Format.RESTRUCTUREDTEXT))

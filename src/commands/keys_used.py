@@ -165,13 +165,13 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
         content_parts = [output.report_heading(_report_title)]
         content_parts.append('')
         content_parts.append('Modifier Keys:')
-        content_parts.append( mod_key_table.as_string(ascii_table.Format.OUTLINED) )
+        content_parts.append( mod_key_table.to_string(ascii_table.Format.OUTLINED) )
         content_parts.append('')
         content_parts.append('Documented Keys:')
-        content_parts.append( documented_key_table.as_string(ascii_table.Format.OUTLINED) )
+        content_parts.append( documented_key_table.to_string(ascii_table.Format.OUTLINED) )
         content_parts.append('')
         content_parts.append('Other Keys:')
-        content_parts.append( other_key_table.as_string(ascii_table.Format.OUTLINED) )
+        content_parts.append( other_key_table.to_string(ascii_table.Format.OUTLINED) )
         content_parts.append('')
         content = '\n'.join(content_parts)
 

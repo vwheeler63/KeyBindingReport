@@ -190,7 +190,7 @@ def _key_table_and_footnotes_repr(
         if container_directive:
             parts.append(container_directive)
             parts.append('')
-        parts.append( asc_tbl.as_string(fmt, indent) )
+        parts.append( asc_tbl.to_string(fmt, indent) )
         parts.append('')
         parts.append(table_key)
     else:
@@ -199,7 +199,7 @@ def _key_table_and_footnotes_repr(
         if container_directive:
             parts.append(container_directive)
             parts.append('')
-        parts.append( asc_tbl.as_string(fmt, indent) )
+        parts.append( asc_tbl.to_string(fmt, indent) )
 
     # ---------------------------------------------------------------------
     # Insert footnotes => ``content``.
