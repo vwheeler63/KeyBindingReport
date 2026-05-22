@@ -58,7 +58,6 @@ ctrl_col_heading  = ''
 ctrl_key_name     = ''
 shift_col_heading = ''
 shift_key_name    = ''
-modifier_key_names_by_modifier_code_bit = {}
 
 
 
@@ -81,7 +80,6 @@ def show_platform_based_key_names():
     print(f'{ctrl_key_name     = }')
     print(f'{shift_col_heading = }')
     print(f'{shift_key_name    = }')
-    print(f'{modifier_key_names_by_modifier_code_bit = }')
 
 
 
@@ -100,7 +98,6 @@ def update_modifier_key_names():
     global ctrl_key_name
     global shift_col_heading
     global shift_key_name
-    global modifier_key_names_by_modifier_code_bit
 
     # Column headings rely on platform_name.
     if is_osx():
@@ -112,13 +109,6 @@ def update_modifier_key_names():
         ctrl_key_name     = 'Ctrl'
         shift_col_heading = 'S'
         shift_key_name    = 'Shift'
-
-        modifier_key_names_by_modifier_code_bit = {
-            1: 'Shift',
-            2: 'Ctrl',
-            4: 'Option',
-            8: 'Command',
-        }
     else:
         cmd_col_heading   = 'W'
         cmd_key_name      = '⊞ Windows'
@@ -128,13 +118,6 @@ def update_modifier_key_names():
         ctrl_key_name     = 'Ctrl'
         shift_col_heading = 'S'
         shift_key_name    = 'Shift'
-
-        modifier_key_names_by_modifier_code_bit = {
-            1: 'Shift',
-            2: 'Ctrl',
-            4: 'Alt',
-            8: '⌘',
-        }
 
     if debugging:
         show_platform_based_key_names()
