@@ -64,9 +64,11 @@ def _report_specification_repr(
     for enum_bit_val in output.FlagBits:
         if enum_bit_val != output.FlagBits.ALL and enum_bit_val != output.FlagBits.ANY:
             if flags & enum_bit_val._value_:
-                name_len = len(enum_bit_val._name_)
-                if name_len > longest_name_len:
-                    longest_name_len = name_len
+                name = enum_bit_val._name_
+                if name:
+                    name_len = len(name)
+                    if name_len > longest_name_len:
+                        longest_name_len = name_len
 
     # Report.
     for enum_bit_val in output.FlagBits:
@@ -312,11 +314,10 @@ def _generate_report(
     # -----------------------------------------------------------------
     # Add Main-Key table parts.
     # -----------------------------------------------------------------
-    out = output.KeyBindingOutput(key_data)
-    out.set_comments_column_width(60)
+    output.set_comments_column_width(60)
 
     if flags & output.FlagBits.SEPARATE_TABLES_BY_KEY_GROUPS:
-        table_pkg_list = out.main_key_tables(flags, fmt, last_footnote_num)
+        table_pkg_list = output.main_key_tables(key_data, flags, fmt, last_footnote_num)
         #     list[tuple] (table_pkg) each tuple containing:
         #         (key_group_idx, table, footnotes, last_footnote_num)
 
@@ -345,7 +346,7 @@ def _generate_report(
 
     else:
         table, footnotes, last_footnote_num = \
-                out.main_key_table(flags, fmt, last_footnote_num)
+                output.main_key_table(key_data, flags, fmt, last_footnote_num)
 
         if table:
             heading = 'Single-Keypress Table'
@@ -367,7 +368,7 @@ def _generate_report(
     # -----------------------------------------------------------------
     # Add Key-Sequence table(s) parts.
     # -----------------------------------------------------------------
-    table_pkg_list = out.key_seq_tables(flags, fmt, last_footnote_num)
+    table_pkg_list = output.key_seq_tables(key_data, flags, fmt, last_footnote_num)
     #     list[tuple] (table_pkg) each tuple containing:
     #         (lead_keypr_str, table, footnotes, last_footnote_num)
 
@@ -412,7 +413,9 @@ def _generate_report(
             current_view=view
             )
 
-    rpt_view.window().bring_to_front()
+    win = rpt_view.window()
+    if win:
+        win.bring_to_front()
     t3 = datetime.now()
 
     return t0, t1, t2, t3
