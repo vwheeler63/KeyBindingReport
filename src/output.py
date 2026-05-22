@@ -484,7 +484,7 @@ def _append_empty_row_to_table(
     table.append(row)
 
 def main_key_table(
-        data             : data.KeyBindingData,
+        key_data         : data.KeyBindingData,
         flags            : FlagBits,
         fmt              : ascii_table.Format,
         prev_footnote_num: int = 0
@@ -533,7 +533,7 @@ def main_key_table(
     include_unbound_keypresses = flags & FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
     footnote_num = prev_footnote_num
     heading_row = _heading_row(flags)
-    by_main_key_dict = data.mdictByMainKey
+    by_main_key_dict = key_data.mdictByMainKey
 
     table = [heading_row]
     footnotes = []
@@ -594,7 +594,7 @@ def main_key_table(
 
 
 def main_key_tables(
-        data             : data.KeyBindingData,
+        key_data         : data.KeyBindingData,
         flags            : FlagBits,
         fmt              : ascii_table.Format,
         prev_footnote_num: int = 0
@@ -648,7 +648,7 @@ def main_key_tables(
     include_unbound_keypresses = flags & FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
     footnote_num = prev_footnote_num
     heading_row = _heading_row(flags)
-    by_main_key_dict = data.mdictByMainKey
+    by_main_key_dict = key_data.mdictByMainKey
 
     table_list = []
 
@@ -729,7 +729,7 @@ def main_key_tables(
 
 
 def key_seq_tables(
-        data             : data.KeyBindingData,
+        key_data         : data.KeyBindingData,
         flags            : FlagBits,
         fmt              : ascii_table.Format,
         prev_footnote_num: int = 0
@@ -776,7 +776,7 @@ def key_seq_tables(
         print('In output.key_seq_tables()...')
         print(f'  {flags = :#011_b}')
 
-    by_key_seq_dict = data.mdictByKeySquence
+    by_key_seq_dict = key_data.mdictByKeySquence
 
     # -----------------------------------------------------------------
     # Discover set of leading keypresses.
