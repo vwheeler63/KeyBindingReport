@@ -89,6 +89,57 @@ def show_platform_based_key_names():
 # Function Definitions
 # *************************************************************************
 
+def update_modifier_key_names():
+    debugging = is_debugging(DebugBits.PLATFORM)
+
+    global cmd_col_heading
+    global cmd_key_name
+    global alt_col_heading
+    global alt_key_name
+    global ctrl_col_heading
+    global ctrl_key_name
+    global shift_col_heading
+    global shift_key_name
+    global modifier_key_names_by_modifier_code_bit
+
+    # Column headings rely on platform_name.
+    if is_osx():
+        cmd_col_heading   = 'C'
+        cmd_key_name      = '⌘ Command'
+        alt_col_heading   = 'O'
+        alt_key_name      = '⌥ Option (Alt)'
+        ctrl_col_heading  = '^'
+        ctrl_key_name     = 'Ctrl'
+        shift_col_heading = 'S'
+        shift_key_name    = 'Shift'
+
+        modifier_key_names_by_modifier_code_bit = {
+            1: 'Shift',
+            2: 'Ctrl',
+            4: 'Option',
+            8: 'Command',
+        }
+    else:
+        cmd_col_heading   = 'W'
+        cmd_key_name      = '⊞ Windows'
+        alt_col_heading   = 'A'
+        alt_key_name      = 'Alt'
+        ctrl_col_heading  = 'C'
+        ctrl_key_name     = 'Ctrl'
+        shift_col_heading = 'S'
+        shift_key_name    = 'Shift'
+
+        modifier_key_names_by_modifier_code_bit = {
+            1: 'Shift',
+            2: 'Ctrl',
+            4: 'Alt',
+            8: '⌘',
+        }
+
+    if debugging:
+        show_platform_based_key_names()
+
+
 def is_windows() -> bool:
     return (( platform == windows_platform_code ))
 
@@ -119,7 +170,7 @@ def simulate_platform(platform_code: str):
     if debugging:
         show_platform()
 
-    update_platform_based_key_names()
+    update_modifier_key_names()
 
 
 def simulate_windows_platform():
@@ -136,57 +187,6 @@ def simulate_osx_platform():
 
 def set_current_platform():
     simulate_platform(execution_platform)
-
-
-def update_platform_based_key_names():
-    debugging = is_debugging(DebugBits.PLATFORM)
-
-    global cmd_col_heading
-    global cmd_key_name
-    global alt_col_heading
-    global alt_key_name
-    global ctrl_col_heading
-    global ctrl_key_name
-    global shift_col_heading
-    global shift_key_name
-    global modifier_key_names_by_modifier_code_bit
-
-    # Column headings rely on platform_name.
-    if is_osx():
-        cmd_col_heading   = 'C'
-        cmd_key_name      = '⌘ Command'
-        alt_col_heading   = 'O'
-        alt_key_name      = '⌥ Option'
-        ctrl_col_heading  = '^'
-        ctrl_key_name     = 'Ctrl'
-        shift_col_heading = 'S'
-        shift_key_name    = 'Shift'
-
-        modifier_key_names_by_modifier_code_bit = {
-            1  : 'Shift',
-            2   : 'Ctrl',
-            4    : 'Option',
-            8: 'Command',
-        }
-    else:
-        cmd_col_heading   = 'W'
-        cmd_key_name      = '⊞ Windows'
-        alt_col_heading   = 'A'
-        alt_key_name      = 'Alt'
-        ctrl_col_heading  = 'C'
-        ctrl_key_name     = 'Ctrl'
-        shift_col_heading = 'S'
-        shift_key_name    = 'Shift'
-
-        modifier_key_names_by_modifier_code_bit = {
-            1  : 'Shift',
-            2   : 'Ctrl',
-            4    : 'Alt',
-            8: '⌘',
-        }
-
-    if debugging:
-        show_platform_based_key_names()
 
 
 set_current_platform()
