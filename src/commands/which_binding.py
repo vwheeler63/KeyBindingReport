@@ -40,8 +40,7 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
     to feed into the context-query engine.
     """
 
-    def run(
-            self         : sublime_plugin.TextCommand,
+    def run(self,
             edit         : sublime.Edit,
             keypress_list: list[str] = ["ctrl+k", "ctrl+u"],
             platform_code: str | None = None
@@ -123,7 +122,10 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
                 current_view=self.view
                 )
 
-        rpt_view.window().bring_to_front()
+        win = rpt_view.window()
+        if win:
+            win.bring_to_front()
+
         t3 = datetime.now()
 
         if platform_code:

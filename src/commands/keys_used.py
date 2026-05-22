@@ -94,8 +94,9 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
         # -----------------------------------------------------------------
         # Modifier Keys
         # -----------------------------------------------------------------
-        rows = [('Key', 'Found')]      # Column headings
-        rows.append(('', ''))          # Empty row
+        rows = []
+        rows.append(['Key', 'Found'])  # Column headings
+        rows.append(['', ''])          # Empty row
 
         for key_name in sorted(mod_key_counts.keys()):
             if key_name == '"':
@@ -103,7 +104,7 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
             else:
                 key_str = f'"{key_name}"'
 
-            rows.append((key_str, str(mod_key_counts[key_name])))
+            rows.append( [ key_str, str(mod_key_counts[key_name]) ] )
 
         mod_key_table = ascii_table.AsciiTable(rows)
         #mod_key_table.set_tight_columns([True, False])
@@ -119,8 +120,9 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
         # is kept so that we can do a final loop at the end to report
         # all the keypresses encountered that did not get reported here.
         # -----------------------------------------------------------------
-        rows = [('Key', 'Found')]      # Column headings
-        rows.append(('', ''))          # Empty row
+        rows = []
+        rows.append(['Key', 'Found'])  # Column headings
+        rows.append(['', ''])          # Empty row
 
         for key_name_group in data.key_name_groups:
             for key_name in key_name_group:
@@ -142,8 +144,9 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
         # -----------------------------------------------------------------
         # Other Keys
         # -----------------------------------------------------------------
-        rows = [('Key', 'Found')]      # Column headings
-        rows.append(('', ''))          # Empty row
+        rows = []
+        rows.append(['Key', 'Found'])  # Column headings
+        rows.append(['', ''])          # Empty row
 
         for key_name in sorted(main_key_reported.keys()):
             if not main_key_reported[key_name]:
