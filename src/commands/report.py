@@ -513,6 +513,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
         :param fmt:
             Output format:  integer from ``ascii_table.Format`` enumeration.
+            If not a valid value from that enumeration, the default value is used.
             Default:  ``ascii_table.Format.OUTLINED``
 
         :param flags:
@@ -650,6 +651,9 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
         if platform_code and platform_code not in platform.platform_names_by_code:
             raise AssertionError(f'`platform_code` must be one of {platform.platform_codes!r}.')
+
+        if not (ascii_table.Format.FIRST <= fmt <= ascii_table.Format.LAST):
+            fmt = ascii_table.Format.OUTLINED
 
         if flags & output.FlagBits.ALL_PLATFORMS:
             # Run once for each platform.
