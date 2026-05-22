@@ -2339,8 +2339,6 @@ def _english_regex_operator_translation(self: ContextCondition, val_str: str) ->
 
 
 def _english_regex_operator_expr(self: ContextCondition) -> str:
-    MA = _english_match_all_qualfier(self)
-
     if self.operator == _operator_regex_match:
         """ re(".*\\w").fullmatch(text). """
         result = 'fully match'
@@ -2368,9 +2366,10 @@ def _english_following_text(self: ContextCondition) -> str:
     Does regex ".*\\w" {match none of} the text between left edge of selection and EOL?
     """
     # return _english_regex_operator_translation(self, 'text between left edge of selection and EOL')
+    MA = _english_match_all_qualfier(self)
     verb_phrase = _english_regex_operator_expr(self)
     regex = self.operand_json()
-    return f'Does regex {regex} {verb_phrase} the text between left edge of selection and EOL?'
+    return f'Does regex {regex} {verb_phrase} the text between left edge of selection and EOL{MA}?'
 
 
 def _english_preceeding_text(self: ContextCondition) -> str:
@@ -2380,9 +2379,10 @@ def _english_preceeding_text(self: ContextCondition) -> str:
     Does regex ".*\\w" {match any of} the text between BOL and the left edge of selection?
     """
     # return _english_regex_operator_translation(self, 'text between BOL and the left edge of selection')
+    MA = _english_match_all_qualfier(self)
     verb_phrase = _english_regex_operator_expr(self)
     regex = self.operand_json()
-    return f'Does regex {regex} {verb_phrase} the text between BOL and the left edge of selection?'
+    return f'Does regex {regex} {verb_phrase} the text between BOL and the left edge of selection{MA}?'
 
 
 def _english_text(self: ContextCondition) -> str:
@@ -2392,9 +2392,10 @@ def _english_text(self: ContextCondition) -> str:
     Does regex ".*\\w" {match any of} the selected text?
     """
     # return _english_regex_operator_translation(self, 'selected text')
+    MA = _english_match_all_qualfier(self)
     verb_phrase = _english_regex_operator_expr(self)
     regex = self.operand_json()
-    return f'Does regex {regex} {verb_phrase} the selected text?'
+    return f'Does regex {regex} {verb_phrase} the selected text{MA}?'
 
 
 # =========================================================================
