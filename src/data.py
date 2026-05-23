@@ -26,16 +26,19 @@ from . import smart_context
 
 class KeyGroup(IntEnum):
     """ Non-negative values index into ``key_name_groups``. """
+    FIRST          =  0  # Used in range checks, e.g. FIRST <= x <= LAST.
+
     NUMBER_KEYS    =  0  # \
     LETTER_KEYS    =  1  #  \
     F_KEYS         =  2  #   \__ These index into ``key_name_groups``.
     SYMBOL_KEYS    =  3  #   /
     NAMED_KEYS     =  4  #  /
     KEYPAD_KEYS    =  5  # /
-    LAST           =  5  # Used in range checks, e.g. 0 <= x <= LAST.
 
-    ALL            =  6  # Equivalent to specifying all groups [0-LAST].
-    KEY_SEQUENCES  =  7  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
+    LAST           =  5  # Used in range checks, e.g. FIRST <= x <= LAST.
+
+    KEY_SEQUENCES  =  6  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
+    ALL            =  7  # Equivalent to specifying all groups [FIRST-LAST] + KEY_SEQUENCES.
 
 
 # Regex to extract package name from resource path.
@@ -862,16 +865,19 @@ class KeyBindingData:
 
         class KeyGroup(IntEnum):
             // Non-negative values index into ``key_name_groups``.
+            FIRST          =  0  # Used in range checks, e.g. FIRST <= x <= LAST.
+
             NUMBER_KEYS    =  0  # \
             LETTER_KEYS    =  1  #  \
             F_KEYS         =  2  #   \__ These index into ``key_name_groups``.
             SYMBOL_KEYS    =  3  #   /
             NAMED_KEYS     =  4  #  /
             KEYPAD_KEYS    =  5  # /
-            LAST           =  5  # Used in range checks, e.g. 0 <= x <= LAST.
 
-            ALL            =  6  # Equivalent to specifying all groups [0-LAST].
-            KEY_SEQUENCES  =  7  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
+            LAST           =  5  # Used in range checks, e.g. FIRST <= x <= LAST.
+
+            KEY_SEQUENCES  =  6  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
+            ALL            =  7  # Equivalent to specifying all groups [0-LAST].
 
         class FlagBits(IntFlag):
             # Output Flags
