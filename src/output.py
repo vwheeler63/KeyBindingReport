@@ -133,22 +133,24 @@ min_column_count = 8
 
 class FlagBits(IntFlag):
     # Output Flags
-    INCLUDE_UNBOUND_KEY_COMBINATIONS  = 0x0001  #     1
-    INCLUDE_UNTRANSLATED_CONTEXTS     = 0x0002  #     2
-    INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0x0004  #     4
-    ADD_SOURCE_COLUMN                 = 0x0008  #     8
-    ADD_COMMENTS_COLUMN               = 0x0010  #    16
-    TABLE_KEY_AFTER_TABLE             = 0x0020  #    32
-    INCLUDE_WINDOWS_KEY               = 0x0040  #    64
-    SEPARATE_TABLES_BY_KEY_GROUPS     = 0x0080  #   128
-    OUTPUT_TO_FILES                   = 0x0100  #   256
-    ALL_PLATFORMS                     = 0x0200  #   512
+    INCLUDE_UNBOUND_KEYPRESSES        = 0x0001  #     1
+    INCLUDE_UNBOUND_KEYPRESSES_ONLY   = 0x0002  #     2
+    INCLUDE_UNTRANSLATED_CONTEXTS     = 0x0004  #     4
+    INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0x0008  #     8
+    ADD_SOURCE_COLUMN                 = 0x0010  #    16
+    ADD_COMMENTS_COLUMN               = 0x0020  #    32
+    TABLE_KEY_AFTER_TABLE             = 0x0040  #    64
+    INCLUDE_WINDOWS_KEY               = 0x0080  #   128
+    SEPARATE_TABLES_BY_KEY_GROUPS     = 0x0100  #   256
+    OUTPUT_TO_FILES                   = 0x0200  #   512
+    ALL_PLATFORMS                     = 0x0400  #  1024
 
     # Utility Bits
-    ANY_CONTEXT_REQUESTED             = 0x0002 | 0x0004  # 6
-    NONE                              = 0x0000  #     0
-    ALL                               = 0xFFFF  # 65535
-    ANY                               = 0xFFFF  # 65535
+    ANY_UNBOUND_KEYPRESSES            = 0x0001 | 0x0002  #     3
+    ANY_CONTEXT_REQUESTED             = 0x0004 | 0x0008  #    12
+    NONE                              = 0x0000           #     0
+    ALL                               = 0xFFFF           # 65535
+    ANY                               = 0xFFFF           # 65535
 
 
 
@@ -530,7 +532,7 @@ def main_key_table(
         print('In output.main_key_table()...')
         print(f'  {flags = :#011_b}')
 
-    include_unbound_keypresses = flags & FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
+    include_unbound_keypresses = flags & FlagBits.INCLUDE_UNBOUND_KEYPRESSES
     footnote_num = prev_footnote_num
     heading_row = _heading_row(flags)
     by_main_key_dict = key_data.mdictByMainKey
@@ -645,7 +647,7 @@ def main_key_tables(
         print('In output.main_key_tables()...')
         print(f'  {flags = :#011_b}')
 
-    include_unbound_keypresses = flags & FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
+    include_unbound_keypresses = flags & FlagBits.INCLUDE_UNBOUND_KEYPRESSES
     footnote_num = prev_footnote_num
     heading_row = _heading_row(flags)
     by_main_key_dict = key_data.mdictByMainKey
@@ -745,7 +747,7 @@ def key_seq_tables(
       with footnotes).
 
     Each table generated is much like Main-Key Table except the
-    `FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS` flag has no meaning
+    `FlagBits.INCLUDE_UNBOUND_KEYPRESSES` flag has no meaning
     in this report.  Only the bindings actually in the data are reported.
 
     Input Data Structure:

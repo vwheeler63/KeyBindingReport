@@ -287,7 +287,7 @@ def _generate_report(
     # =================================================================
     last_footnote_num = 0
 
-    if flags & output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS:
+    if flags & output.FlagBits.INCLUDE_UNBOUND_KEYPRESSES:
         note = 'Keypresses with empty Commands are not bound.'
     else:
         note = ''
@@ -447,7 +447,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             limit_to_packages: Iterable[str]           | None = None,
             limit_to_context : bool = False,
             fmt              : ascii_table.Format = ascii_table.Format.OUTLINED,
-            flags            : output.FlagBits = output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS,
+            flags            : output.FlagBits = output.FlagBits.INCLUDE_UNBOUND_KEYPRESSES,
             platform_code    : str | None = None
             ):
         r"""
@@ -518,7 +518,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
         :param flags:
             Bitwise-OR-ed combination of ``output.FlagBits`` flag bits.
-            Default:  ``output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS``
+            Default:  ``output.FlagBits.INCLUDE_UNBOUND_KEYPRESSES``
 
         :param platform_code:
             Optional:  Platform to simulate, or None to use current platform.
@@ -575,22 +575,24 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
                 // class FlagBits(IntFlag):
                 //     # Output Flags
-                //     INCLUDE_UNBOUND_KEY_COMBINATIONS  = 0x0001  #     1
-                //     INCLUDE_UNTRANSLATED_CONTEXTS     = 0x0002  #     2
-                //     INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0x0004  #     4
-                //     ADD_SOURCE_COLUMN                 = 0x0008  #     8
-                //     ADD_COMMENTS_COLUMN               = 0x0010  #    16
-                //     TABLE_KEY_AFTER_TABLE             = 0x0020  #    32
-                //     INCLUDE_WINDOWS_KEY               = 0x0040  #    64
-                //     SEPARATE_TABLES_BY_KEY_GROUPS     = 0x0080  #   128
-                //     OUTPUT_TO_FILES                   = 0x0100  #   256
-                //     ALL_PLATFORMS                     = 0x0200  #   512
+                //     INCLUDE_UNBOUND_KEYPRESSES        = 0x0001  #     1
+                //     INCLUDE_UNBOUND_KEYPRESSES_ONLY   = 0x0002  #     2
+                //     INCLUDE_UNTRANSLATED_CONTEXTS     = 0x0004  #     4
+                //     INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0x0008  #     8
+                //     ADD_SOURCE_COLUMN                 = 0x0010  #    16
+                //     ADD_COMMENTS_COLUMN               = 0x0020  #    32
+                //     TABLE_KEY_AFTER_TABLE             = 0x0040  #    64
+                //     INCLUDE_WINDOWS_KEY               = 0x0080  #   128
+                //     SEPARATE_TABLES_BY_KEY_GROUPS     = 0x0100  #   256
+                //     OUTPUT_TO_FILES                   = 0x0200  #   512
+                //     ALL_PLATFORMS                     = 0x0400  #  1024
                 //
                 //     # Utility Bits
-                //     ANY_CONTEXT_REQUESTED             = 0x0002 | 0x0004  # 6
-                //     NONE                              = 0x0000  #     0
-                //     ALL                               = 0xFFFF  # 65535
-                //     ANY                               = 0xFFFF  # 65535
+                //     ANY_UNBOUND_KEYPRESSES            = 0x0001 | 0x0002  #     3
+                //     ANY_CONTEXT_REQUESTED             = 0x0004 | 0x0008  #    12
+                //     NONE                              = 0x0000           #     0
+                //     ALL                               = 0xFFFF           # 65535
+                //     ANY                               = 0xFFFF           # 65535
                 "flags":  11,  // unbound key combinations, contexts, source Package
                 // "flags":  78,  // NO unbound key combinations, windows key, contexts, natural language, source Package
                 // "flags": 139,  // separate tables tables

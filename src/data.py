@@ -881,17 +881,24 @@ class KeyBindingData:
 
         class FlagBits(IntFlag):
             # Output Flags
-            INCLUDE_UNBOUND_KEY_COMBINATIONS  = 0b0000_0001  #   1
-            INCLUDE_UNTRANSLATED_CONTEXTS     = 0b0000_0010  #   2
-            INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0b0000_0100  #   4
-            ADD_SOURCE_COLUMN                 = 0b0000_1000  #   8
-            ADD_COMMENTS_COLUMN               = 0b0001_0000  #  16
+            INCLUDE_UNBOUND_KEYPRESSES        = 0x0001  #     1
+            INCLUDE_UNBOUND_KEYPRESSES_ONLY   = 0x0002  #     2
+            INCLUDE_UNTRANSLATED_CONTEXTS     = 0x0004  #     4
+            INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0x0008  #     8
+            ADD_SOURCE_COLUMN                 = 0x0010  #    16
+            ADD_COMMENTS_COLUMN               = 0x0020  #    32
+            TABLE_KEY_AFTER_TABLE             = 0x0040  #    64
+            INCLUDE_WINDOWS_KEY               = 0x0080  #   128
+            SEPARATE_TABLES_BY_KEY_GROUPS     = 0x0100  #   256
+            OUTPUT_TO_FILES                   = 0x0200  #   512
+            ALL_PLATFORMS                     = 0x0400  #  1024
 
             # Utility Bits
-            ANY_CONTEXT_REQUESTED             = 0b0000_0010 | 0b0000_0100
-            NONE                              = 0b0000_0000  #   0
-            ALL                               = 0b1111_1111  # 255
-            ANY                               = 0b1111_1111  # 255
+            ANY_UNBOUND_KEYPRESSES            = 0x0001 | 0x0002  #     3
+            ANY_CONTEXT_REQUESTED             = 0x0004 | 0x0008  #    12
+            NONE                              = 0x0000           #     0
+            ALL                               = 0xFFFF           # 65535
+            ANY                               = 0xFFFF           # 65535
 
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
         | Description                   |packages   |key_groups   |key_names | keypress_list                          |
