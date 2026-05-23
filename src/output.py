@@ -357,7 +357,7 @@ def _heading_row(flags: FlagBits) -> list[str]:
 def _append_rows_to_table_for_one_keypress(
         table               : list[list],
         main_or_2nd_key_name: str,
-        mod_key_applies_tpl : tuple[str, str, str, str],
+        mod_key_flags_tpl   : tuple[str, str, str, str],
         binding_list        : list[key_binding.ReportKeyBinding],
         flags               : FlagBits,
         fmt                 : ascii_table.Format,
@@ -378,12 +378,12 @@ def _append_rows_to_table_for_one_keypress(
             else:
                 tbl_key_name = main_or_2nd_key_name
 
-            row = [tbl_key_name]                    # 'f5'
+            row = [tbl_key_name]                  # 'f5'
             if include_win_key:
-                row.append(mod_key_applies_tpl[0])  # Windows/Command Key
-            row.append(mod_key_applies_tpl[1])      # Alt
-            row.append(mod_key_applies_tpl[2])      # Ctrl
-            row.append(mod_key_applies_tpl[3])      # Shift
+                row.append(mod_key_flags_tpl[0])  # Windows/Command Key
+            row.append(mod_key_flags_tpl[1])      # Alt
+            row.append(mod_key_flags_tpl[2])      # Ctrl
+            row.append(mod_key_flags_tpl[3])      # Shift
 
             # ---------------------------------------------------------
             # Context
@@ -435,7 +435,7 @@ def _append_rows_to_table_for_one_keypress(
 def _append_empty_row_to_table(
         table              : list[list],
         main_key_name      : str,
-        mod_key_applies_tpl: tuple[str, str, str, str],
+        mod_key_flags_tpl  : tuple[str, str, str, str],
         flags              : FlagBits,
         fmt                : ascii_table.Format,
         ):
@@ -451,14 +451,14 @@ def _append_empty_row_to_table(
     else:
         tbl_key_name = main_key_name
 
-    row = [tbl_key_name]                    # 'f5'
+    row = [tbl_key_name]                  # 'f5'
 
     if include_win_key:
-        row.append(mod_key_applies_tpl[0])  # Command)
+        row.append(mod_key_flags_tpl[0])  # Command)
 
-    row.append(mod_key_applies_tpl[1])      # Alt
-    row.append(mod_key_applies_tpl[2])      # Ctrl
-    row.append(mod_key_applies_tpl[3])      # Shift
+    row.append(mod_key_flags_tpl[1])      # Alt
+    row.append(mod_key_flags_tpl[2])      # Ctrl
+    row.append(mod_key_flags_tpl[3])      # Shift
 
     # -----------------------------------------------------------------
     # Context
@@ -552,7 +552,7 @@ def main_key_table(
         if include_unbound_keypresses:
             # Include unbound keypresses.
             for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
-                mod_key_applies_tpl = key_binding.modifier_flag_characters(modifier_code, modifier_flag_symbol)
+                mod_key_flags_tpl = key_binding.modifier_flag_characters(modifier_code, modifier_flag_symbol)
 
                 if binding_list:
                     if include_no_bindings:
@@ -563,7 +563,7 @@ def main_key_table(
                         footnote_num = _append_rows_to_table_for_one_keypress(
                                 table,
                                 main_key_name,
-                                mod_key_applies_tpl,
+                                mod_key_flags_tpl,
                                 binding_list,
                                 flags,
                                 fmt,
@@ -574,7 +574,7 @@ def main_key_table(
                     _append_empty_row_to_table(
                             table,
                             main_key_name,
-                            mod_key_applies_tpl,
+                            mod_key_flags_tpl,
                             flags,
                             fmt,
                             )
@@ -585,12 +585,12 @@ def main_key_table(
                     continue
 
                 # Here we know ``binding_list`` contains bindings.
-                mod_key_applies_tpl = key_binding.modifier_flag_characters(modifier_code, modifier_flag_symbol)
+                mod_key_flags_tpl = key_binding.modifier_flag_characters(modifier_code, modifier_flag_symbol)
 
                 footnote_num = _append_rows_to_table_for_one_keypress(
                         table,
                         main_key_name,
-                        mod_key_applies_tpl,
+                        mod_key_flags_tpl,
                         binding_list,
                         flags,
                         fmt,
@@ -681,7 +681,7 @@ def main_key_tables(
             if include_unbound_keypresses:
                 # Include unbound keypresses.
                 for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
-                    mod_key_applies_tpl = key_binding.modifier_flag_characters(modifier_code, modifier_flag_symbol)
+                    mod_key_flags_tpl = key_binding.modifier_flag_characters(modifier_code, modifier_flag_symbol)
 
                     if binding_list:
                         # Now we know there is content.
@@ -697,7 +697,7 @@ def main_key_tables(
                             footnote_num = _append_rows_to_table_for_one_keypress(
                                     table,
                                     main_key_name,
-                                    mod_key_applies_tpl,
+                                    mod_key_flags_tpl,
                                     binding_list,
                                     flags,
                                     fmt,
@@ -711,7 +711,7 @@ def main_key_tables(
                         _append_empty_row_to_table(
                                 table,
                                 main_key_name,
-                                mod_key_applies_tpl,
+                                mod_key_flags_tpl,
                                 flags,
                                 fmt,
                                 )
@@ -726,12 +726,12 @@ def main_key_tables(
                     if len(table) == 0:
                         table.append(heading_row)
 
-                    mod_key_applies_tpl = key_binding.modifier_flag_characters(modifier_code, modifier_flag_symbol)
+                    mod_key_flags_tpl = key_binding.modifier_flag_characters(modifier_code, modifier_flag_symbol)
 
                     footnote_num = _append_rows_to_table_for_one_keypress(
                             table,
                             main_key_name,
-                            mod_key_applies_tpl,
+                            mod_key_flags_tpl,
                             binding_list,
                             flags,
                             fmt,
