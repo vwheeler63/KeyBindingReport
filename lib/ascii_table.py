@@ -94,7 +94,6 @@ class AsciiTable():
         self.tight_columns = tight_col_list
 
     def to_string(self, fmt: Format, indent: str = ''):
-        self.debugging = False
         if self.debugging:
             print(f'In {self.__class__.__name__}.to_string()....')
             print(f'  {fmt                    = }')
@@ -215,15 +214,17 @@ class AsciiTable():
         lines.append(row_sep)
 
         if with_col_seps:
-            tight_col_suffix = '|'
-            col_prefix = ' '
-            col_suffix = ' |'
-            last_col_suffix = col_suffix
+            col_prefix            = ' '
+            col_suffix            = ' |'
+            last_col_suffix       = ' |'
+            tight_col_suffix      = '|'
+            tight_last_col_suffix = '|'
         else:
-            tight_col_suffix = ' '
-            col_prefix = ' '
-            col_suffix = '  '
-            last_col_suffix = ' |'
+            col_prefix            = ' '
+            col_suffix            = '  '
+            last_col_suffix       = ' |'
+            tight_col_suffix      = ' '
+            tight_last_col_suffix = '|'
 
         for row in self.table:
             line_parts.clear()
@@ -238,7 +239,10 @@ class AsciiTable():
                 col_repr = f'{col:{self.column_alignments[i]}{self.max_column_widths[i]}}'
                 if self.tight_columns[i]:
                     line_parts.append(col_repr)
-                    line_parts.append(tight_col_suffix)
+                    if i == last_i:
+                        line_parts.append(tight_last_col_suffix)
+                    else:
+                        line_parts.append(tight_col_suffix)
                 else:
                     line_parts.append(col_prefix)
                     line_parts.append(col_repr)
