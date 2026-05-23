@@ -532,7 +532,8 @@ def main_key_table(
         print('In output.main_key_table()...')
         print(f'  {flags = :#011_b}')
 
-    include_unbound_keypresses = flags & FlagBits.INCLUDE_UNBOUND_KEYPRESSES
+    include_unbound_keypresses = flags & FlagBits.ANY_UNBOUND_KEYPRESSES
+    include_no_bindings = flags & FlagBits.INCLUDE_UNBOUND_KEYPRESSES_ONLY
     footnote_num = prev_footnote_num
     heading_row = _heading_row(flags)
     by_main_key_dict = key_data.mdictByMainKey
@@ -554,16 +555,21 @@ def main_key_table(
                 mod_key_applies_tpl = key_binding.modifier_flag_characters(modifier_code, modifier_flag_symbol)
 
                 if binding_list:
-                    footnote_num = _append_rows_to_table_for_one_keypress(
-                            table,
-                            main_key_name,
-                            mod_key_applies_tpl,
-                            binding_list,
-                            flags,
-                            fmt,
-                            footnotes,
-                            footnote_num,
-                            )
+                    if include_no_bindings:
+                        pass
+                        # Caller requested INCLUDE_UNBOUND_KEYPRESSES_ONLY, so we
+                        # don't include this set of bindings---only empty slots.
+                    else:
+                        footnote_num = _append_rows_to_table_for_one_keypress(
+                                table,
+                                main_key_name,
+                                mod_key_applies_tpl,
+                                binding_list,
+                                flags,
+                                fmt,
+                                footnotes,
+                                footnote_num,
+                                )
                 else:
                     _append_empty_row_to_table(
                             table,
@@ -647,7 +653,8 @@ def main_key_tables(
         print('In output.main_key_tables()...')
         print(f'  {flags = :#011_b}')
 
-    include_unbound_keypresses = flags & FlagBits.INCLUDE_UNBOUND_KEYPRESSES
+    include_unbound_keypresses = flags & FlagBits.ANY_UNBOUND_KEYPRESSES
+    include_no_bindings = flags & FlagBits.INCLUDE_UNBOUND_KEYPRESSES_ONLY
     footnote_num = prev_footnote_num
     heading_row = _heading_row(flags)
     by_main_key_dict = key_data.mdictByMainKey
@@ -678,21 +685,29 @@ def main_key_tables(
 
                     if binding_list:
                         # Now we know there is content.
-                        # Heading not added yet?  Add it now.
+                        if include_no_bindings:
+                            pass
+                            # Caller requested INCLUDE_UNBOUND_KEYPRESSES_ONLY, so we
+                            # don't include this set of bindings---only empty slots.
+                        else:
+                            # Heading not added yet?  Add it now.
+                            if len(table) == 0:
+                                table.append(heading_row)
+
+                            footnote_num = _append_rows_to_table_for_one_keypress(
+                                    table,
+                                    main_key_name,
+                                    mod_key_applies_tpl,
+                                    binding_list,
+                                    flags,
+                                    fmt,
+                                    footnotes,
+                                    footnote_num,
+                                    )
+                    else:
                         if len(table) == 0:
                             table.append(heading_row)
 
-                        footnote_num = _append_rows_to_table_for_one_keypress(
-                                table,
-                                main_key_name,
-                                mod_key_applies_tpl,
-                                binding_list,
-                                flags,
-                                fmt,
-                                footnotes,
-                                footnote_num,
-                                )
-                    else:
                         _append_empty_row_to_table(
                                 table,
                                 main_key_name,

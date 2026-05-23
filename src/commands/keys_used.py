@@ -14,7 +14,7 @@ from .. import output
 # Configuration
 # *************************************************************************
 
-_report_title = 'Keys Used in All Keymaps'
+_report_title = 'Keys Used in All Keymaps (Current Platform)'
 _report_short_title = 'Keys Used'
 
 
@@ -47,11 +47,11 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
         if debugging:
             print('In KeyBindingReportKeysUsedCommand.run()...')
 
-        if platform_code and platform_code not in platform.platform_names_by_code:
-            raise AssertionError(f'`platform_code` must be one of {platform.platform_codes!r}.')
-
         if platform_code:
-            platform.simulate_platform(platform_code)
+            if platform_code in platform.platform_names_by_code:
+                platform.simulate_platform(platform_code)
+            else:
+                raise AssertionError(f'`platform_code` must be one of {platform.platform_codes!r}.')
 
         main_key_counts = {}
         main_key_reported = {}

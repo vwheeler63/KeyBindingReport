@@ -38,6 +38,7 @@ __all__ = [
     'KeyBindingReportCommand',                  # noqa: F405
     "KeyBindingReportWhichBindingCommand",      # noqa: F405
     'KeyBindingReportKeysUsedCommand',          # noqa: F405
+    'KeyBindingReportKeysAvailableCommand',     # noqa: F405
     'KeyBindingReportContextOverridesCommand',  # noqa: F405
     'KeyBindingReportOverridesCommand',         # noqa: F405
 ]

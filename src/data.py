@@ -25,9 +25,7 @@ from . import smart_context
 # *************************************************************************
 
 class KeyGroup(IntEnum):
-    """ Non-negative values index into ``key_name_groups``. """
-    FIRST          =  0  # Used in range checks, e.g. FIRST <= x <= LAST.
-
+    """ Values in range FIRST-LAST index into ``key_name_groups``. """
     NUMBER_KEYS    =  0  # \
     LETTER_KEYS    =  1  #  \
     F_KEYS         =  2  #   \__ These index into ``key_name_groups``.
@@ -35,6 +33,7 @@ class KeyGroup(IntEnum):
     NAMED_KEYS     =  4  #  /
     KEYPAD_KEYS    =  5  # /
 
+    FIRST          =  0  # Used in range checks, e.g. FIRST <= x <= LAST.
     LAST           =  5  # Used in range checks, e.g. FIRST <= x <= LAST.
 
     KEY_SEQUENCES  =  6  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
@@ -84,8 +83,8 @@ key_group_names = [
     "Symbol Keys",
     "Named Keys",
     "Keypad Keys",
-    "Single-Keypress Bindings",
     "Multi-Keypress Bindings",
+    "Single-Keypress Bindings",
 ]
 
 # Indexed by class ``KeyGroup``.
@@ -96,8 +95,8 @@ key_group_file_names = [
     "symbol_keys.txt",
     "named_keys.txt",
     "keypad_keys.txt",
-    "single-keypress.txt",
     "multi-keypress_{$leading_keypress}.txt",
+    "single-keypress.txt",
 ]
 
 
@@ -864,7 +863,7 @@ class KeyBindingData:
         key_data.gather(key_groups, key_names, keypress_list, packages, view)
 
         class KeyGroup(IntEnum):
-            // Non-negative values index into ``key_name_groups``.
+            // Values in range FIRST-LAST index into ``key_name_groups``.
             FIRST          =  0  # Used in range checks, e.g. FIRST <= x <= LAST.
 
             NUMBER_KEYS    =  0  # \

@@ -546,9 +546,6 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             "command": "key_binding_report",
             "args": {
                 // class KeyGroup(IntEnum):
-                //     // Non-negative values index into ``key_name_groups``.
-                //     FIRST          =  0  # Used in range checks, e.g. FIRST <= x <= LAST.
-                //
                 //     NUMBER_KEYS    =  0  # \
                 //     LETTER_KEYS    =  1  #  \
                 //     F_KEYS         =  2  #   \__ These index into ``key_name_groups``.
@@ -556,6 +553,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                 //     NAMED_KEYS     =  4  #  /
                 //     KEYPAD_KEYS    =  5  # /
                 //
+                //     FIRST          =  0  # Used in range checks, e.g. FIRST <= x <= LAST.
                 //     LAST           =  5  # Used in range checks, e.g. FIRST <= x <= LAST.
                 //
                 //     KEY_SEQUENCES  =  6  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
