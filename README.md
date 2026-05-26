@@ -1,87 +1,178 @@
 # KeyBindingReport
 
-**KeyBindingReport** is a Sublime Text Package that produces reports about the current state of Sublime Text key bindings, using any of a number of output formats.
+**KeyBindingReport** is a Sublime Text Package that produces a wide variety of reports about the current state of Sublime Text key bindings on the system it is running on, with a choice of output formats.
 
 
 
-## KeyBindingReport: Generate Report
+## Reports Available
+
+As of this writing, there are 59 reports that this package can generate, plus an unlimited number of reports that can be created using custom calls to the "key_binding_report_keys_available" command (or the other commands), which you can set up:
+
+- via any available key binding,
+- by calling `view.run_command("key_binding_report_keys_available", custom_args)` in any Plugin,
+- by creating your own custom version of `KeyBindingReport/resources/commands/KeyBindingReport.sublime-command` in an Override Package,
+- or any other way Commands can be run in Sublime Text.
+
+All of the reports built into this with this package are accessed via the Command Palette and start with "KeyBindingReport:".
+
+Additionally:
+
+- you can open this file directly via `Preferences > Package Settings > KeyBindingReport > README`, and
+- you can change the settings for this package via `Preferences > Package Settings > KeyBindingReport > Settings`.
+
+The settings are documented individually in the default settings file.
+
+
+
+### Simple Reports
+
+- **KeyBindingReport: Keys Used Report (Current Platform)**, generates Key-Binding Keys-Used Report:
+
+  Modifier Keys Used with how many times each.
+  Main Keys Used with how many times each.
+
+  Optional argument (if you call it from your own Plugin):
+
+  platform_code:  "windows", "linux" or "osx" to simulate the specified platform.
+
+- **KeyBindingReport: Keys Available Report (Current Platform)**, generates report of which generates a large table showing ONLY keypresses (key combinations) that do not have any key bindings associated with them, considering all installed Packages.  It is the equivalent of doing this from your own Plugin:
+
+  ```py
+        flags = (
+                  output.FlagBits.INCLUDE_UNBOUND_KEYPRESSES_ONLY
+                | output.FlagBits.INCLUDE_WINDOWS_KEY
+                )
+
+        # Note:  passing "key_groups": [data.KeyGroup.ALL] does not work
+        # because that causes multi-keypress bindings to be included as well,
+        # and that domain is not relevant to the "Keys Available Report".
+        key_group_list = []
+        for i in range(data.KeyGroup.FIRST, data.KeyGroup.LAST + 1):
+            key_group_list.append(i)
+
+        args = {
+            "key_groups"       : key_group_list,
+            "fmt"              : ascii_table.Format.OUTLINED,
+            "flags"            : flags
+        }
+
+        self.view.run_command('key_binding_report', args)
+
+  ```
+
+- **KeyBindingReport: Which Binding?**, generates a Key-Binding Report for a specified keypress or keypress sequence, based on the context in current View.  This command may be run when keyboard focus is in any View, including input Views in any Panels (e.g. Find) or Overlays (e.g. Command Palette).  (For release v1.0 you will need to run this command yourself and pass the desired keypresses to inspect in its `keypress_list` argument, and optionally which platform to simulate in its optional `platform_code` argument.  The command for this included with this package shows an example of calling this Command with no arguments, which uses the default keypress list:  `["ctrl+k", "ctrl+u"]`.)
+
+- **KeyBindingReport: Key-Binding Overrides**, reports Key Bindings that, considering their "context" entries, override other key bindings, considering all shipped, installed and custom Packages present on the current system.
+
+- **KeyBindingReport: Key-Binding Overrides in Current Context**, is the same as the above, with the addition that the current context in the current View is also taken into consideration.
+
+
+
+### KeyBindingReport: The Main Report
+
+This report is implemented via the **KeyBindingReportCommand** (key_binding_report) Command.  While it is the most complex report to call in this Package, it is simultaneously the most powerful.  54 of the built-in reports shipped with this Package call this command with different arguments.
 
 This command reports about current key bindings present in your Sublime Text installation.  The report may be limited to:
 
 - a specified list of key names,
 - a specified list of key groups (e.g. F_KEYS, see below for full list),
+- a specified list of specific keypresses (key combinations),
 - a specified list of Packages, or
-- combinations of the above
+- any combination of the above.
 
-and allows an option for output format and whether to show:
-
-- unbound key combinations (useful if you're looking for unbound key combinations you can use)
-- the Package name for each binding
-- a comments column (useful if you intend to copy the report into a document and manually edit it by adding comments)
-- untranslated contexts (conditions which limit when that key binding is chosen)
-- those same contexts translated into English
+The arguments passed to the command also allow options for output format, what to include in the report, and what OTHER platform to simulate, if any.
 
 
 
-## KeyBindingReport: Which Binding?
+#### Available Output Formats
 
-This command reports on the key bindings that Sublime Text would select given the current scope of the current View for a specified list of keypresses and/or keypress sequences.
+The output format must be an integer having one of these values:
 
-This command allows you to input (or pass it) a list of key combinations, such as
-
-  [["ctrl+p"]]
-  [["ctrl+k", "ctrl+b"], ["ctrl+k", "ctrl+u"]]
-  [["ctrl+p"], ["ctrl+shift+p"]]
-
-and for each keypress/keypress-sequence in the list, it will do a search the same way Sublime Text does when you hit keys, and the report will include:
-
-- details about the specific key binding was selected for each keypress/keypress-sequence given the current scope in the current View;
-
-- which Package contained each key binding.
+- BARE = 0
+- OUTLINED = 1
+- OUTLINED_COLUMNS = 2
+- RESTRUCTUREDTEXT = 3
 
 
 
-## Output Formats
+#### What to Show in the Report
 
-All output formats are in the form of an ASCII table.  The current formats supported are:
+The following are among options you can select from to include in the report, and these options can be combined in any number of ways.  Each is a flag bit in a `flags` argument.
 
-- Bare
-- Outlined (box around report with lines between columns)
-- reStructuredText[^1]
+- include unbound key combinations (useful if you're looking for unbound key combinations you can use to bind to Commands of your choosing);
+- whether to include the raw (untranslated) contexts with each binding that has a "context" entry (formatted so they are nicely readable);
+- whether to include a natural-language translation of the contexts with each binding that has a "context" entry (English is currently the only supported language);
+- the key binding's source (i.e. Package and filename the binding came from);
+- whether to include a comments column (useful if you intend to copy the report into a document and manually edit it by adding comments for a purpose of your choosing, or print the report and hand-write comments in the comments column);
+- whether to include the [⊞] (Windows) key for Windows and Linux platforms (the [⌘ Command] key is always included on OSX because it is always heavily used);
+- whether to include the Table Key *after* the table instead of *before* (the default, see note below);
+- whether to group keys by key group, generating 1 table and 1 set of footnotes for each key group (numbers, letters, function keys, symbol keys, named keys, keypad keys);
+- whether to send output to a set of files in addition to a read-only report View on the screen (destination directory is configurable for each platform via Package settings.  The directory must already exist.  **Caution:** Same-named files within that directory are silently overwritten with each call to the command, so starting with an empty directory is recommended);
+- whether to include all platforms in the report.
 
-[^1]: The concept is to programmatically re-generate the tables that live in the source file that generates this [Default Key Bindings](http://crystal-clear-research.com/docs/quickrefs/sublime_text/default_key_bindings.html) web page.
+Note:  the Table Key shows the meaning of abbreviated column names in the table.  It looks like this for the Windows platform when the Windows key is included in the report:
 
-Before this was developed, the author built the original source document by hand using ``grep`` on the `<install_path>/Packages/Default ($platform).sublime-keymap` Keymap in order to isolate all the different bindings to individual keys on the keyboard, since this is the way the author thinks about it when planning on where keys should be mapped for an application---in this case Sublime Text.
-
-Needless to say, all doing justice to just one lengthy `.sublime-keymap` file took almost an entire day to document, and since then, the author has come to the conclusion that this task could be better served programmatically, especially since Sublime Text as well as Package updates happen periodically, which can silently modify the current set of key bindings.
-
-
-
-## Columns that Are Always Included
-
-:Key:      key name
-:S:        shift-key modifier
-:C:        control-key modifier
-:A:        alt-key modifier
-:Command:  Sublime Text Command with some English clarifications in parentheses
-
-![F-Key Table from Original Document](docs/src/_static/images/orig_doc_f-key_table.png "F-Key Table from Original Document")
-
-Each `Command` has a footnote link when there is a key binding has a limiting context, and the footnote describes the possibly-complex condition that that context defines.
-
-![Symbol-Key Table from Original Document](docs/src/_static/images/orig_doc_symbol-key_table.png "Symbol-Key Table from Original Document")
+```
+Key:
+     W = ⊞ Windows
+     A = Alt
+     C = Ctrl
+     S = Shift
+  Ctxt = Context
+```
 
 
+### Columns Always Included
 
-## Optional Additional Details
+- Key:  main key name
+- C:  command key (always included on OSX platform, optional as [⊞] key by flag on Windows and Linux)
+- A:  alt-key modifier ([⌥ Option] key on OSX platform)
+- C:  control-key modifier
+- S:  shift-key modifier
+- Context:  A footnote reference for details when the key binding contains a "context" entry
+- Command:  Sublime Text Command bound to that keypress or keypress sequence
+- Args:  Optional arguments passed to the command
 
-You can optionally, through a flags keyword argument, cause the report to additionally include:
 
-- Package name containing each key binding,
-- a "Comments" column (for possible manual editing later after moving the report into a document of some type),
-- footnotes choices:
+### Optional Columns Available via Flags Argument
 
-  - none (no mention of key contexts [conditions which restrict when Sublime Text chooses a particular key binding]),
-  - untranslated key-binding contexts,
-  - English translations of key-binding contexts (more readable),
-  - both.
+- Source (Package and filename of keymap file the binding came from)
+- Comments (useful if you intend to copy the report into a document and/or print it, adding your own comments for a purpose of your choosing)
+
+
+
+## Running **KeyBindingReportCommand** on Your Own
+
+See `class KeyBindingReportCommand` in `KeyBindingReport/src/commands/report.py`.  Each argument is documented in detail there.
+
+Have a look at this table to get the "gist" of how you can vary the arguments you pass to the command to generate different report content.  (The default for all of these arguments is `None` so if the report is run without passing any of these, the report will be empty.)
+
+```
++-------------------------------+-----------+-------------+----------+------------------------+
+| Description                   |packages   |key_groups   |key_names | keypress_list          |
++===============================+===========+=============+==========+========================+
+| By Package:  output all key   |["pkgname"]|    None     |   None   |    None                |
+| bindings contained in Package |           |             |          |                        |
+| (e.g. Default or a 3rd-party  |           |             |          |                        |
+| Package)                      |           |             |          |                        |
++-------------------------------+-----------+-------------+----------+------------------------+
+| By specified key limited      |["pkgname"]|    None     |["a", ...]|    None                |
+| to a Package:  output all     |           |             |          |                        |
+| of key's binding(s)           |           |             |          |                        |
++-------------------------------+-----------+-------------+----------+------------------------+
+| By specified key:  output     |   None    |    None     |["a", ...]|    None                |
+| that key's bindings in all    |           |             |          |                        |
+| Packages that contain         |           |             |          |                        |
+| bindings for that key         |           |             |          |                        |
++-------------------------------+-----------+-------------+----------+------------------------+
+| By specified ``KeyGroup``     |   None    |[F_KEYS, ...]|   None   |    None                |
+| using bindings from all       |           |             |          |                        |
+| Packages.                     |           |             |          |                        |
++-------------------------------+-----------+-------------+----------+------------------------+
+| By specified ``KeyGroup``     |["pkgname"]|[F_KEYS, ...]|   None   |    None                |
+| limited to a Package.         |           |             |          |                        |
++-------------------------------+-----------+-------------+----------+------------------------+
+| By specified ``keypress_list``|   None    |    None     |   None   |[["ctrl+u"], ["ctrl+p"]]|
+| for all Packages.             |           |             |          |                        |
++-------------------------------+-----------+-------------+----------+------------------------+
+```
