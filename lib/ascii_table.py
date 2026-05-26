@@ -3,13 +3,12 @@ from enum import IntEnum
 
 class Format(IntEnum):
     """ Formats supported by AsciiTable """
-    FIRST            = 0
-
     BARE             = 0
     OUTLINED         = 1
     OUTLINED_COLUMNS = 2
     RESTRUCTUREDTEXT = 3
 
+    FIRST            = 0
     LAST             = 3
 
 

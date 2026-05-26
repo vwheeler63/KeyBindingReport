@@ -1,3 +1,10 @@
+"""************************************************************************
+Keys-Used Report
+****************
+
+See docstring under ``KeyBindingReportKeysUsedCommand.run()`` method.
+"""
+
 import sublime_plugin
 import sublime
 from ...lib.debug import DebugBits, is_debugging

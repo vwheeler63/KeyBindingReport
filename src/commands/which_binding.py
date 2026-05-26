@@ -1,10 +1,6 @@
-"""
+"""************************************************************************
 Which Binding Report
-====================
-
-This logic is launched via the ``KeyBindingReportWhichBindingCommand``
-command at the end of this file.  The details of the algorithm are in
-the docstring for that command.
+********************
 """
 from datetime import datetime
 import sublime_plugin

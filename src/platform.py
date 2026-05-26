@@ -1,6 +1,31 @@
 """************************************************************************
 Key-Binding Platform
-***************************************************************************"""
+***************************************************************************
+
+This module contains knowledge that changes with different supported
+platforms:
+
+- modifier key names
+- table headings based on those names,
+- descriptive table-key names based on those names.
+
+Some reports support simulating different platforms, and/or reporting
+on all platforms.
+
+
+
+Data Flow
+*********
+
+At loading time, this module sets its default values from the current
+platform.
+
+Certain reports may temporarily change this platform (simulating others)
+to take advantage of its knowledge of different modifier key names
+and other related information (list is above).  After the report is
+generated, the "current platform" (attributes starting with "platform..."
+and most others) are returned to their original state:  current platform.
+"""
 
 import sublime
 from ..lib.debug import DebugBits, is_debugging

@@ -5,48 +5,98 @@ KeyBinding
 
 
 KeyBinding Terminology
-======================
+**********************
 
 These KeyBindings are objects from the lists in `.sublime-keymap` files,
 so all terminology related to those key binding objects is used herein.
 
 
-KeyBinding Design
-=================
 
-A.  There is a concept of a KeyBinding object.
+KeyBinding Design
+*****************
+
+A.  There is a concept of a ``KeyBinding`` object.
 
     1.  It has:
         +   source
             +   PackageName/Default ($platform).sublime-keymap, or
             +   PackageName/Default.sublime-keymap
         +   _smart_context
-            +   SmartContext objects
+            +   ``SmartContext`` objects
+        +   keypresses
+            +   ``KeyPress`` objects corresponding to the "keys" entry in original binding object.
+        +   Original content from the decoded JSONC key-binding objects:
+            +   _keys
+            +   _command
+            +   _args (or None if there was no "args" entry in original binding object)
+            +   _context (or None if there was no "context" entry in original binding object)
+        +   ...
+        +   ...
+        +   ...
         +   ...
     2.  It can be asked:
-        +   ...
+        +   keypress_count()
             +   ...
             +   ...
-        +   ...
-            +   ...
-            +   ...
-        +   ...
-            +   ...
-            +   ...
+        +   keypress_list()
+        +   keypress_tuple()
+        +   keypresses_json()  original JSON repr
+        +   keypresses_repr()  original JSON content as Python objects
+        +   command()
+        +   command_json()     command string as JSON repr
+        +   command_repr()     debug repr of command
+        +   has_args()         True if there were any args.
+        +   args_dict()        Args as Python dict (None if there was no "args" entry)
+        +   args_json()        Args as JSON repr (empty string if there were no args)
+        +   args_repr()        Args as debug repr
+        +   command_as_function_repr()
+            +   Command + args in this format:  command_name({"arg_name": value, ...})
+        +   has_context()      Was a "context" entry in original binding object?
+        +   context_list()     List of "context" entry condition dictionaries.
+        +   context_json()     Original JSON context repr
+        +   context_formatted_json()  Like context_json() but with some formatting applied.
+        +   context_readable_repr()   More human-readable JSON repr
+        +   context_readable_minimal_repr()
+            +   More human-readable JSON repr: context_readable_repr() with
+                default values removed.
+        +   smart_context()    Reference to ``SmartContext`` object or None if there
+                                 was no "context" entry in original JSON binding.
+        +   source()
+            +   PackageName/Default ($platform).sublime-keymap, or
+            +   PackageName/Default.sublime-keymap
+        +   parts()            Tuple:  keypress_tuple, cmd, args, ctxt, src
+        +   applies_in_same_context(other)  Does ``other`` apply in same context as ``self``?
+        +   can_override(other)  Can ``self`` override ``other`` in any editing context?
+        +   formatted()        Full formatted representation:
+            +   Optional:  indent level and whether to include source of binding.
+        +   str(binding)       Normal repr
+        +   repr(binding)      Debug repr
     3.  It can be requested to change KeyBinding objects as follows:
-        +   ...
-            +   ...
-            +   ...
-        +   ...
-            +   ...
-            +   ...
-        +   ...
-            +   ...
-            +   ...
+        +   Change happens only at instantiation time.
+
+B.  There is a concept of a ``ReportKeyBinding`` object (inherits from ``KeyBinding``).
+
+    1.  It has (in addition to KeyBinding attributes and methods):
+        +   _modifier_codes (list[int])
+            +   list of modifier codes (flags OR-ed from ModifierKeyBits bits)
+    3.  It can be asked:
+        +   Same queries as for ``KeyBinding``
+        +   modifier_codes()
+            +   list of modifier codes (flags OR-ed from ModifierKeyBits bits)
+        +   args_rst()         Args in reStructuredText repr
+        +   keypresses_human_friendly_list()  list[str] of human-friendly keypress repr
+            +   Example:  "Ctrl-Shift-B"
+        +   keypresses_human_friendly_rst_list()  list[str] of reST keypress repr:
+            +   Example:  :kbd:`Ctrl-Shift-B`
+        +   command_as_function_rst()
+            +   Like command_as_function_repr() but suitable for reST format.
+    4.  It can be requested to change KeyBinding objects as follows:
+        +   Change happens only at instantiation time.
 
 
-KeyBinding Data Flow
-====================
+
+Data Flow
+*********
 
 KeyBinding is in the inheritance tree to ReportKeyBinding class.
 ReportKeyBinding objects are used to populate 2 data structures
@@ -630,7 +680,7 @@ class KeyBinding:
 
         return result
 
-    def context_original_json(self) -> str:
+    def context_formatted_json(self) -> str:
         result = ''
 
         if self._context is not None:

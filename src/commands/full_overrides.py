@@ -1,9 +1,10 @@
-"""
-Report Key Bindings that fully override other key bindings.
-***********************************************************
+"""************************************************************************
+Report Key Bindings that fully override other key bindings
+**********************************************************
 
 See ``context_overrides.py`` docstring for detailed description.
 """
+
 from datetime import datetime
 import sublime_plugin
 from ...lib.debug import DebugBits, is_debugging

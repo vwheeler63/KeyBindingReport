@@ -1,4 +1,4 @@
-"""
+"""************************************************************************
 Report Key Bindings that override other key bindings.
 *****************************************************
 
@@ -21,7 +21,7 @@ Overview
 Conflicts among key bindings are not only important, but are difficult to
 detect by humans.  As an example of how tricky this area can be, on
 17-Mar-2022 an enhancement for the `"` and `'` key bindings in the
-shipped Python Package introduced a conflict against the bindings for those
+shipped Python Package introduced a conflict with the bindings for those
 keys from the Default Package.  The enhancement for `"` was to NOT
 introduce a paired double-quote when the selection was inside a Python
 double-quoted string.  The enhancement for `'` was to do the same for
@@ -39,19 +39,19 @@ days later.
 To make the point:  how tricky is the area of key-binding conflicts?
 Answer:
 
-    These conflicts remained undetected in a mainstream Sublime |nbsp| Text
+    These conflicts remained undetected in a mainstream Sublime Text
     Package for 4 years.
 
 Towards answering the need for tools in this area, Package author
-Scott |nbsp| Kuroda wrote and released the ``FindKeyConflicts`` Package on
-8-Nov-2012. Version 1, 2 and 3 were released in short succession over the
+Scott Kuroda wrote and released the ``FindKeyConflicts`` Package on
+8-Nov-2012.  Version 1, 2 and 3 were released in short succession over the
 next 3 days.
 
 The name itself tends to fill one with hope that it will find problems in
 your key binding arrangement.  However, what it actually does is report
 where there is more than one binding that involves a single keypress or
 keypress sequence, which is quite common and normal.  Even an unmodified
-new Sublime |nbsp| Text installation has well over 70 of these, and none of
+new Sublime Text installation has well over 70 of these, and none of
 them are actual binding conflicts.
 
 Example, these are reported as Key Conflicts for the key bindings to the
@@ -83,7 +83,7 @@ overlapping contexts?"  The real answer is:
        move                                     Python                [{"key": "setting.auto_match_enabled"}, {"key": "selector", "operand": "source.python"}, {"key": "selection_empty", "match_all": true}, {"key": "following_text", "operand": "^\"", "operator": "regex_contains", "match_all": true}, {"key": "selector", "operand": "punctuation.definition.string.begin", "operator": "not_equal", "match_all": true}, {"key": "eol_selector", "operand": "string.quoted.double - punctuation.definition.string.end", "operator": "not_equal", "match_all": true}]
 
 Note that these are straight out of the Packages shipped with
-Sublime |nbsp| Text.
+Sublime Text.
 
 These bindings are not, in fact, conflicted because they operate in
 distinctly separate environments such that none of these bindings actually
@@ -192,17 +192,17 @@ there are both single- and multi-keypress key bindings with the same
 leading keypress.  Fortunately, this is easy to test for, and would, in
 many cases, be unintentional.
 
-However, Sublime |nbsp| Text mitigates this by doing something constructive
+However, Sublime Text mitigates this by doing something constructive
 when this situation occurs.  In fact, there is such an example in the
 `sublime-rst-completion` Package:  "ctrl+t" is used as a leading keypress
-in 7 multi-keypress bindings, whereas Sublime |nbsp| Text Default Package
+in 7 multi-keypress bindings, whereas Sublime Text Default Package
 binds "ctrl+t" alone to the "transpose" command (swaps 2 characters on
 either side of the selection).
 
 Interestingly, this actually does not create a problem.  Here is why.  In
 the environment where the multi-keypress bindings apply that use "ctrl+t"
 as the leading keypress, simply repeating the keypress again causes
-Sublime |nbsp| Text to discover:
+Sublime Text to discover:
 
 - that there is not binding for ``["ctrl+t", "ctrl+t"]``, and
 - there is a single-keypress binding for ``["ctrl+t"]``,
@@ -254,10 +254,45 @@ Detecting the Problem Presented in the Overview
 ===============================================
 
 What would it take to detect the key-binding conflict discovered in the Python
-Package?
+Package?  Getting the ``KeyBindingReport`` Package is a good start.
 
-.. todo:: fill in, and preferably ensure the KeyBindingReport Package
-          has such a report, and prove it with THE actual example.
+Its report called:
+
+    KeyBindingReport: All Keypress Combinations in All Installed Packages
+
+shows all keypresses (including those not bound), context details, and the source
+Package each binding came from, and the bindings for ``"`` and ``'`` (double- and
+single-quote keys) would show the "back-to-back" series of key-binding overrides
+showing that while the ``Default`` Package has 3 bindings for each of them, the
+``Python`` Package had only one binding for each, which is enough to raise suspicions
+and attract attention.
+
+Here are the results for the unmodified double-quote keypress at the time the above
+conflict in the Python key bindings was detected:
+
+.. code-block:: text
+
+   Key      Footnote  Command                Args                                    Source
+    "         (81)  insert_snippet           {"contents": "\"$0\""}                  Default/Default (Windows).sublime-keymap
+    "         (82)  insert_snippet           {"contents": "\"${0:$SELECTION}\""}     Default/Default (Windows).sublime-keymap
+    "         (83)  move                     {"by": "characters", "forward": true}   Default/Default (Windows).sublime-keymap
+    "         (84)  insert_snippet           {"contents": "\"$0\""}                  CSS/Default.sublime-keymap
+    "         (85)  insert_snippet           {"contents": "\"$0\""}                  Java/Default.sublime-keymap
+    "         (86)  insert_snippet           {"contents": "\"$0\""}                  JSON/Default.sublime-keymap
+    "         (87)  insert                   {"characters": "\""}                    Python/Default.sublime-keymap
+    "         (90)  move                     {"by": "characters", "forward": true}   Python/Default.sublime-keymap
+    "         (91)  lsp_json_auto_complete                                           LSP-json/Default.sublime-keymap
+
+Footnotes (81-91) show the context conditions formatted in a nicely-readable format.
+
+Note how the lone binding from the ``Python/Default.sublime-keymap`` keymap file
+stands out as overriding ALL of the the double-quote keypresses before it.  Its
+context activated this key binding when Python files were being edited.  The same
+was true for the unmodified single-quote keypress.
+
+Further, the Command that runs this report can be run for specific keypresses, and the
+``"`` and ``'`` bindings (with no modifier keys) would also show the same detail, but
+it would be isolated to just those 2 keypresses.
 
 """
 from datetime import datetime

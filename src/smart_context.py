@@ -7,24 +7,31 @@ Sublime Text Key-Binding Contexts...
 - represent contexts as a part of KeyBinding objects, and
 
 - do system-wide context queries to determine if a particular key
-  binding applies to the current context (editing circumstances).
+  binding applies to the current editing context (circumstances).
+
 
 
 How SmartContext Works:
-=======================
+***********************
 
 See http://crystal-clear-research.com/docs/quickrefs/sublime_text/key_bindings.html#context
 for terminology and understandings required to use this module.
 
 
+
 Summary
-=======
+*******
 
 In the below, from a high level, a `context` is a list of conditions
-that all must be true for a key binding to be selected by Sublime Text.
+that all must be true for a key binding to be used by Sublime Text.
+If a key binding has no `context`, then it applies to all editing
+contexts (circumstances).
 
-From a lower level, a `context` is a list of dictionary objects with
-a specific format:
+From a lower level, a `context` is a list of dictionary objects, each
+representing one of the conditions that must be fulfilled for a key
+binding to used in a given editing context.
+
+It is a JSONC object (JSON with comments), and has this format:
 
 .. code-block:: json
 
@@ -44,28 +51,32 @@ a specific format:
     }
 
 
+
 Design
-======
+******
 
 A.  SmartContext module.
 
     1.  It has:
-        +   a full live collection of `on_query_context()` listeners
+        +   `_on_query_context_listener_list`:  a full live collection of
+            `on_query_context()` listeners, used internally by
+            `SmartContext` objects.  See below.
             +   Called when one of the "key" values (condition names) is not
                 among the recognized set.  This list is called until a
                 ``True`` or ``False`` is returned (value not ``None``).
                 That result is the test result.
 
-                These are loaded when this module is loaded.  Avg time:  0.09 sec.
+                These are loaded just once when this module is loaded.  Avg time:  0.09 sec.
 
-        +   a full live collection of Snippet triggers in a dictionary
+        +   `_snippets_by_trigger`:  a full live collection of Snippet
+            triggers in a dictionary, with trigger strings as keys.
             +   There are 3 context conditions that have to do with
                 Snippets and 1 of them (has_snippet) requires parsing the
                 actual snippet files and collecting triggers to determine
                 whether the condition tests TRUE or not.  This collection
                 is used when that context condition shows up.
 
-                These are loaded when this module is loaded.  Avg time:  0.11 sec.
+                These are loaded just once when this module is loaded.  Avg time:  0.11 sec.
 
     2.  It can be asked:
         +   Are we debugging?                (bool)
@@ -75,6 +86,8 @@ A.  SmartContext module.
         +   _context_tests_by_name           (dict)
         +   _operator_codes_by_name          (dict)
 
+        These are all used internally by `SmartContext` objects.
+
 B.  ContextCondition Object.
 
     See ContextCondition docstring.
@@ -82,7 +95,7 @@ B.  ContextCondition Object.
 C.  SmartContext Object.
 
     1.  It has:
-        +   list of ContextCondition objects
+        +   list of `ContextCondition` objects
     2.  It can be asked:
         +   query(self, view)
             +   Does context match current circumstances with `view`, window, etc.?
@@ -100,8 +113,9 @@ C.  SmartContext Object.
             passed-in binding.
 
 
+
 Data Flow
-=========
+*********
 
 When this module is loaded, it loads up the required reference data
 from the Sublime Text environment (on_query_context() listeners and

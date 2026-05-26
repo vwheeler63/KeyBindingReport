@@ -1,3 +1,11 @@
+"""************************************************************************
+Key-Binding Report
+******************
+
+This logic is launched via the ``KeyBindingReportCommand`` command at the
+end of this file.  The details of the algorithm are in the docstring for
+that command.
+"""
 import os
 from typing import Iterable
 from datetime import datetime
@@ -18,7 +26,7 @@ from .. import output
 
 _report_title          = f'{core.package_name}:  Specified Key-Bindings ({{$platform}})'
 _report_short_title    = 'Key-Binding Report ({$platform})'
-_flags_format_spec_bin = '014_b'
+_flags_format_spec_bin = '018_b'
 _flags_format_spec_hex = '04X'
 
 
@@ -471,8 +479,9 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         - limit_to_packages  e.g. ['Default', 'User']
         - limit_to_context   e.g. True
 
+
         Parameters:
-        -----------
+        ===========
         :param self:
             Command object connected to Application
 
@@ -502,9 +511,10 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             ``None`` or ``[]`` when not applicable.  Default:  ``None``.
 
         :param limit_to_packages:
-            Optional:  list of package names that the gathered key-binding
-            data should be limited to. ``None`` or ``[]`` means to gather
-            data from all installed packages.  Default:  ``None``.
+            Optional:  case-sensitive list of package names that the gathered
+            key-binding data should be limited to.  ``None`` or ``[]`` means
+            to gather data from all installed packages.  Default:
+            ``None``.
 
         :param limit_to_context:
             True means:  exclude from data gathered:  key bindings whose
@@ -529,108 +539,111 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
 
         Usage:
-        ------
+        ======
 
         1.  Run one of the commands that start with "KeyBindingReport:"" in the
             Command Palette.
 
         2.  Example running the command from a Plugin:
 
-                args = {'key_groups': [1], 'key_names': ['q', 'w', 'e', 's']}
-                view.run_command('key_binding_report', args)
+                args = {"key_groups": [1], "key_names": ["q", "w", "e", "s"]}
+                view.run_command("key_binding_report", args)
 
         3.  Example Binding to a Key:
 
-        {
-            "keys": ["f4"],
-            "command": "key_binding_report",
-            "args": {
-                // class KeyGroup(IntEnum):
-                //     NUMBER_KEYS    =  0  # \
-                //     LETTER_KEYS    =  1  #  \
-                //     F_KEYS         =  2  #   \__ These index into ``key_name_groups``.
-                //     SYMBOL_KEYS    =  3  #   /
-                //     NAMED_KEYS     =  4  #  /
-                //     KEYPAD_KEYS    =  5  # /
-                //
-                //     FIRST          =  0  # Used in range checks, e.g. FIRST <= x <= LAST.
-                //     LAST           =  5  # Used in range checks, e.g. FIRST <= x <= LAST.
-                //
-                //     KEY_SEQUENCES  =  6  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
-                //     ALL            =  7  # Equivalent to specifying all groups [FIRST-LAST] + KEY_SEQUENCES.
-                "key_groups"   : [1],
-                "key_names"    : ["q", "w", "e", "s"],
-                "keypress_list": [["ctrl+p"], ["ctrl+shift+p"], ["ctrl+k", "ctrl+u"]],
-                "limit_to_packages"     : ["Default"],
+            {
+                "keys": ["f4"],
+                "command": "key_binding_report",
+                "args": {
+                    // class KeyGroup(IntEnum):
+                    //     NUMBER_KEYS    =  0  # \
+                    //     LETTER_KEYS    =  1  #  \
+                    //     F_KEYS         =  2  #   \__ These index into ``key_name_groups``.
+                    //     SYMBOL_KEYS    =  3  #   /
+                    //     NAMED_KEYS     =  4  #  /
+                    //     KEYPAD_KEYS    =  5  # /
+                    //
+                    //     FIRST          =  0  # Used in range checks, e.g. FIRST <= x <= LAST.
+                    //     LAST           =  5  # Used in range checks, e.g. FIRST <= x <= LAST.
+                    //
+                    //     KEY_SEQUENCES  =  6  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
+                    //     ALL            =  7  # Equivalent to specifying all groups [FIRST-LAST] + KEY_SEQUENCES.
+                    "key_groups"   : [1],
+                    "key_names"    : ["q", "w", "e", "s"],
+                    "keypress_list": [["ctrl+p"], ["ctrl+shift+p"], ["ctrl+k", "ctrl+u"]],
+                    "limit_to_packages"     : ["Default"],
 
-                // class Format(IntEnum):
-                //     # Formats supported by Generator
-                //     BARE             = 0
-                //     OUTLINED         = 1
-                //     OUTLINED_COLUMNS = 2
-                //     RESTRUCTUREDTEXT = 3
-                "fmt": 1,
+                    // class Format(IntEnum):
+                    //     # Formats supported by Generator
+                    //     BARE             = 0
+                    //     OUTLINED         = 1
+                    //     OUTLINED_COLUMNS = 2
+                    //     RESTRUCTUREDTEXT = 3
+                    "fmt": 1,
 
-                // class FlagBits(IntFlag):
-                //     # Output Flags
-                //     INCLUDE_UNBOUND_KEYPRESSES        = 0x0001  #     1
-                //     INCLUDE_UNBOUND_KEYPRESSES_ONLY   = 0x0002  #     2
-                //     INCLUDE_UNTRANSLATED_CONTEXTS     = 0x0004  #     4
-                //     INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0x0008  #     8
-                //     ADD_SOURCE_COLUMN                 = 0x0010  #    16
-                //     ADD_COMMENTS_COLUMN               = 0x0020  #    32
-                //     TABLE_KEY_AFTER_TABLE             = 0x0040  #    64
-                //     INCLUDE_WINDOWS_KEY               = 0x0080  #   128
-                //     SEPARATE_TABLES_BY_KEY_GROUPS     = 0x0100  #   256
-                //     OUTPUT_TO_FILES                   = 0x0200  #   512
-                //     ALL_PLATFORMS                     = 0x0400  #  1024
-                //
-                //     # Utility Bits
-                //     ANY_UNBOUND_KEYPRESSES            = 0x0001 | 0x0002  #     3
-                //     ANY_CONTEXT_REQUESTED             = 0x0004 | 0x0008  #    12
-                //     NONE                              = 0x0000           #     0
-                //     ALL                               = 0xFFFF           # 65535
-                //     ANY                               = 0xFFFF           # 65535
-                "flags":  11,  // unbound key combinations, contexts, source Package
-                // "flags":  78,  // NO unbound key combinations, windows key, contexts, natural language, source Package
-                // "flags": 139,  // separate tables tables
-                // "flags": 267,  // all 1 table, to files
-                // "flags": 395,  // separate tables tables, to files
-                // "flags": 387,  // separate tables tables, no source col, to files
-                // "flags": 899,  // separate tables tables, no source col, to files, all platforms
-                // "flags": 963,  // separate tables tables, no source col, include_windows_key, to files, all platforms
-                // "flags": 903,  // separate tables tables, no source col, to files, all platforms, natural language translation
+                    // class FlagBits(IntFlag):
+                    //     # Output Flags
+                    //     INCLUDE_UNBOUND_KEYPRESSES        = 0x0001  #     1
+                    //     INCLUDE_UNBOUND_KEYPRESSES_ONLY   = 0x0002  #     2
+                    //     INCLUDE_UNTRANSLATED_CONTEXTS     = 0x0004  #     4
+                    //     INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0x0008  #     8
+                    //     ADD_SOURCE_COLUMN                 = 0x0010  #    16
+                    //     ADD_COMMENTS_COLUMN               = 0x0020  #    32
+                    //     TABLE_KEY_AFTER_TABLE             = 0x0040  #    64
+                    //     INCLUDE_WINDOWS_KEY               = 0x0080  #   128
+                    //     SEPARATE_TABLES_BY_KEY_GROUPS     = 0x0100  #   256
+                    //     OUTPUT_TO_FILES                   = 0x0200  #   512
+                    //     ALL_PLATFORMS                     = 0x0400  #  1024
+                    //
+                    //     # Utility Bits
+                    //     ANY_UNBOUND_KEYPRESSES            = 0x0001 | 0x0002  #     3
+                    //     ANY_CONTEXT_REQUESTED             = 0x0004 | 0x0008  #    12
+                    //     NONE                              = 0x0000           #     0
+                    //     ALL                               = 0xFFFF           # 65535
+                    //     ANY                               = 0xFFFF           # 65535
+                    //
+                    "flags":  21,      // unbound,     , contexts,         , src,    ,          ,    ,           ,      ,
+                    // "flags": 156,   // unbound,     , contexts, nat_lang, src,    ,          , win,           ,      ,
+                    // "flags": 277,   // unbound,     , contexts,         , src,    ,          ,    , sep_tables,      ,
+                    // "flags": 533,   // unbound,     , contexts,         , src,    ,          ,    ,           , files,
+                    // "flags": 789,   // unbound,     , contexts,         , src,    ,          ,    , sep_tables, files,
+                    // "flags": 773,   // unbound,     , contexts,         ,    ,    ,          ,    , sep_tables, files,
+                    // "flags": 1797,  // unbound,     , contexts,         ,    ,    ,          ,    , sep_tables, files, all_plat
+                    // "flags": 1925,  // unbound,     , contexts,         ,    ,    ,          , win, sep_tables, files, all_plat
+                    // "flags": 1805,  // unbound,     , contexts, nat_lang,    ,    ,          ,    , sep_tables, files, all_plat
 
-                // "platform_code": "osx",
+                    // "platform_code": "osx",
+                },
             },
-        },
+
+        See also:  ``KeyBindingReport.sublime-commands`` for more examples.
 
 
         Ways to Use This Report
-        -----------------------
+        =======================
 
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
         | Description                   |packages   |key_groups   |key_names | keypress_list                          |
         +===============================+===========+=============+==========+========================================+
-        | By Package:  output all key   |['pkgname']|    None     |   None   |    None                                |
+        | By Package:  output all key   |["pkgname"]|    None     |   None   |    None                                |
         | bindings contained in Package |           |             |          |                                        |
         | (e.g. Default or a 3rd-party  |           |             |          |                                        |
         | Package)                      |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified key limited      |['pkgname']|    None     |['a', ...]|    None                                |
+        | By specified key limited      |["pkgname"]|    None     |["a", ...]|    None                                |
         | to a Package:  output all     |           |             |          |                                        |
         | of key's binding(s)           |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified key:  output     |   None    |    None     |['a', ...]|    None                                |
+        | By specified key:  output     |   None    |    None     |["a", ...]|    None                                |
         | that key's bindings in all    |           |             |          |                                        |
         | Packages that contain         |           |             |          |                                        |
-        | binding(s) for that key       |           |             |          |                                        |
+        | bindings for that key         |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
         | By specified ``KeyGroup``     |   None    |[F_KEYS, ...]|   None   |    None                                |
         | using bindings from all       |           |             |          |                                        |
         | Packages.                     |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified ``KeyGroup``     |['pkgname']|[F_KEYS, ...]|   None   |    None                                |
+        | By specified ``KeyGroup``     |["pkgname"]|[F_KEYS, ...]|   None   |    None                                |
         | limited to a Package.         |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
         | By specified ``keypress_list``|   None    |    None     |   None   |[["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]]|
