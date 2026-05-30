@@ -8,16 +8,17 @@ if __package__ is not None:
     reload(__package__, ('debug', 'utils', 'output_view', 'ascii_table'))
 
 # These imports are *below* the calls to ``reload()`` because when they are
-# above them, the calls to ``reload()`` then reloads the just-imported
+# above the calls to ``reload()``, then the reloads re-load the just-imported
 # modules---double work:  unnecessary.  Whereas, when they are below the
 # calls to ``reload()``, then by design, the first time these modules are
 # loaded, the calls to ``reload()`` do nothing, and the import statements
-# do the work.
+# do the loading work.
 #
 # In contrast, while the Package is being developed or enhanced, saving the
 # top-level Plugin (or when the Package is updated by the ``PackageDev``
 # Package during run time), causes the ``reload()`` calls to do their job
 # of reloading updated modules, and the import statements to do nothing.
+#
 # This is by design.
 from . import debug          # noqa: E402
 from . import utils          # noqa: E402

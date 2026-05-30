@@ -154,7 +154,6 @@ import sublime
 from sublime import QueryOperator
 import sublime_plugin
 from ..lib.debug import DebugBits, is_debugging
-from . import key_binding
 
 
 
@@ -1870,25 +1869,25 @@ class SmartContext:
         'binding',    # For better debugging output and error messages.
     ]
 
-    def __init__(self, binding: key_binding.KeyBinding, language_code: str = _language_code_english):
+    def __init__(self, binding, language_code: str = _language_code_english):
         """
         Precondition:  ``binding`` must have a "context" entry.
 
-        :param binding:  for better debug output
-        :param path:     for better debug output
+        :param binding:        Parent key binding (used only in error messages)
+        :param language_code:  Used by ``natural_language_repr()``.
         """
         condition_list = binding.context_list()
         if condition_list is None:
             raise AssertionError('`binding` "context" entry not present.')
 
-        conditions: list[ContextCondition] | None = None
-        if len(condition_list) > 0:
-            conditions = []
-            for condition_dict in condition_list:
-                conditions.append(ContextCondition(condition_dict, language_code))
+        conditions: list[ContextCondition] = []
+
+        if len(conditions) > 0:
+            for cond_dict in conditions:
+                conditions.append(ContextCondition(cond_dict, language_code))
 
         self.conditions = conditions
-        self.binding    = binding
+        self.binding = binding
 
     def __str__(self):
         """
