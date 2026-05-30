@@ -148,7 +148,6 @@ import json
 from enum import IntEnum
 import importlib
 from datetime import datetime
-from typing import Concatenate
 from xml.etree import ElementTree as ET
 import sublime
 from sublime import QueryOperator
@@ -1440,10 +1439,10 @@ class ContextCondition:
         '_language_code_not_recognized_msg'
     ]
 
-    def __init__(self, condition_dict: dict, language_code: str = _language_code_english):
-        self._orig_definition_dict = condition_dict
+    def __init__(self, cond_dict: dict, language_code: str = _language_code_english):
+        self._orig_definition_dict = cond_dict
 
-        key = condition_dict[_key_key]
+        key = cond_dict[_key_key]
         if key.startswith('setting.'):
             self.key          = 'setting'
             self.setting_name = key[8:]
@@ -1451,22 +1450,22 @@ class ContextCondition:
             self.key          = key
             self.setting_name = ''
 
-        if _operator_key in condition_dict:
-            self.operator = condition_dict[_operator_key]
+        if _operator_key in cond_dict:
+            self.operator = cond_dict[_operator_key]
             self._orig_operator = self.operator
         else:
             self.operator = _default_operator
             self._orig_operator = None
 
-        if _operand_key in condition_dict:
-            self.operand = condition_dict[_operand_key]
+        if _operand_key in cond_dict:
+            self.operand = cond_dict[_operand_key]
             self._orig_operand = self.operand
         else:
             self.operand = _default_operand
             self._orig_operand = None
 
-        if _match_all_key in condition_dict:
-            self.match_all = condition_dict[_match_all_key]
+        if _match_all_key in cond_dict:
+            self.match_all = cond_dict[_match_all_key]
             self._orig_match_all = self.match_all
         else:
             self.match_all = _default_match_all
@@ -1966,7 +1965,7 @@ class SmartContext:
                             result = True
                             break
                     else:
-                        # result is already False, just break out of loop.
+                        # result is already False, just exit loop.
                         break
 
         return result
@@ -2137,8 +2136,7 @@ class SmartContext:
                     continue
                 else:
                     # on_query_context() listener just consulted knows about
-                    # this context test and reported, so we can break out
-                    # of the loop.
+                    # this context test and reported, so we can exit the loop.
                     if debugging:
                         print(f'  {query_result} reported by {listener}.')
                     found = True
@@ -2147,7 +2145,8 @@ class SmartContext:
 
             if not found:
                 msg = (
-                        f'  {self.__class__.__name__}:  key [{key}] not recognized.\n'
+                        f'  {self.__class__.__name__}:  key [{key}] not recognized\n'
+                        f'  including by an `on_query_context()` Listener.\n'
                         f'{self.binding.formatted(1, include_source = True)}'
                       )
                 print(msg)

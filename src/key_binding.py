@@ -116,7 +116,6 @@ See ``can_override()`` docstring.
 ***************************************************************************"""
 
 import json
-from typing import Iterable
 from enum import IntFlag
 from sublime_types import CommandArgs, Value
 from . import smart_context
@@ -323,9 +322,9 @@ def main_key_and_modifier_code(keypress_str: str) -> tuple[str, int]:
 #     return encoded_keypress_from_components(kn, mod_code)
 
 
-def modifier_flag_characters(modifier_code: int, mod_applies_char: str) -> tuple[str, str, str, str]:
+def modifier_flag_characters(modifier_code: int, mod_flag_char: str) -> tuple[str, str, str, str]:
     """
-    Tuple of ``mod_applies_char`` or space characters based on ``ModifierKeyBits``
+    Tuple of ``mod_flag_char`` or space characters based on ``ModifierKeyBits``
     set in ``modifier_code``.  Example:
 
     - ' ', ' ', ' ', ' ' <= no modifiers
@@ -357,22 +356,22 @@ def modifier_flag_characters(modifier_code: int, mod_applies_char: str) -> tuple
     space = ' '
 
     if modifier_code & ModifierKeyBits.SHIFT:
-        S = mod_applies_char
+        S = mod_flag_char
     else:
         S = space
 
     if modifier_code & ModifierKeyBits.CTRL:
-        C = mod_applies_char
+        C = mod_flag_char
     else:
         C = space
 
     if modifier_code & ModifierKeyBits.ALT:
-        A = mod_applies_char
+        A = mod_flag_char
     else:
         A = space
 
     if modifier_code & ModifierKeyBits.COMMAND:
-        W = mod_applies_char
+        W = mod_flag_char
     else:
         W = space
 
@@ -533,22 +532,24 @@ class KeyBinding:
         'keypresses',
     ]
 
-    def __init__(self, decoded_key_binding: dict[str, Value], source: str, source_entry_no: int):
+    def __init__(self, decoded_binding: dict[str, Value], source: str, source_entry_no: int):
         """
-        :param decoded_key_binding:  key binding decoded from JSON in .sublime-keymap
+        :param decoded_binding:  key binding decoded from JSON in .sublime-keymap
         :param path:                 for improved debug output
 
         By design, original decoded JSON values are kept
         """
-        if _keys_key not in decoded_key_binding or _command_key not in decoded_key_binding:
-            raise AssertionError(f'Invalid `decoded_key_binding` missing "keys" or "command" entry: {decoded_key_binding!r}')
+        if _keys_key not in decoded_binding:
+            raise AssertionError(f'Invalid `decoded_binding` missing "keys" entry: {decoded_binding!r}')
+        if _command_key not in decoded_binding:
+            raise AssertionError(f'Invalid `decoded_binding` missing "command" entry: {decoded_binding!r}')
 
         # -----------------------------------------------------------------
         # Keys
         # -----------------------------------------------------------------
-        keys = decoded_key_binding[_keys_key]
+        keys = decoded_binding[_keys_key]
         if keys is None or not isinstance(keys, list):
-            raise AssertionError(f'Invalid `decoded_key_binding`: "keys" entry was {keys!r}')
+            raise AssertionError(f'Invalid `decoded_binding`: "keys" entry was {keys!r}')
         self._keys = keys
 
         keypresses: list[Keypress] = []
@@ -556,7 +557,7 @@ class KeyBinding:
             if isinstance(keypress_str, str):
                 keypresses.append(Keypress(keypress_str))
             else:
-                raise AssertionError(f'Invalid `decoded_key_binding`: keypress entry was {keypress_str!r}')
+                raise AssertionError(f'Invalid `decoded_binding`: keypress entry was {keypress_str!r}')
 
         self.keypresses = keypresses
         #     TODO: use of ``Keypress`` has yet to prove that it simplifies
@@ -569,10 +570,10 @@ class KeyBinding:
         # -----------------------------------------------------------------
         # Command
         # -----------------------------------------------------------------
-        command = decoded_key_binding[_command_key]
+        command = decoded_binding[_command_key]
         if command is None:
-            raise AssertionError(f'Invalid `decoded_key_binding`: "command" entry was {command!r}')
-        command = decoded_key_binding[_command_key]
+            raise AssertionError(f'Invalid `decoded_binding`: "command" entry was {command!r}')
+        command = decoded_binding[_command_key]
         if isinstance(command, str):
             self._command = command
 
@@ -580,8 +581,8 @@ class KeyBinding:
         # Args
         # -----------------------------------------------------------------
         self._args: CommandArgs = None
-        if _args_key in decoded_key_binding:
-            args = decoded_key_binding[_args_key]
+        if _args_key in decoded_binding:
+            args = decoded_binding[_args_key]
             if isinstance(args, dict):
                 self._args = args
 
@@ -590,8 +591,8 @@ class KeyBinding:
         # -----------------------------------------------------------------
         self._smart_context: smart_context.SmartContext | None = None
 
-        if _context_key in decoded_key_binding:
-            self._context = decoded_key_binding[_context_key]
+        if _context_key in decoded_binding:
+            self._context = decoded_binding[_context_key]
             self._smart_context = smart_context.SmartContext(self)
         else:
             self._context = None
@@ -841,9 +842,9 @@ class ReportKeyBinding(KeyBinding):
     """
     # __slots__ = ['_smart_context', '_source', '_main_key_names', '_modifier_codes']
 
-    def __init__(self, decoded_key_binding: dict[str, Value], source: str, source_entry_no: int):
-        # Incorporate contents of `decoded_key_binding` into `self`.
-        super().__init__(decoded_key_binding, source, source_entry_no)
+    def __init__(self, decoded_binding: dict[str, Value], source: str, source_entry_no: int):
+        # Incorporate contents of `decoded_binding` into `self`.
+        super().__init__(decoded_binding, source, source_entry_no)
 
         #self._main_key_names = []
         self._modifier_codes = []
