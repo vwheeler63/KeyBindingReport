@@ -679,6 +679,8 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                     platform.osx_platform_code
                     )
 
+            t0 = datetime.now()
+
             for platform_code in platform_code_tuple:
                 platform.simulate_platform(platform_code)
 
@@ -706,6 +708,11 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
             # Finally, set back to normal platform again.
             platform.set_current_platform()
+
+            if debugging:
+                t4 = datetime.now()
+                print('    Time to report on all platforms : ', str(t4 - t0))
+
 
         else:
             if platform_code:
