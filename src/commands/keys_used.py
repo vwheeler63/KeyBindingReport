@@ -83,8 +83,8 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
                 keypress_tuple = tuple(decoded_binding['keys'])
 
                 for keypress_str in keypress_tuple:
-                    main_key_name, mod_key_list = \
-                            key_binding.main_key_and_mod_key_list(keypress_str)
+                    keypr = key_binding.Keypress(keypress_str)
+                    main_key_name = keypr.main_key_name
 
                     if main_key_name in main_key_counts:
                         main_key_counts[main_key_name] += 1
@@ -92,7 +92,7 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
                         main_key_counts[main_key_name] = 1
                         main_key_reported[main_key_name] = False
 
-                    for mod_key in mod_key_list:
+                    for mod_key in keypr.modifier_key_list:
                         if mod_key in mod_key_counts:
                             mod_key_counts[mod_key] += 1
                         else:

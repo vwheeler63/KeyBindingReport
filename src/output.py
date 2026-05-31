@@ -114,6 +114,7 @@ from enum import IntFlag
 from datetime import datetime
 from ..lib.debug import DebugBits, is_debugging
 from ..lib import ascii_table
+from ..lib import rst_utils
 from . import platform
 from . import core
 from . import data
@@ -376,7 +377,7 @@ def _append_rows_to_table_for_one_keypress(
             # Keys
             # ---------------------------------------------------------
             if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
-                tbl_key_name = key_binding.rst_escaped(main_or_2nd_key_name)
+                tbl_key_name = rst_utils.rst_escaped_for_table(main_or_2nd_key_name)
             else:
                 tbl_key_name = main_or_2nd_key_name
 
@@ -449,7 +450,7 @@ def _append_empty_row_to_table(
     # Keys
     # -----------------------------------------------------------------
     if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
-        tbl_key_name = key_binding.rst_escaped(main_key_name)
+        tbl_key_name = rst_utils.rst_escaped_for_table(main_key_name)
     else:
         tbl_key_name = main_key_name
 
@@ -772,7 +773,7 @@ def key_seq_tables(
     ---------------------
     by_key_seq_dict
         ("ctrl+k", "ctrl+up"):
-            [
+            [ <-- binding_list
                 ReportKeyBinding object,
                 ReportKeyBinding object,
                 ReportKeyBinding object,
@@ -799,7 +800,7 @@ def key_seq_tables(
     by_key_seq_dict = key_data.mdictByKeySquence
 
     # -----------------------------------------------------------------
-    # Discover set of leading keypresses.
+    # Build set of leading keypresses.
     # -----------------------------------------------------------------
     lead_keypr_str_set = set()
 
@@ -807,8 +808,9 @@ def key_seq_tables(
         leading_keypress_str = keypress_tuple_bep[0]
         lead_keypr_str_set.add(leading_keypress_str)
 
-    # `lead_keypr_str_set` now contains the list of unique
-    # leading keypress strings.  Example:
+    # `lead_keypr_str_set` now contains the list of unique leading
+    # keypress strings.  Example:
+    #
     # - "ctrl+j"
     # - "ctrl+k"
     # - "alt+k"
@@ -856,8 +858,8 @@ def key_seq_tables(
                 keypress_tuple = scored_keypress_tuple_bep.keypress_tuple
                 binding_list = by_key_seq_dict[keypress_tuple]
 
-                # Extract `mod_key_flag_char_tpl` from first binding.
-                mod_key_flag_char_tpl = key_binding.modifier_flag_characters(
+                # Extract `mod_key_flags_tpl` from first binding.
+                mod_key_flags_tpl = key_binding.modifier_flag_characters(
                         scored_keypress_tuple_bep.mod_code,
                         modifier_flag_symbol
                         )
@@ -865,7 +867,7 @@ def key_seq_tables(
                 footnote_num = _append_rows_to_table_for_one_keypress(
                         table,
                         scored_keypress_tuple_bep.second_main_key_name,
-                        mod_key_flag_char_tpl,
+                        mod_key_flags_tpl,
                         binding_list,
                         flags,
                         fmt,

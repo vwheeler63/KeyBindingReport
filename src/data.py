@@ -125,7 +125,15 @@ needed.  Such values are created something like this:
 .. code-block:: py
 
     modifier_code = 0
-    main_key_name, mod_key_name_list = main_key_and_mod_key_list(keypress_str)
+
+    if keypress_str.endswith('++'):
+        # Necessitated by the "ctrl++" entry for the Spanish keyboard.
+        main_key_name     = '+'
+        mod_key_name_list = keypress_str[:-2].split('+')
+    else:
+        key_list          = keypress_str.split('+')
+        main_key_name     = key_list.pop()
+        mod_key_name_list = key_list
 
     for mod_key in mod_key_name_list:
         if mod_key == 'shift':
@@ -144,7 +152,7 @@ needed.  Such values are created something like this:
             else:
                 modifier_code |= ModifierKeyBits.CTRL
         else:
-            raise AssertionError(f'{__package__}.main_key_and_modifier_code(): modifier key unrecognized: [{mod_key}].')
+            raise AssertionError(f'{__package__}.Keypress.__init__(): modifier key unrecognized: [{mod_key_name}].')
 
 
 
@@ -303,7 +311,7 @@ including the source ``.sublime-keymap`` it came from.
 
     by_key_seq_dict
         ("ctrl+k", "ctrl+up"):
-            [
+            [ <-- binding_list
                 ReportKeyBinding object,
                 ReportKeyBinding object,
                 ReportKeyBinding object,
@@ -546,7 +554,9 @@ class ScoredKeySequence:
             print('In ScoredKeySequence.__init__()...')
             print(f'  {keypress_tuple=}')
         self.keypress_tuple = keypress_tuple
-        main_key_name, mod_code = key_binding.main_key_and_modifier_code(keypress_tuple[1])
+        keypr = key_binding.Keypress(keypress_tuple[1])
+        main_key_name = keypr.main_key_name
+        mod_code = keypr.modifier_code
         self.second_main_key_name = main_key_name
         self.mod_code = mod_code
         self.seq_no = seq_no
@@ -699,7 +709,7 @@ class KeyBindingData:
         """
         by_key_seq_dict
             ("ctrl+k", "ctrl+up"):
-                [
+                [ <-- binding_list
                     ReportKeyBinding object,
                     ReportKeyBinding object,
                     ReportKeyBinding object,
@@ -1021,7 +1031,7 @@ class KeyBindingData:
         # -----------------------------------------------------------------
         # by_key_seq_dict
         #     ("ctrl+k", "ctrl+up"):
-        #         [
+        #         [ <-- binding_list
         #             ReportKeyBinding object,
         #             ReportKeyBinding object,
         #             ReportKeyBinding object,
@@ -1068,7 +1078,7 @@ class KeyBindingData:
         if len(keypress_list) > 1:
             # by_key_seq_dict
             #     ("ctrl+k", "ctrl+up"):
-            #         [
+            #         [ <-- binding_list
             #             ReportKeyBinding object,
             #             ReportKeyBinding object,
             #             ReportKeyBinding object,
@@ -1118,10 +1128,13 @@ class KeyBindingData:
             limit_to_packages = None
             self.gather(key_groups, key_names, [keypress_list], limit_to_packages, view)
 
-            main_key_name, mod_code = key_binding.main_key_and_modifier_code(keypress_list[0])
+            keypr = key_binding.Keypress(keypress_list[0])
+            main_key_name = keypr.main_key_name
+
             if main_key_name in self.mdictByMainKey:
                 binding_lists_by_mod_code = self.mdictByMainKey[main_key_name]
-                binding_list = binding_lists_by_mod_code[mod_code]
+                binding_list = binding_lists_by_mod_code[keypr.modifier_code]
+
                 if binding_list:
                     for binding in reversed(binding_list):
                         smart_context = binding.smart_context()
@@ -1534,8 +1547,10 @@ class KeyBindingData:
 
             for keypress_tuple in keys_tuples_set_copy:
                 if len(keypress_tuple) == 1:
-                    keypress = keypress_tuple[0]
-                    main_key_name, _ = key_binding.main_key_and_modifier_code(keypress)
+                    keypress_str  = keypress_tuple[0]
+                    keypr         = key_binding.Keypress(keypress_str)
+                    main_key_name = keypr.main_key_name
+
                     if main_key_name in include_key_name_set:
                         # Overlap
                         if debugging:
@@ -1824,7 +1839,7 @@ class KeyBindingData:
 
         by_key_seq_dict
             ("ctrl+k", "ctrl+up"):
-                [
+                [ <-- binding_list
                     ReportKeyBinding object,
                     ReportKeyBinding object,
                     ReportKeyBinding object,
@@ -1935,8 +1950,10 @@ class KeyBindingData:
                 # VITAL:  it's vital that `keypress_tuple_set` contains TUPLES
                 # since tuples can use operators like `==`, `!=` and `in`!
                 # ---------------------------------------------------------
-                keypress_str = keypress_tuple_bep[0]
-                main_key_name, mod_code = key_binding.main_key_and_modifier_code(keypress_str)
+                keypress_str  = keypress_tuple_bep[0]
+                keypr         = key_binding.Keypress(keypress_str)
+                main_key_name = keypr.main_key_name
+                mod_code      = keypr.modifier_code
 
                 is_in_keys_tuples_set = ((
                             (keypress_tuple_set is not None)
@@ -2030,7 +2047,7 @@ class KeyBindingData:
         """
         by_key_seq_dict
             ("ctrl+k", "ctrl+up"):
-                [
+                [ <-- binding_list
                     ReportKeyBinding object,
                     ReportKeyBinding object,
                     ReportKeyBinding object,

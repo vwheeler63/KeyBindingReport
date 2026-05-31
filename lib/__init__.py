@@ -5,7 +5,7 @@ if debugging:
     print(f'{__package__}  >>> module execution....')
 
 if __package__ is not None:
-    reload(__package__, ('debug', 'utils', 'output_view', 'ascii_table'))
+    reload(__package__, ('debug', 'rst_utils', 'output_view', 'ascii_table'))
 
 # These imports are *below* the calls to ``reload()`` because when they are
 # above the calls to ``reload()``, then the reloads re-load the just-imported
@@ -21,13 +21,13 @@ if __package__ is not None:
 #
 # This is by design.
 from . import debug          # noqa: E402
-from . import utils          # noqa: E402
+from . import rst_utils      # noqa: E402
 from . import output_view    # noqa: E402
 from . import ascii_table    # noqa: E402
 
 __all__ = [
     'debug',
-    'utils',
+    'rst_utils',
     'output_view',
     'ascii_table',
 ]
