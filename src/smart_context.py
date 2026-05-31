@@ -1881,8 +1881,8 @@ class SmartContext:
 
         conditions: list[ContextCondition] = []
 
-        if len(conditions) > 0:
-            for cond_dict in conditions:
+        if len(condition_list) > 0:
+            for cond_dict in condition_list:
                 conditions.append(ContextCondition(cond_dict, language_code))
 
         self.conditions = conditions
