@@ -470,7 +470,7 @@ class Keypress:
         self.modifier_code     = modifier_code
 
     def human_friendly_repr(self):
-        """ Ctrl=Alt-P """
+        """ Ctrl-Alt-P """
         parts = []
         parts.extend(self.modifier_key_list)
         parts.append(self.main_key_name)
