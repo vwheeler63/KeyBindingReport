@@ -74,12 +74,11 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
 
         t1 = datetime.now()
 
-        # TODO: rmv after testing.
         # Write verification/validation files.
-        main_key_path = r'r:\by_main_key.txt'
-        key_seq_path  = r'r:\by_key_seq.txt'
-        key_data.dump_to_files(main_key_path, key_seq_path)
-        key_data.dump_leading_keys_data(r'r:\leading_keys.txt')
+        # main_key_path = r'r:\by_main_key.txt'
+        # key_seq_path  = r'r:\by_key_seq.txt'
+        # key_data.dump_to_files(main_key_path, key_seq_path)
+        # key_data.dump_leading_keys_data(r'r:\leading_keys.txt')
         t2 = datetime.now()
 
         # =================================================================

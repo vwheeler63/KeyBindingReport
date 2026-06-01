@@ -346,11 +346,10 @@ class KeyBindingReportContextOverridesCommand(sublime_plugin.TextCommand):
         override_list = key_data.binding_overrides(self.view)
         t1 = datetime.now()
 
-        # TODO: rmv after testing.
         # Write verification/validation files.
-        main_key_path = r'r:\by_main_key.txt'
-        key_seq_path  = r'r:\by_key_seq.txt'
-        key_data.dump_to_files(main_key_path, key_seq_path)
+        # main_key_path = r'r:\by_main_key.txt'
+        # key_seq_path  = r'r:\by_key_seq.txt'
+        # key_data.dump_to_files(main_key_path, key_seq_path)
         t2 = datetime.now()
 
         # =================================================================
