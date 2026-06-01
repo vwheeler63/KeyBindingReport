@@ -407,6 +407,7 @@ def _generate_report(
     # -----------------------------------------------------------------
     # Finally, assemble parts into 1 string, and push to report View.
     # -----------------------------------------------------------------
+    content_parts.append('')
     content = '\n'.join(content_parts)
 
     view_tab_heading = _report_short_title.replace('{$platform}', platform.platform_name)
