@@ -546,10 +546,10 @@ def main_key_table(
 
     for main_key_name in by_main_key_dict:
         binding_lists_by_mod_code = by_main_key_dict[main_key_name]
-        key_has_bindings = any(binding_lists_by_mod_code)
+        has_no_key_bindings = not any(binding_lists_by_mod_code)
 
         # Do not iterate through (16) sub-items when none have bindings.
-        if not include_unbound_keypresses and not key_has_bindings:
+        if has_no_key_bindings:
             continue
 
         if include_unbound_keypresses:
@@ -675,10 +675,10 @@ def main_key_tables(
             # ``key_group_list`` was used to build the empty version of
             # it at the beginning of the data gathering.
             binding_lists_by_mod_code = by_main_key_dict[main_key_name]
-            key_has_bindings = any(binding_lists_by_mod_code)
+            has_no_key_bindings = not any(binding_lists_by_mod_code)
 
             # Do not iterate through (16) sub-items when none have bindings.
-            if not include_unbound_keypresses and not key_has_bindings:
+            if has_no_key_bindings:
                 continue
 
             if include_unbound_keypresses:
