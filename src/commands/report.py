@@ -49,7 +49,6 @@ def _report_specification_repr(
     indent = '  ' * indent_level
     parts = []
     parts.append(f'{indent}Specification:')
-    parts.append('')
 
     if key_groups:
         key_grp_list = []

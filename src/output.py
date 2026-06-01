@@ -277,7 +277,6 @@ def report_heading(title: str, note: str = '') -> str:
     if note:
         parts.append('')
         parts.append('Note:')
-        parts.append('')
         parts.append('    ' + note)
 
     return '\n'.join(parts)
