@@ -225,4 +225,112 @@ Pass a value for this argument when you want the report to be about a platform o
 
 
 
+### Example
+
+This key binding
+
+```jsx
+  {
+    "keys": ["super+f9"],
+    "command": "key_binding_report",
+    "args": {
+      "limit_to_packages": ["Default"],
+      "keypress_list": [["\""]],
+      "fmt": 1,
+      "flags":   13,  //   INCLUDE_UNBOUND_KEYPRESSES
+                      // | INCLUDE_UNTRANSLATED_CONTEXTS
+                      // | INCLUDE_NATURAL_LANGUAGE_CONTEXTS
+    },
+  },
+
+````
+
+generates this report:
+
+```
+***************************************************
+KeyBindingReport:  Specified Key-Bindings (Windows)
+***************************************************
+
+As of   :  31-May-2026 21:27
+Platform:  Windows
+
+Note:
+    Keypresses with empty Commands are not bound.
+
+Specification:
+    keypress_list     = [['"']]
+    limit_to_packages = ['Default']
+    limit_to_context  = False
+    format            = <Format.OUTLINED: 1>
+    flags             = 0x000D
+      - INCLUDE_UNBOUND_KEYPRESSES       :  0x0001
+      - INCLUDE_UNTRANSLATED_CONTEXTS    :  0x0004
+      - INCLUDE_NATURAL_LANGUAGE_CONTEXTS:  0x0008
+
+
+
+Single-Keypress Table
+*********************
+
+Key:
+     A = Alt
+     C = Ctrl
+     S = Shift
+  Ctxt = Context
+
++-------------------------------------------------------------------+
+|Key A C S Ctxt Command        Args                                 |
+| "        (1)  insert_snippet {"contents": "\"$0\""}               |
+| "        (2)  insert_snippet {"contents": "\"${0:$SELECTION}\""}  |
+| "        (3)  move           {"by": "characters", "forward": true}|
+| "      x                                                          |
+| "    x                                                            |
+| "    x x                                                          |
+| "  x                                                              |
+| "  x   x                                                          |
+| "  x x                                                            |
+| "  x x x                                                          |
++-------------------------------------------------------------------+
+```
+```jsx
+(1):
+    "context": [
+      { "key": "setting.auto_match_enabled" }
+        // Is the View-setting [auto_match_enabled] == true?,
+      { "key": "selection_empty"           , "match_all": true }
+        // Is selection empty (for all selections)?,
+      { "key": "following_text"            , "operator": "regex_contains"    , "operand": "^(?:\t| |\\)|]|\\}|>|$)", "match_all": true }
+        // Does regex "^(?:\t| |\\)|]|\\}|>|$)" match any of the text between left edge of selection and EOL (for all selections)?,
+      { "key": "preceding_text"            , "operator": "not_regex_contains", "operand": "[\"a-zA-Z0-9_]$", "match_all": true }
+        // Does regex "[\"a-zA-Z0-9_]$" match none of the text between BOL and the left edge of selection (for all selections)?,
+      { "key": "eol_selector"              , "operator": "not_equal"         , "operand": "string.quoted.double - punctuation.definition.string.end", "match_all": true }
+        // Does selector [string.quoted.double - punctuation.definition.string.end] NOT match scope at EOL (for all selections)?
+    ]
+(2):
+    "context": [
+      { "key": "setting.auto_match_enabled" }
+        // Is the View-setting [auto_match_enabled] == true?,
+      { "key": "selection_empty"           , "operand": false, "match_all": true }
+        // Is selection NOT empty (for all selections)?
+    ]
+(3):
+    "context": [
+      { "key": "setting.auto_match_enabled" }
+        // Is the View-setting [auto_match_enabled] == true?,
+      { "key": "selection_empty"           , "match_all": true }
+        // Is selection empty (for all selections)?,
+      { "key": "following_text"            , "operator": "regex_contains", "operand": "^\"", "match_all": true }
+        // Does regex "^\"" match any of the text between left edge of selection and EOL (for all selections)?,
+      { "key": "selector"                  , "operator": "not_equal"     , "operand": "punctuation.definition.string.begin", "match_all": true }
+        // Does selector [punctuation.definition.string.begin] NOT match scope at selection (for all selections)?,
+      { "key": "eol_selector"              , "operator": "not_equal"     , "operand": "string.quoted.double - punctuation.definition.string.end", "match_all": true }
+        // Does selector [string.quoted.double - punctuation.definition.string.end] NOT match scope at EOL (for all selections)?
+    ]
+```
+
+
+
+### See Also
+
 See also:  `class KeyBindingReportCommand` in `KeyBindingReport/src/commands/report.py`.  Each argument is documented in detail there.
