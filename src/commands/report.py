@@ -322,8 +322,6 @@ def _generate_report(
     # -----------------------------------------------------------------
     # Add Main-Key table parts.
     # -----------------------------------------------------------------
-    output.set_comments_column_width(60)
-
     if flags & output.FlagBits.SEPARATE_TABLES_BY_KEY_GROUPS:
         table_pkg_list = output.main_key_tables(key_data, flags, fmt, last_footnote_num)
         #     list[tuple] (table_pkg) each tuple containing:

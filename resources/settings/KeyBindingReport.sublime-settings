@@ -32,6 +32,16 @@
 	"output_directory_for_osx": "",
 
 	// --------------------------------------------------------------------
+	// Integer.  Default Comments-column width
+	// --------------------------------------------------------------------
+	// When a Comments column is included via the `flags` argument of the
+	// `key_binding_report` Command, this sets the default number of spaces
+	// that that column will contain.  This can be useful if you intend to
+	// copy the report into a document and/or print it, adding your own
+	// comments for a purpose of your choosing.
+	"default_comments_column_width": 35,
+
+	// --------------------------------------------------------------------
 	// String.  reStructuredText Container Name
 	// --------------------------------------------------------------------
 	// If not an empty string, when key-binding tables are output in
