@@ -6,36 +6,39 @@
 
 ## Reports Available
 
-As of this writing, there are 59 reports that this package can generate, plus an unlimited number of reports that can be created using custom calls to the "key_binding_report_keys_available" command (or the other commands), which you can set up:
+As of this writing, there are 59 reports that this package can generate, plus an unlimited number of reports that can be created using custom calls to the "key_binding_report" Command (or the other commands), which you can set up:
 
-- via any available key binding,
-- by calling `view.run_command("key_binding_report_keys_available", custom_args)` in any Plugin,
+- via an available key binding,
+- by calling `view.run_command("key_binding_report", custom_args)` from a Plugin,
 - by creating your own custom version of `KeyBindingReport/resources/commands/KeyBindingReport.sublime-command` in an Override Package,
 - or any other way Commands can be run in Sublime Text.
 
 All of the reports built into this with this package are accessed via the Command Palette and start with "KeyBindingReport:".
 
-Additionally:
-
-- you can open this file directly via `Preferences > Package Settings > KeyBindingReport > README`, and
-- you can change the settings for this package via `Preferences > Package Settings > KeyBindingReport > Settings`.
-
-The settings are documented individually in the default settings file.
 
 
+## Menu Options
 
-### Simple Reports
+- `Preferences > Package Settings > KeyBindingReport > README` to read this file in Sublime Text.
+- `Preferences > Package Settings > KeyBindingReport > Settings` to change settings for this Package.
 
-- **KeyBindingReport: Keys Used Report (Current Platform)**, generates Key-Binding Keys-Used Report:
+The Package settings are documented with each setting in the supplied default settings file.
 
-  Modifier Keys Used with how many times each.
-  Main Keys Used with how many times each.
+
+
+## Simple Reports
+
+- **KeyBindingReport: Keys Used Report (Current Platform)**, generates Key-Binding Keys-Used Report, which lists:
+
+  - Modifier Keys Used with how many times each;
+  - Main Keys Used with how many times each;
+  - Other Keys (with unexpected key names, if any, with how many times each).
 
   Optional argument (if you call it from your own Plugin):
 
-  platform_code:  "windows", "linux" or "osx" to simulate the specified platform.
+    platform_code: "windows", "linux" or "osx" to simulate the specified platform.
 
-- **KeyBindingReport: Keys Available Report (Current Platform)**, generates report of which generates a large table showing ONLY keypresses (key combinations) that do not have any key bindings associated with them, considering all installed Packages.  It is the equivalent of doing this from your own Plugin:
+- **KeyBindingReport: Keys Available Report (Current Platform)**, generates a report of showing ONLY keypresses (key combinations) that have no associated key bindings, considering all installed Packages.  It is the equivalent of doing this from your own Plugin:
 
   ```py
         flags = (
@@ -60,29 +63,121 @@ The settings are documented individually in the default settings file.
 
   ```
 
-- **KeyBindingReport: Which Binding?**, generates a Key-Binding Report for a specified keypress or keypress sequence, based on the context in current View.  This command may be run when keyboard focus is in any View, including input Views in any Panels (e.g. Find) or Overlays (e.g. Command Palette).  (For release v1.0 you will need to run this command yourself and pass the desired keypresses to inspect in its `keypress_list` argument, and optionally which platform to simulate in its optional `platform_code` argument.  The command for this included with this package shows an example of calling this Command with no arguments, which uses the default keypress list:  `["ctrl+k", "ctrl+u"]`.)
+- **KeyBindingReport: Which Binding?**, generates a Key-Binding Report for a specified keypress or keypress sequence, based on the context in current View.  This command may be run when keyboard focus is in any View, including input Views in any Panels (e.g. Find) or Overlays (e.g. Command Palette).  (For release v1.0 you will need to run this command yourself and pass the desired keypresses to report on in its `keypress_list` argument, and optionally which platform to simulate in its optional `platform_code` argument.  The command for this included with this package shows an example of calling this Command with no arguments, which uses the default keypress list:  `["ctrl+k", "ctrl+u"]`.)
 
-- **KeyBindingReport: Key-Binding Overrides**, reports Key Bindings that, considering their "context" entries, override other key bindings, considering all shipped, installed and custom Packages present on the current system.
+- **KeyBindingReport: Key-Binding Overrides**, reports Key Bindings that, considering their "context" entries, override other key bindings, considering all shipped, installed and custom Packages present on your system.
 
-- **KeyBindingReport: Key-Binding Overrides in Current Context**, is the same as the above, with the addition that the current context in the current View is also taken into consideration.
+- **KeyBindingReport: Key-Binding Overrides in Current Context**, is the same as the above, with the addition that the current context in the current View is also taken into account.  Bindings are excluded whose "context" entries do not match the current editing context.
 
 
 
-### KeyBindingReport: The Main Report
+## KeyBindingReport: The Main Report
 
 This report is implemented via the **KeyBindingReportCommand** (key_binding_report) Command.  While it is the most complex report to call in this Package, it is simultaneously the most powerful.  54 of the built-in reports shipped with this Package call this command with different arguments.
 
-This command reports about current key bindings present in your Sublime Text installation.  The report may be limited to:
+This command reports about current key bindings present in your Sublime Text installation.  The report may include:
 
-- a specified list of key names,
 - a specified list of key groups (e.g. F_KEYS, see below for full list),
+- a specified list of key names,
 - a specified list of specific keypresses (key combinations),
-- a specified list of Packages, or
-- any combination of the above.
 
-The arguments passed to the command also allow options for output format, what to include in the report, and what OTHER platform to simulate, if any.
+and may be limited to:
+
+- a specified list of Packages,
+
+or any combination of the above.
+
+The report may also exclude key bindings that do not match the current editing context.
+
+Also specifiable:
+
+- optional output format, default: OUTLINED
+- optional `flags` to specify things to include, and
+- an optional name for an alternate platform to report on:  e.g. "windows", "linux", or "osx".
 
 
+
+### Report Columns
+
+#### Columns Always Included
+
+- Key:  main key name
+- ⌘ Command key (always included on OSX platform, optional as [⊞] key by flag on Windows and Linux)
+- Alt-key modifier ([⌥ Option] key on OSX platform)
+- Ctrl-key modifier
+- Shift-key modifier
+- Context:  A footnote reference for details when the key binding contains a "context" entry
+- Command:  name of the Sublime Text Command bound to that keypress or keypress sequence
+- Args:  Optional arguments passed to the Command
+
+#### Optional Columns Available via `flags` Argument
+
+- Source (Package and filename of keymap file the binding came from)
+- Comments (useful if you intend to copy the report into a document and/or print it, adding your own comments for a purpose of your choosing).  The default width of this column is configurable.
+
+
+
+### Overview of How to Use Command's Arguments
+
+Have a look at this table to get the "gist" of how you can vary the arguments you pass to the command to generate different report content.  (The default for all of these arguments is `None` so if the report is run without passing any of these, the report will be empty.)
+
+Description | packages | key_groups | key_names | keypress_list
+----------- | :------: | :--------: | :-------: | :-----------:
+By Package: output all key bindings contained in Package (e.g. Default or a 3rd-party Package) | `["pkgname"]` | `None` | `None` | `None`
+By specified keys limited to a Package:  output all of key's binding(s) | `["pkgname"]` | `None` | `["a", ...]` | `None`
+By specified keys: output bindings for those keys in all Packages that contain bindings for those keys | `None` | `None` | `["a", ...]` | `None`
+By specified KeyGroup using bindings from all Packages | `None` | `[F_KEYS, ...]` | `None` | `None`
+By specified KeyGroup limited to a Package | `["pkgname"]` | `[F_KEYS, ...]` | `None` | `None`
+By specified `keypress_list` for all Packages | `None` | `None` | `None` | `[["ctrl+u"], ["ctrl
+
+
+
+### `key_groups` Argument
+
+Passing a value for this argument means to include those key groups in the report.  Example:  `[2,3]`.
+
+#### Available Key Groups
+
+The value for the `key_groups` argument is optional, and can be a possibly empty list of integers from the `KeyGroup` enumeration.  Keys from the specified groups will be added to the data gathered.  ``[KeyGroup.ALL]`` is equivalent to specifying all the other key groups.  Pass ``None`` or ``[]`` when not applicable.  Default:  ``None``.
+
+    NUMBER_KEYS    =  0
+    LETTER_KEYS    =  1
+    F_KEYS         =  2
+    SYMBOL_KEYS    =  3
+    NAMED_KEYS     =  4
+    KEYPAD_KEYS    =  5
+    KEY_SEQUENCES  =  6  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
+    ALL            =  7  # Equivalent to specifying all groups, e.g. [0,1,2,3,4,5,6]
+
+
+
+### `key_names` Argument
+
+Optional:  list of individual key names, e.g. ["space", "tab", "enter", "a", "b"].  Each key in this list will be included in the data gathered, including all possible key-modifier combinations with these keys.  Each key only has an impact on data gathered if it is found in `data.all_key_names` (which is a programmatically assembled list of all key names in `data.key_name_groups`).  `None` or `[]` when not applicable.  Default:  `None`.
+
+
+
+### `keypress_list` Argument
+
+Optional:  list of lists of "keypresses".  The inner lists have the same format as "keys" entries from JSON key bindings, and typically include modifier keys.  Example: `[["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]]`.  Passing this argument means:  include specified keypress/keypress sequences in report.  `None` or `[]` when not applicable.  Default:  `None`.
+
+
+
+### `limit_to_packages` Argument
+
+Optional:  case-sensitive list of package names that the gathered key-binding data should be limited to, e.g. `["Default", "User"]`.  `None` or `[]` means to gather data from all installed packages.  Default: `None`.
+
+
+
+### `limit_to_context` Argument
+
+Passing `True` for this argument means:  exclude key bindings whose "context" entries do not match the current editing context in the active View when the `key_binding_report` command was run.  The active View can be any View, including input and output views that are involved in Panels (e.g. one of the Find Panels) as well as Overlays (e.g. Command Palette).
+
+
+
+### `fmt` Argument
+
+Pass an integer for the `fmt` argument when you want to specify the output format for the report.  Example:  `0`.  Default:  `1`.
 
 #### Available Output Formats
 
@@ -95,20 +190,21 @@ The output format must be an integer having one of these values:
 
 
 
-#### What to Show in the Report
+### `flags` Argument:  What to Show in the Report
 
-The following are among options you can select from to include in the report, and these options can be combined in any number of ways.  Each is a flag bit in a `flags` argument.
+The following are among bits you can OR together to specify what to include in the report.  These bits can be combined in any combination.
 
-- include unbound key combinations (useful if you're looking for unbound key combinations you can use to bind to Commands of your choosing);
-- whether to include the raw (untranslated) contexts with each binding that has a "context" entry (formatted so they are nicely readable);
-- whether to include a natural-language translation of the contexts with each binding that has a "context" entry (English is currently the only supported language);
-- the key binding's source (i.e. Package and filename the binding came from);
-- whether to include a comments column (useful if you intend to copy the report into a document and manually edit it by adding comments for a purpose of your choosing, or print the report and hand-write comments in the comments column);
-- whether to include the [⊞] (Windows) key for Windows and Linux platforms (the [⌘ Command] key is always included on OSX because it is always heavily used);
-- whether to include the Table Key *after* the table instead of *before* (the default, see note below);
-- whether to group keys by key group, generating 1 table and 1 set of footnotes for each key group (numbers, letters, function keys, symbol keys, named keys, keypad keys);
-- whether to send output to a set of files in addition to a read-only report View on the screen (destination directory is configurable for each platform via Package settings.  The directory must already exist.  **Caution:** Same-named files within that directory are silently overwritten with each call to the command, so starting with an empty directory is recommended);
-- whether to include all platforms in the report.
+- `INCLUDE_UNBOUND_KEYPRESSES` (0x0001):  include unbound key combinations (useful if you're looking for unbound key combinations you can use to bind to Commands of your choosing).
+- `INCLUDE_UNBOUND_KEYPRESSES_ONLY` (0x0002):  include unbound key combinations, and *do not include* bound key combinations.
+- `INCLUDE_UNTRANSLATED_CONTEXTS` (0x0004):  include the raw (untranslated) contexts with each binding that has a "context" entry (formatted so they are nicely readable).
+- `INCLUDE_NATURAL_LANGUAGE_CONTEXTS` (0x0008):  include a natural-language translation of contexts with each binding that has a "context" entry (English is currently the only supported language).
+- `ADD_SOURCE_COLUMN` (0x0010):  include each key binding's source (i.e. Package + `.sublime-keymap` filename the binding came from).
+- `ADD_COMMENTS_COLUMN` (0x0020):  include a comments column of the configured width (useful if you intend to copy the report into a document and manually edit it by adding comments for a purpose of your choosing, or print the report and hand-write comments in the comments column).
+- `TABLE_KEY_AFTER_TABLE` (0x0040):  include the Table Key *after* the table instead of *before* it (the default, see note below).
+- `INCLUDE_WINDOWS_KEY` (0x0080):  include the [⊞] (Windows) key for Windows and Linux platforms (the [⌘ Command] key is always included on OSX because it is always heavily used).
+- `SEPARATE_TABLES_BY_KEY_GROUPS` (0x0100):  whether to group keys by key group, generating 1 table and 1 set of footnotes for each key group (numbers, letters, function keys, symbol keys, named keys, keypad keys).
+- `OUTPUT_TO_FILES` (0x0200):  whether to send output to a set of files in addition to a read-only report View(s) on the screen.  The destination directory is configurable for each platform.  The directory must already exist.  **Caution:** Same-named files within that directory are silently overwritten each time the Command is run, so using a directory *other than the live production versions of these files* is recommended.
+- `ALL_PLATFORMS` (0x0400):  whether to include all platforms in the report.
 
 Note:  the Table Key shows the meaning of abbreviated column names in the table.  It looks like this for the Windows platform when the Windows key is included in the report:
 
@@ -122,57 +218,11 @@ Key:
 ```
 
 
-### Columns Always Included
 
-- Key:  main key name
-- C:  command key (always included on OSX platform, optional as [⊞] key by flag on Windows and Linux)
-- A:  alt-key modifier ([⌥ Option] key on OSX platform)
-- C:  control-key modifier
-- S:  shift-key modifier
-- Context:  A footnote reference for details when the key binding contains a "context" entry
-- Command:  Sublime Text Command bound to that keypress or keypress sequence
-- Args:  Optional arguments passed to the command
+### `platform_code` Argument
 
-
-### Optional Columns Available via Flags Argument
-
-- Source (Package and filename of keymap file the binding came from)
-- Comments (useful if you intend to copy the report into a document and/or print it, adding your own comments for a purpose of your choosing)
+Pass a value for this argument when you want the report to be about a platform other than the one that is currently running.  Valid values:  "windows", "linux", or "osx" (all lower case).
 
 
 
-## Running **KeyBindingReportCommand** on Your Own
-
-See `class KeyBindingReportCommand` in `KeyBindingReport/src/commands/report.py`.  Each argument is documented in detail there.
-
-Have a look at this table to get the "gist" of how you can vary the arguments you pass to the command to generate different report content.  (The default for all of these arguments is `None` so if the report is run without passing any of these, the report will be empty.)
-
-```
-+-------------------------------+-----------+-------------+----------+------------------------+
-| Description                   |packages   |key_groups   |key_names | keypress_list          |
-+===============================+===========+=============+==========+========================+
-| By Package:  output all key   |["pkgname"]|    None     |   None   |    None                |
-| bindings contained in Package |           |             |          |                        |
-| (e.g. Default or a 3rd-party  |           |             |          |                        |
-| Package)                      |           |             |          |                        |
-+-------------------------------+-----------+-------------+----------+------------------------+
-| By specified key limited      |["pkgname"]|    None     |["a", ...]|    None                |
-| to a Package:  output all     |           |             |          |                        |
-| of key's binding(s)           |           |             |          |                        |
-+-------------------------------+-----------+-------------+----------+------------------------+
-| By specified key:  output     |   None    |    None     |["a", ...]|    None                |
-| that key's bindings in all    |           |             |          |                        |
-| Packages that contain         |           |             |          |                        |
-| bindings for that key         |           |             |          |                        |
-+-------------------------------+-----------+-------------+----------+------------------------+
-| By specified ``KeyGroup``     |   None    |[F_KEYS, ...]|   None   |    None                |
-| using bindings from all       |           |             |          |                        |
-| Packages.                     |           |             |          |                        |
-+-------------------------------+-----------+-------------+----------+------------------------+
-| By specified ``KeyGroup``     |["pkgname"]|[F_KEYS, ...]|   None   |    None                |
-| limited to a Package.         |           |             |          |                        |
-+-------------------------------+-----------+-------------+----------+------------------------+
-| By specified ``keypress_list``|   None    |    None     |   None   |[["ctrl+u"], ["ctrl+p"]]|
-| for all Packages.             |           |             |          |                        |
-+-------------------------------+-----------+-------------+----------+------------------------+
-```
+See also:  `class KeyBindingReportCommand` in `KeyBindingReport/src/commands/report.py`.  Each argument is documented in detail there.

@@ -116,6 +116,12 @@
 	//     KEY_SEQUENCES  =  6  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
 	//     ALL            =  7  # Equivalent to specifying all groups [FIRST-LAST] + KEY_SEQUENCES.
 
+	// ====================================================================
+	// Basic Reports -- Outlined Format
+	// ====================================================================
+	// --------------------------------------------------------------------
+	// Limited to Default Package
+	// --------------------------------------------------------------------
 	{
 		"caption": "KeyBindingReport: All Keypress Combinations in Default Package",
 		"command": "key_binding_report",
@@ -207,6 +213,9 @@
 		},
 	},
 
+	// --------------------------------------------------------------------
+	// For All Installed Packages
+	// --------------------------------------------------------------------
 	{
 		"caption": "KeyBindingReport: All Keypress Combinations for All Installed Packages",
 		"command": "key_binding_report",
@@ -293,7 +302,7 @@
 	// Binding List Report; reStructuredText Format
 	// ====================================================================
 	// --------------------------------------------------------------------
-	// Output to View
+	// Output to View -- Limited to Default Package
 	// --------------------------------------------------------------------
 	{
 		"caption": "KeyBindingReport: All Keypress Combinations in Default Package (reStructuredText)",
@@ -469,7 +478,7 @@
 	},
 
 	// --------------------------------------------------------------------
-	// Output to View + Files
+	// Output to View + Files -- Limited to Default Package
 	// --------------------------------------------------------------------
 	{
 		"caption": "KeyBindingReport: All Keypress Combinations in Default Package (reStructuredText) (Output to Files)",
@@ -562,6 +571,9 @@
 		},
 	},
 
+	// --------------------------------------------------------------------
+	// Output to View + Files -- For All Installed Packages
+	// --------------------------------------------------------------------
 	{
 		"caption": "KeyBindingReport: All Keypress Combinations for All Installed Packages (reStructuredText) (Output to Files)",
 		"command": "key_binding_report",
