@@ -537,6 +537,7 @@ def main_key_table(
 
     include_unbound_keypresses = flags & FlagBits.ANY_UNBOUND_KEYPRESSES
     include_no_bindings = flags & FlagBits.INCLUDE_UNBOUND_KEYPRESSES_ONLY
+    include_win_key = include_windows_key(flags)
     footnote_num = prev_footnote_num
     heading_row = _heading_row(flags)
     by_main_key_dict = key_data.mdictByMainKey
@@ -554,7 +555,10 @@ def main_key_table(
 
         if include_unbound_keypresses:
             # Include unbound keypresses.
-            for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
+            num_to_process = 16 if include_win_key else 8
+
+            for modifier_code in range(num_to_process):
+                binding_list = binding_lists_by_mod_code[modifier_code]
                 mod_key_flags_tpl = key_binding.modifier_flag_characters(modifier_code, modifier_flag_symbol)
 
                 if binding_list:
@@ -658,6 +662,7 @@ def main_key_tables(
 
     include_unbound_keypresses = flags & FlagBits.ANY_UNBOUND_KEYPRESSES
     include_no_bindings = flags & FlagBits.INCLUDE_UNBOUND_KEYPRESSES_ONLY
+    include_win_key = include_windows_key(flags)
     footnote_num = prev_footnote_num
     heading_row = _heading_row(flags)
     by_main_key_dict = key_data.mdictByMainKey
@@ -683,7 +688,10 @@ def main_key_tables(
 
             if include_unbound_keypresses:
                 # Include unbound keypresses.
-                for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
+                num_to_process = 16 if include_win_key else 8
+
+                for modifier_code in range(num_to_process):
+                    binding_list = binding_lists_by_mod_code[modifier_code]
                     mod_key_flags_tpl = key_binding.modifier_flag_characters(modifier_code, modifier_flag_symbol)
 
                     if binding_list:
