@@ -24,18 +24,18 @@ from . import platform
 # *************************************************************************
 
 # Use name of parent directory as `package_name`.
-_cfg_pkg_settings_file                   = package_name + '.sublime-settings'
+_cfg_pkg_settings_file                      = package_name + '.sublime-settings'
 
 # Track on-settings-changed listener.
-_cfg_on_settings_chgd_listener_id        = '_kbr_settings_changed_tag'
+_cfg_on_settings_chgd_listener_id           = '_kbr_settings_changed_tag'
 
 # Package Settings Names (most are used multiple times throughout this Plugin)
-_cfg_stg_name__debugging                 = 'debugging'
-_cfg_stg_name__rst_container_class       = 'rst_container_class'
-_cfg_stg_name__output_directory_windows  = 'output_directory_windows'
-_cfg_stg_name__output_directory_linux    = 'output_directory_linux'
-_cfg_stg_name__output_directory_osx      = 'output_directory_osx'
-_cfg_stg_name__timestamp_strftime_format = 'timestamp_strftime_format'
+_cfg_stg_name__debugging                    = 'debugging'
+_cfg_stg_name__rst_table_container_class    = 'rst_table_container_class'
+_cfg_stg_name__output_directory_for_windows = 'output_directory_for_windows'
+_cfg_stg_name__output_directory_for_linux   = 'output_directory_for_linux'
+_cfg_stg_name__output_directory_for_osx     = 'output_directory_for_osx'
+_cfg_stg_name__timestamp_strftime_format    = 'timestamp_strftime_format'
 
 
 
@@ -67,29 +67,29 @@ def kbr_setting(setting_name: str):
 # *************************************************************************
 
 kbr_setting.default = {
-    _cfg_stg_name__output_directory_windows : "",
-    _cfg_stg_name__output_directory_linux   : "",
-    _cfg_stg_name__output_directory_osx     : "",
-    _cfg_stg_name__rst_container_class      : "",
-    _cfg_stg_name__timestamp_strftime_format: "%Y-%m-%d %H:%M",
-    _cfg_stg_name__debugging                : False,
+    _cfg_stg_name__output_directory_for_windows: "",
+    _cfg_stg_name__output_directory_for_linux  : "",
+    _cfg_stg_name__output_directory_for_osx    : "",
+    _cfg_stg_name__rst_table_container_class   : "",
+    _cfg_stg_name__timestamp_strftime_format   : "%Y-%m-%d %H:%M",
+    _cfg_stg_name__debugging                   : False,
 }
 
-setting__output_directory_windows  = kbr_setting.default[_cfg_stg_name__output_directory_windows]
-setting__output_directory_linux    = kbr_setting.default[_cfg_stg_name__output_directory_linux]
-setting__output_directory_osx      = kbr_setting.default[_cfg_stg_name__output_directory_osx]
-setting__rst_container_class       = kbr_setting.default[_cfg_stg_name__rst_container_class]
-setting__timestamp_strftime_format = kbr_setting.default[_cfg_stg_name__timestamp_strftime_format]
-setting__debugging                 = kbr_setting.default[_cfg_stg_name__debugging]
+setting__output_directory_for_windows = kbr_setting.default[_cfg_stg_name__output_directory_for_windows]
+setting__output_directory_for_linux   = kbr_setting.default[_cfg_stg_name__output_directory_for_linux]
+setting__output_directory_for_osx     = kbr_setting.default[_cfg_stg_name__output_directory_for_osx]
+setting__rst_table_container_class    = kbr_setting.default[_cfg_stg_name__rst_table_container_class]
+setting__timestamp_strftime_format    = kbr_setting.default[_cfg_stg_name__timestamp_strftime_format]
+setting__debugging                    = kbr_setting.default[_cfg_stg_name__debugging]
 
 
 def show_settings():
-    print(f'{setting__output_directory_windows  = }')
-    print(f'{setting__output_directory_linux    = }')
-    print(f'{setting__output_directory_osx      = }')
-    print(f'{setting__rst_container_class       = }')
-    print(f'{setting__timestamp_strftime_format = }')
-    print(f'{setting__debugging                 = }')
+    print(f'{setting__output_directory_for_windows = }')
+    print(f'{setting__output_directory_for_linux   = }')
+    print(f'{setting__output_directory_for_osx     = }')
+    print(f'{setting__rst_table_container_class    = }')
+    print(f'{setting__timestamp_strftime_format    = }')
+    print(f'{setting__debugging                    = }')
 
 
 
@@ -134,18 +134,18 @@ def _on_pkg_settings_chgd():
     if debugging:
         print('In _on_pkg_settings_chgd()')
 
-    global setting__output_directory_windows
-    global setting__output_directory_linux
-    global setting__output_directory_osx
-    global setting__rst_container_class
+    global setting__output_directory_for_windows
+    global setting__output_directory_for_linux
+    global setting__output_directory_for_osx
+    global setting__rst_table_container_class
     global setting__timestamp_strftime_format
     global setting__debugging
-    setting__output_directory_windows  = kbr_setting(_cfg_stg_name__output_directory_windows)
-    setting__output_directory_linux    = kbr_setting(_cfg_stg_name__output_directory_linux)
-    setting__output_directory_osx      = kbr_setting(_cfg_stg_name__output_directory_osx)
-    setting__rst_container_class       = kbr_setting(_cfg_stg_name__rst_container_class)
-    setting__timestamp_strftime_format = kbr_setting(_cfg_stg_name__timestamp_strftime_format)
-    setting__debugging                 = kbr_setting(_cfg_stg_name__debugging)
+    setting__output_directory_for_windows = kbr_setting(_cfg_stg_name__output_directory_for_windows)
+    setting__output_directory_for_linux   = kbr_setting(_cfg_stg_name__output_directory_for_linux)
+    setting__output_directory_for_osx     = kbr_setting(_cfg_stg_name__output_directory_for_osx)
+    setting__rst_table_container_class    = kbr_setting(_cfg_stg_name__rst_table_container_class)
+    setting__timestamp_strftime_format    = kbr_setting(_cfg_stg_name__timestamp_strftime_format)
+    setting__debugging                    = kbr_setting(_cfg_stg_name__debugging)
 
     if debugging:
         show_settings()

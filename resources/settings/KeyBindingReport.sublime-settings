@@ -27,9 +27,9 @@
 	// Single-Keypress Bindings    single-keypress.txt
 	//                               or the individual file names above
 	//                               if separate tables are requested.
-	"output_directory_windows": "",
-	"output_directory_linux": "",
-	"output_directory_osx": "",
+	"output_directory_for_windows": "",
+	"output_directory_for_linux": "",
+	"output_directory_for_osx": "",
 
 	// --------------------------------------------------------------------
 	// String.  reStructuredText Container Name
@@ -46,7 +46,7 @@
 	//
 	// In this example, the CSS class "tighter-table-6" is used in
 	// formatting the final Sphinx or Docutils output.
-	"rst_container_class": "",
+	"rst_table_container_class": "",
 
 	// --------------------------------------------------------------------
 	// String.  Format String for Report Timestamps

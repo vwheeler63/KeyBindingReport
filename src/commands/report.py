@@ -187,8 +187,8 @@ def _key_table_and_footnotes_repr(
     table_key = _table_key_repr(fmt, incl_win_key)
     parts = []
 
-    if core.setting__rst_container_class and restructuredtext:
-        container_directive = '.. container:: ' + core.setting__rst_container_class
+    if core.setting__rst_table_container_class and restructuredtext:
+        container_directive = '.. container:: ' + core.setting__rst_table_container_class
         indent = '    '
     else:
         container_directive = None
@@ -224,11 +224,11 @@ def _key_table_and_footnotes_repr(
     # ---------------------------------------------------------------------
     output_dir = ''
     if platform.is_windows():
-        output_dir = core.setting__output_directory_windows
+        output_dir = core.setting__output_directory_for_windows
     if platform.is_linux():
-        output_dir = core.setting__output_directory_linux
+        output_dir = core.setting__output_directory_for_linux
     if platform.is_osx():
-        output_dir = core.setting__output_directory_osx
+        output_dir = core.setting__output_directory_for_osx
 
     if output_dir and (flags & output.FlagBits.OUTPUT_TO_FILES):
         key_group_file_name = data.key_group_file_names[key_group_idx]
@@ -502,7 +502,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
         :param keypress_list:
             Optional:  list of lists of "keypresses".  The inner lists have
-            the same format as "keys" elements from JSON key bindings, with
+            the same format as "keys" entries from JSON key bindings, with
             specific modifier keys.  Example:
 
                 [["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]].
@@ -712,7 +712,6 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             if debugging:
                 t4 = datetime.now()
                 print('    Time to report on all platforms : ', str(t4 - t0))
-
 
         else:
             if platform_code:
