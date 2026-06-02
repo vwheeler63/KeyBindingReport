@@ -216,13 +216,13 @@ def _generate_report(
     """
     t0 = datetime.now()
     view = self.view
-    key_data = data.KeyBindingData(fmt, flags)
 
     if limit_to_context:
-        rpt_gen_view = self.view
+        rpt_gen_view = view
     else:
         rpt_gen_view = None
 
+    key_data = data.KeyBindingData(fmt, flags)
     key_data.gather(key_groups, key_names, keypress_list, limit_to_packages, rpt_gen_view)
     if debugging:
         print(key_data.specification(indent_level = 1))

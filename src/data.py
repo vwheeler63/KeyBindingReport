@@ -690,8 +690,7 @@ class KeyBindingData:
         'flags',
     ]
 
-    def __init__(self, fmt: int = 0, flags: int = 0,
-            ):
+    def __init__(self, fmt: int = 0, flags: int = 0):
         self.fmt = fmt
         self.flags = flags
         self.mdictByMainKey = {}
