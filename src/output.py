@@ -203,6 +203,214 @@ class Footnote:
         return result
 
 
+class TablePackage:
+    """Table, Footnotes, Last Footnote Number, and optional Table Name"""
+    __slots__ = ['fmt', 'flags', 'table', 'footnotes', 'last_footnote_number']
+
+    def __init__(self,
+            fmt              : ascii_table.Format,
+            flags            : data.FlagBits,
+            prev_footnote_num: int = 0,
+            ):
+        self.fmt = fmt
+        self.flags = flags
+        self.table: list[list[str]] = []
+        self.footnotes: list[Footnote] = []
+        self.last_footnote_number = prev_footnote_num
+
+    def append_heading_row(self):
+        if include_windows_key(self.flags):
+            effective_min_col_count = min_column_count
+
+            row = [
+                    platform.cfg_key_col_heading,
+                    platform.cmd_col_heading,
+                    platform.alt_col_heading,
+                    platform.ctrl_col_heading,
+                    platform.shift_col_heading,
+                    platform.cfg_context_col_heading,
+                    platform.cfg_command_col_heading,
+                    platform.cfg_args_col_heading,
+                    ]
+        else:
+            effective_min_col_count = min_column_count - 1
+
+            row = [
+                    platform.cfg_key_col_heading,
+                    platform.alt_col_heading,
+                    platform.ctrl_col_heading,
+                    platform.shift_col_heading,
+                    platform.cfg_context_col_heading,
+                    platform.cfg_command_col_heading,
+                    platform.cfg_args_col_heading,
+                    ]
+
+        if len(row) != effective_min_col_count:
+            raise AssertionError('output.main_key_table():  length of `row` and `min_col_count` must match.')
+
+        if self.flags & data.FlagBits.ADD_SOURCE_COLUMN:
+            row.append('Source')
+        if self.flags & data.FlagBits.ADD_COMMENTS_COLUMN:
+            row.append('Comments')
+
+        self.table.append(row)
+
+    def append_rows_for_one_keypress(self,
+            main_key_name  : str,
+            binding_list   : list[key_binding.ReportKeyBinding],
+            is_2nd_keypress: bool = False,
+            ):
+        """
+        Append rows for `binding_list`.
+
+        :param main_key_name:    Name of key to be in first column of table
+        :param binding_list:     List of bindings for keypress
+        :param is_2nd_keypress:  Is `main_key_name` the 2nd keypress in a
+                                   keypress sequence?  (This is True when a
+                                   table is being generated for a keypress
+                                   sequence (e.g. for ["ctrl+k", "ctrl+..."]).)
+        """
+        if not binding_list:
+            raise AssertionError(f'`binding_list` must be a list of 1 or more ReportKeyBinding objects.  Got {binding_list} instead.')
+
+        # -----------------------------------------------------------------
+        # Heading row?
+        # -----------------------------------------------------------------
+        if len(self.table) == 0:
+            self.append_heading_row()
+
+        if binding_list:
+            # -------------------------------------------------------------
+            # Process binding_list.
+            # -------------------------------------------------------------
+            include_win_key = include_windows_key(self.flags)
+
+            # Compute `mod_key_flags_tpl`.
+            first_binding = binding_list[0]
+
+            if is_2nd_keypress:
+                keypr = first_binding.keypresses[1]
+            else:
+                keypr = first_binding.keypresses[0]
+
+            mod_key_flags_tpl = keypr.modifier_flag_characters(modifier_flag_symbol)
+
+            for binding in binding_list:
+                # ---------------------------------------------------------
+                # Keys
+                # ---------------------------------------------------------
+                if self.fmt == ascii_table.Format.RESTRUCTUREDTEXT:
+                    tbl_key_name = rst_utils.rst_escaped_for_table(main_key_name)
+                else:
+                    tbl_key_name = main_key_name
+
+                row = [tbl_key_name]                  # 'f5'
+                if include_win_key:
+                    row.append(mod_key_flags_tpl[0])  # Windows/Command Key
+                row.append(mod_key_flags_tpl[1])      # Alt
+                row.append(mod_key_flags_tpl[2])      # Ctrl
+                row.append(mod_key_flags_tpl[3])      # Shift
+
+                # ---------------------------------------------------------
+                # Context
+                # ---------------------------------------------------------
+                if binding.has_context():
+                    if self.flags & data.FlagBits.ANY_CONTEXT_REQUESTED:
+                        # User requested detailed context information
+                        self.last_footnote_number += 1
+                        footnote = Footnote(binding, self.last_footnote_number, self.flags, self.fmt)
+                        self.footnotes.append(footnote)
+                        context_ref = footnote.formatted_reference()
+                    else:
+                        context_ref = 'x'
+                else:
+                    context_ref = ' '
+
+                row.append(context_ref)
+
+                # ---------------------------------------------------------
+                # Command
+                # ---------------------------------------------------------
+                row.append(binding.command())
+
+                # ---------------------------------------------------------
+                # Args
+                # ---------------------------------------------------------
+                if binding.has_args():
+                    if self.fmt == ascii_table.Format.RESTRUCTUREDTEXT:
+                        args_str = binding.args_rst()
+                    else:
+                        args_str = binding.args_json()
+                else:
+                    args_str = ' '
+
+                row.append(args_str)
+
+                # ---------------------------------------------------------
+                # Remaining optional columns.
+                # ---------------------------------------------------------
+                if self.flags & data.FlagBits.ADD_SOURCE_COLUMN:
+                    row.append(binding.source())
+                if self.flags & data.FlagBits.ADD_COMMENTS_COLUMN:
+                    row.append(' ' * comments_column_width)
+
+                self.table.append(row)
+
+    def append_empty_row(self,
+            main_key_name: str,
+            modifier_code: int,
+            ):
+        """
+        Append empty rows for `main_key_name`:  there is no associated binding.
+
+        :param main_key_name:    Name of key to be in first column of table
+        :param binding_list:     List of bindings for keypress
+        :param is_2nd_keypress:  Is `main_key_name` the 2nd keypress in a
+                                   keypress sequence?  (This is True when a
+                                   table is being generated for a keypress
+                                   sequence (e.g. for ["ctrl+k", "ctrl+..."]).)
+        """
+        include_win_key = include_windows_key(self.flags)
+        space = ' '
+        mod_key_flags_tpl = key_binding.modifier_flag_characters(modifier_code, modifier_flag_symbol)
+
+        # -----------------------------------------------------------------
+        # Heading row?
+        # -----------------------------------------------------------------
+        if len(self.table) == 0:
+            self.append_heading_row()
+
+        # -----------------------------------------------------------------
+        # Keys
+        # -----------------------------------------------------------------
+        if self.fmt == ascii_table.Format.RESTRUCTUREDTEXT:
+            tbl_key_name = rst_utils.rst_escaped_for_table(main_key_name)
+        else:
+            tbl_key_name = main_key_name
+
+        row = [tbl_key_name]                  # 'f5'
+
+        if include_win_key:
+            row.append(mod_key_flags_tpl[0])  # Command)
+
+        row.append(mod_key_flags_tpl[1])      # Alt
+        row.append(mod_key_flags_tpl[2])      # Ctrl
+        row.append(mod_key_flags_tpl[3])      # Shift
+        row.append(space)                     # Context (not bound to any commands)
+        row.append(space)                     # Command (not bound to any commands)
+        row.append(space)                     # Args    (not bound to any commands)
+
+        # -----------------------------------------------------------------
+        # Optional columns.
+        # -----------------------------------------------------------------
+        if self.flags & data.FlagBits.ADD_SOURCE_COLUMN:
+            row.append(space)
+        if self.flags & data.FlagBits.ADD_COMMENTS_COLUMN:
+            row.append(' ' * comments_column_width)
+
+        self.table.append(row)
+
+
 
 # *************************************************************************
 # Data
@@ -296,180 +504,12 @@ def include_windows_key(flags: data.FlagBits):
 # Function Definitions
 # *************************************************************************
 
-def _heading_row(flags: data.FlagBits) -> list[str]:
-    if include_windows_key(flags):
-        effective_min_col_count = min_column_count
-
-        result = [
-                platform.cfg_key_col_heading,
-                platform.cmd_col_heading,
-                platform.alt_col_heading,
-                platform.ctrl_col_heading,
-                platform.shift_col_heading,
-                platform.cfg_context_col_heading,
-                platform.cfg_command_col_heading,
-                platform.cfg_args_col_heading,
-                ]
-    else:
-        effective_min_col_count = min_column_count - 1
-
-        result = [
-                platform.cfg_key_col_heading,
-                platform.alt_col_heading,
-                platform.ctrl_col_heading,
-                platform.shift_col_heading,
-                platform.cfg_context_col_heading,
-                platform.cfg_command_col_heading,
-                platform.cfg_args_col_heading,
-                ]
-
-    if len(result) != effective_min_col_count:
-        raise AssertionError('output.main_key_table():  length of `result` and `min_col_count` must match.')
-
-    if flags & data.FlagBits.ADD_SOURCE_COLUMN:
-        result.append('Source')
-    if flags & data.FlagBits.ADD_COMMENTS_COLUMN:
-        result.append('Comments')
-
-    return result
-
-def _append_rows_to_table_for_one_keypress(
-        table               : list[list],
-        main_or_2nd_key_name: str,
-        mod_key_flags_tpl   : tuple[str, str, str, str],
-        binding_list        : list[key_binding.ReportKeyBinding],
-        flags               : data.FlagBits,
-        fmt                 : ascii_table.Format,
-        footnotes           : list[Footnote],
-        prev_footnote_num   : int,
-        ) -> int:
-    footnote_num = prev_footnote_num
-
-    if binding_list:
-        include_win_key = include_windows_key(flags)
-
-        for binding in binding_list:
-            # ---------------------------------------------------------
-            # Keys
-            # ---------------------------------------------------------
-            if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
-                tbl_key_name = rst_utils.rst_escaped_for_table(main_or_2nd_key_name)
-            else:
-                tbl_key_name = main_or_2nd_key_name
-
-            row = [tbl_key_name]                  # 'f5'
-            if include_win_key:
-                row.append(mod_key_flags_tpl[0])  # Windows/Command Key
-            row.append(mod_key_flags_tpl[1])      # Alt
-            row.append(mod_key_flags_tpl[2])      # Ctrl
-            row.append(mod_key_flags_tpl[3])      # Shift
-
-            # ---------------------------------------------------------
-            # Context
-            # ---------------------------------------------------------
-            if binding.has_context():
-                if flags & data.FlagBits.ANY_CONTEXT_REQUESTED:
-                    # User requested detailed context information
-                    footnote_num += 1
-                    footnote = Footnote(binding, footnote_num, flags, fmt)
-                    footnotes.append(footnote)
-                    context_ref = footnote.formatted_reference()
-                else:
-                    context_ref = 'x'
-            else:
-                context_ref = ' '
-
-            row.append(context_ref)
-
-            # ---------------------------------------------------------
-            # Command
-            # ---------------------------------------------------------
-            row.append(binding.command())
-
-            # ---------------------------------------------------------
-            # Args
-            # ---------------------------------------------------------
-            if binding.has_args():
-                if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
-                    args_str = binding.args_rst()
-                else:
-                    args_str = binding.args_json()
-            else:
-                args_str = ' '
-
-            row.append(args_str)
-
-            # ---------------------------------------------------------
-            # Remaining optional columns.
-            # ---------------------------------------------------------
-            if flags & data.FlagBits.ADD_SOURCE_COLUMN:
-                row.append(binding.source())
-            if flags & data.FlagBits.ADD_COMMENTS_COLUMN:
-                row.append(' ' * comments_column_width)
-
-            table.append(row)
-
-    return footnote_num
-
-def _append_empty_row_to_table(
-        table              : list[list],
-        main_key_name      : str,
-        mod_key_flags_tpl  : tuple[str, str, str, str],
-        flags              : data.FlagBits,
-        fmt                : ascii_table.Format,
-        ):
-    include_win_key = include_windows_key(flags)
-
-    space = ' '
-
-    # -----------------------------------------------------------------
-    # Keys
-    # -----------------------------------------------------------------
-    if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
-        tbl_key_name = rst_utils.rst_escaped_for_table(main_key_name)
-    else:
-        tbl_key_name = main_key_name
-
-    row = [tbl_key_name]                  # 'f5'
-
-    if include_win_key:
-        row.append(mod_key_flags_tpl[0])  # Command)
-
-    row.append(mod_key_flags_tpl[1])      # Alt
-    row.append(mod_key_flags_tpl[2])      # Ctrl
-    row.append(mod_key_flags_tpl[3])      # Shift
-
-    # -----------------------------------------------------------------
-    # Context
-    # -----------------------------------------------------------------
-    row.append(space)                       # Context (not bound to any commands)
-
-    # -----------------------------------------------------------------
-    # Command
-    # -----------------------------------------------------------------
-    row.append(space)                       # Command (not bound to any commands)
-
-    # -----------------------------------------------------------------
-    # Args
-    # -----------------------------------------------------------------
-    row.append(space)                       # Args    (not bound to any commands)
-
-    # -----------------------------------------------------------------
-    # Remaining optional columns.
-    # -----------------------------------------------------------------
-    if flags & data.FlagBits.ADD_SOURCE_COLUMN:
-        row.append(space)
-    if flags & data.FlagBits.ADD_COMMENTS_COLUMN:
-        row.append(' ' * comments_column_width)
-
-    table.append(row)
-
 def main_key_table(
         key_data         : data.KeyBindingData,
         flags            : data.FlagBits,
         fmt              : ascii_table.Format,
         prev_footnote_num: int = 0
-        ) -> tuple[list[list[str]], list[Footnote], int]:
+        ) -> TablePackage:
     """
     Generate and return main-key table.
 
@@ -514,13 +554,9 @@ def main_key_table(
     include_unbound_keypresses = flags & data.FlagBits.ANY_UNBOUND_KEYPRESSES
     include_no_bindings = flags & data.FlagBits.INCLUDE_UNBOUND_KEYPRESSES_ONLY
     include_win_key = include_windows_key(flags)
-    footnote_num = prev_footnote_num
-    heading_row = _heading_row(flags)
     by_main_key_dict = key_data.mdictByMainKey
     key_groups_requested = bool(key_data.key_groups) # is not None and len() > 0.
-
-    table = [heading_row]
-    footnotes = []
+    tbl_pkg = TablePackage(fmt, flags, prev_footnote_num)
 
     for main_key_name in by_main_key_dict:
         binding_lists_by_mod_code = by_main_key_dict[main_key_name]
@@ -538,7 +574,6 @@ def main_key_table(
 
             for modifier_code in range(num_to_process):
                 binding_list = binding_lists_by_mod_code[modifier_code]
-                mod_key_flags_tpl = key_binding.modifier_flag_characters(modifier_code, modifier_flag_symbol)
 
                 if binding_list:
                     if include_no_bindings:
@@ -546,24 +581,9 @@ def main_key_table(
                         # Caller requested INCLUDE_UNBOUND_KEYPRESSES_ONLY, so we
                         # don't include this set of bindings---only empty slots.
                     else:
-                        footnote_num = _append_rows_to_table_for_one_keypress(
-                                table,
-                                main_key_name,
-                                mod_key_flags_tpl,
-                                binding_list,
-                                flags,
-                                fmt,
-                                footnotes,
-                                footnote_num,
-                                )
+                        tbl_pkg.append_rows_for_one_keypress(main_key_name, binding_list)
                 else:
-                    _append_empty_row_to_table(
-                            table,
-                            main_key_name,
-                            mod_key_flags_tpl,
-                            flags,
-                            fmt,
-                            )
+                    tbl_pkg.append_empty_row(main_key_name, modifier_code)
         else:
             # Do not include unbound keypresses.
             for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
@@ -571,20 +591,9 @@ def main_key_table(
                     continue
 
                 # Here we know ``binding_list`` contains bindings.
-                mod_key_flags_tpl = key_binding.modifier_flag_characters(modifier_code, modifier_flag_symbol)
+                tbl_pkg.append_rows_for_one_keypress(main_key_name, binding_list)
 
-                footnote_num = _append_rows_to_table_for_one_keypress(
-                        table,
-                        main_key_name,
-                        mod_key_flags_tpl,
-                        binding_list,
-                        flags,
-                        fmt,
-                        footnotes,
-                        footnote_num,
-                        )
-
-    return table, footnotes, footnote_num
+    return tbl_pkg
 
 
 def main_key_tables(
@@ -592,7 +601,7 @@ def main_key_tables(
         flags            : data.FlagBits,
         fmt              : ascii_table.Format,
         prev_footnote_num: int = 0
-        ) -> list[    tuple[int, list[list[str]], list[Footnote], int]    ]:
+        ) -> list[  tuple[int, TablePackage]  ]:
     """
     Like ``main_key_table()`` only it creates a LIST of main-key tables,
     1 table per key-group occurring in the data.
@@ -643,17 +652,15 @@ def main_key_tables(
     include_no_bindings = flags & data.FlagBits.INCLUDE_UNBOUND_KEYPRESSES_ONLY
     include_win_key = include_windows_key(flags)
     footnote_num = prev_footnote_num
-    heading_row = _heading_row(flags)
     by_main_key_dict = key_data.mdictByMainKey
     key_groups_requested = bool(key_data.key_groups) # is not None and len() > 0.
 
-    table_list = []
+    tbl_pkg_list: list[tuple[int, TablePackage]] = []
 
     for key_group_idx, key_group_list in enumerate(data.key_name_groups):
         # Start new table.  Don't add headings yet until
         # we know there is going to be some content.
-        table = [heading_row]
-        footnotes = []
+        tbl_pkg = TablePackage(fmt, flags, footnote_num)
 
         for main_key_name in key_group_list:
             # We know ``main_key_name in by_main_key_dict`` because
@@ -674,7 +681,6 @@ def main_key_tables(
 
                 for modifier_code in range(num_to_process):
                     binding_list = binding_lists_by_mod_code[modifier_code]
-                    mod_key_flags_tpl = key_binding.modifier_flag_characters(modifier_code, modifier_flag_symbol)
 
                     if binding_list:
                         # Now we know there is content.
@@ -684,30 +690,9 @@ def main_key_tables(
                             # don't include this set of bindings---only empty slots.
                         else:
                             # Heading not added yet?  Add it now.
-                            if len(table) == 0:
-                                table.append(heading_row)
-
-                            footnote_num = _append_rows_to_table_for_one_keypress(
-                                    table,
-                                    main_key_name,
-                                    mod_key_flags_tpl,
-                                    binding_list,
-                                    flags,
-                                    fmt,
-                                    footnotes,
-                                    footnote_num,
-                                    )
+                            tbl_pkg.append_rows_for_one_keypress(main_key_name, binding_list)
                     else:
-                        if len(table) == 0:
-                            table.append(heading_row)
-
-                        _append_empty_row_to_table(
-                                table,
-                                main_key_name,
-                                mod_key_flags_tpl,
-                                flags,
-                                fmt,
-                                )
+                        tbl_pkg.append_empty_row(main_key_name, modifier_code)
             else:
                 # Do not include unbound keypresses.
                 for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
@@ -716,34 +701,21 @@ def main_key_tables(
 
                     # Here we know ``binding_list`` contains bindings.
                     # Heading not added yet?  Add it now.
-                    if len(table) == 0:
-                        table.append(heading_row)
-
-                    mod_key_flags_tpl = key_binding.modifier_flag_characters(modifier_code, modifier_flag_symbol)
-
-                    footnote_num = _append_rows_to_table_for_one_keypress(
-                            table,
-                            main_key_name,
-                            mod_key_flags_tpl,
-                            binding_list,
-                            flags,
-                            fmt,
-                            footnotes,
-                            footnote_num,
-                            )
+                    tbl_pkg.append_rows_for_one_keypress(main_key_name, binding_list)
 
         # We've reached the end of a key group.
-        table_list.append((key_group_idx, table, footnotes, footnote_num))
+        tbl_pkg_list.append( (key_group_idx, tbl_pkg) )
+        footnote_num = tbl_pkg.last_footnote_number
 
-    return table_list
+    return tbl_pkg_list
 
 
 def key_seq_tables(
         key_data         : data.KeyBindingData,
-        flags            : data.FlagBits,
         fmt              : ascii_table.Format,
+        flags            : data.FlagBits,
         prev_footnote_num: int = 0
-        ) -> list[    tuple[str, list[list[str]], list[Footnote], int]    ]:
+        ) -> list[  tuple[str, TablePackage]  ]:
     """
     Generate and return:
 
@@ -809,17 +781,15 @@ def key_seq_tables(
     # -----------------------------------------------------------------
     # Create top-level list.
     # -----------------------------------------------------------------
-    table_list = []
+    tbl_pkg_list: list[  tuple[str, TablePackage]  ] = []
 
     if len(lead_keypr_str_set) > 0:
         footnote_num = prev_footnote_num
-        heading_row = _heading_row(flags)
 
         for lead_keypr_str in sorted(lead_keypr_str_set):
             # Generate new table and new footnotes list for each
             # unique leading keypress.
-            table = [heading_row]
-            footnotes = []
+            tbl_pkg = TablePackage(fmt, flags, prev_footnote_num)
 
             # ---------------------------------------------------------
             # Pass through `by_key_seq_dict` selecting only bindings
@@ -848,24 +818,13 @@ def key_seq_tables(
                 keypress_tuple = scored_keypress_tuple_bep.keypress_tuple
                 binding_list = by_key_seq_dict[keypress_tuple]
 
-                # Extract `mod_key_flags_tpl` from first binding.
-                mod_key_flags_tpl = key_binding.modifier_flag_characters(
-                        scored_keypress_tuple_bep.mod_code,
-                        modifier_flag_symbol
-                        )
-
-                footnote_num = _append_rows_to_table_for_one_keypress(
-                        table,
+                tbl_pkg.append_rows_for_one_keypress(
                         scored_keypress_tuple_bep.second_main_key_name,
-                        mod_key_flags_tpl,
                         binding_list,
-                        flags,
-                        fmt,
-                        footnotes,
-                        footnote_num,
+                        True
                         )
 
-            table_list.append((lead_keypr_str, table, footnotes, footnote_num))
+            tbl_pkg_list.append((lead_keypr_str, tbl_pkg))
 
-    return table_list
+    return tbl_pkg_list
 

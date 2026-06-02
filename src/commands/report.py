@@ -74,10 +74,7 @@ def _table_key_repr(fmt: ascii_table.Format, include_win_key: bool = False) -> s
 
 def _key_table_and_footnotes_repr(
         key_group_idx: int,
-        table        : list[list[str]],
-        footnotes    : list[output.Footnote],
-        fmt          : ascii_table.Format,
-        flags        : data.FlagBits,
+        tbl_pkg      : output.TablePackage,
         debugging    : int,
         lead_keypr   : str | None = None,
         ) -> str:
@@ -88,7 +85,11 @@ def _key_table_and_footnotes_repr(
     #     print(f'  {fmt=}')
     #     print(f'  {fmt=}')
 
-    incl_win_key = output.include_windows_key(flags)
+    table            = tbl_pkg.table
+    fmt              = tbl_pkg.fmt
+    flags            = tbl_pkg.flags
+    footnotes        = tbl_pkg.footnotes
+    incl_win_key     = output.include_windows_key(flags)
     restructuredtext = (( fmt == ascii_table.Format.RESTRUCTUREDTEXT ))
 
     # ---------------------------------------------------------------------
@@ -200,7 +201,6 @@ def _key_sequence_table_title(keypress_str: str) -> str:
 
 def _generate_report(
         self,
-        edit             : sublime.Edit,
         key_groups       : Iterable[data.KeyGroup] | None,
         key_names        : Iterable[str]           | None,
         keypress_list    : Iterable[Iterable[str]] | None,
@@ -267,18 +267,15 @@ def _generate_report(
             heading = f'Single-Keypress Table{plural_suffix}'
             content_parts.append(output.section_heading(heading, '*'))
 
-            for key_group_idx, table, footnotes, last_footnote_num in table_pkg_list:
-                if table:
+            for key_group_idx, tbl_pkg in table_pkg_list:
+                if tbl_pkg.table:
                     heading = data.key_group_names[key_group_idx]
                     content_parts.append(output.section_heading(heading, '='))
                     content_parts.append('')
 
                     tbl_and_footnotes = _key_table_and_footnotes_repr(
                             key_group_idx,
-                            table,
-                            footnotes,
-                            fmt,
-                            flags,
+                            tbl_pkg,
                             debugging,
                             None   # lead_keypr
                             )
@@ -286,20 +283,16 @@ def _generate_report(
                     content_parts.append(tbl_and_footnotes)
 
     else:
-        table, footnotes, last_footnote_num = \
-                output.main_key_table(key_data, flags, fmt, last_footnote_num)
+        tbl_pkg = output.main_key_table(key_data, flags, fmt, last_footnote_num)
 
-        if table:
+        if tbl_pkg.table:
             heading = 'Single-Keypress Table'
             content_parts.append(output.section_heading(heading, '*'))
             content_parts.append('')
 
             tbl_and_footnotes = _key_table_and_footnotes_repr(
                     data.KeyGroup.ALL,  # All in 1 table
-                    table,
-                    footnotes,
-                    fmt,
-                    flags,
+                    tbl_pkg,
                     debugging,
                     None                # lead_keypr
                     )
@@ -309,7 +302,7 @@ def _generate_report(
     # -----------------------------------------------------------------
     # Add Key-Sequence table(s) parts.
     # -----------------------------------------------------------------
-    table_pkg_list = output.key_seq_tables(key_data, flags, fmt, last_footnote_num)
+    table_pkg_list = output.key_seq_tables(key_data, fmt, flags, last_footnote_num)
     #     list[tuple] (table_pkg) each tuple containing:
     #         (lead_keypr_str, table, footnotes, last_footnote_num)
 
@@ -318,18 +311,15 @@ def _generate_report(
         heading = f'Multi-Keypress Table{plural_suffix}'
         content_parts.append(output.section_heading(heading, '*'))
 
-        for lead_keypr_str, table, footnotes, last_footnote_num in table_pkg_list:
-            if table:
+        for lead_keypr_str, tbl_pkg in table_pkg_list:
+            if tbl_pkg.table:
                 heading = _key_sequence_table_title(lead_keypr_str)
                 content_parts.append(output.section_heading(heading, '='))
                 content_parts.append('')
 
                 tbl_and_footnotes = _key_table_and_footnotes_repr(
                         data.KeyGroup.KEY_SEQUENCES,
-                        table,
-                        footnotes,
-                        fmt,
-                        flags,
+                        tbl_pkg,
                         debugging,
                         lead_keypr_str
                         )
@@ -611,7 +601,6 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
 
                 t0, t1, t2, t3 = _generate_report(
                         self,
-                        edit,
                         key_groups,
                         key_names,
                         keypress_list,
@@ -642,7 +631,6 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             # Just run once.
             t0, t1, t2, t3 = _generate_report(
                     self,
-                    edit,
                     key_groups,
                     key_names,
                     keypress_list,
