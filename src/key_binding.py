@@ -629,7 +629,7 @@ class KeyBinding:
         """
         indent = '  ' * indent_level
         if include_source:
-            result = f'{indent}source: {self._source}  (entry {self.source_entry_no})\n'
+            result = f'{indent}{self._source}  (entry {self.source_entry_no})\n'
         else:
             result = ''
 
