@@ -215,7 +215,7 @@ class Footnote:
                 #     ]
                 rst_keypress_list = binding.keypresses_human_friendly_rst_list()
                 rst_keypress_str = ', '.join(rst_keypress_list)
-                cmd_func_repr = binding.command_as_function_rst()
+                cmd_func_repr = binding.command_with_args_rst()
                 result = (
                         f'.. [{self.number}] Context for {rst_keypress_str}:  {cmd_func_repr}\n'
                         f'.. code-block:: json\n\n{footnote_str}'

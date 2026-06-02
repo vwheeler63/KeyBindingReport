@@ -49,7 +49,7 @@ A.  There is a concept of a ``KeyBinding`` object.
         +   args_dict()        Args as Python dict (None if there was no "args" entry)
         +   args_json()        Args as JSON repr (empty string if there were no args)
         +   args_repr()        Args as debug repr
-        +   command_as_function_repr()
+        +   command_with_args_repr()
             +   Command + args in this format:  command_name({"arg_name": value, ...})
         +   has_context()      Was a "context" entry in original binding object?
         +   context_list()     List of "context" entry condition dictionaries.
@@ -88,8 +88,8 @@ B.  There is a concept of a ``ReportKeyBinding`` object (inherits from ``KeyBind
             +   Example:  "Ctrl-Shift-B"
         +   keypresses_human_friendly_rst_list()  list[str] of reST keypress repr:
             +   Example:  :kbd:`Ctrl-Shift-B`
-        +   command_as_function_rst()
-            +   Like command_as_function_repr() but suitable for reST format.
+        +   command_with_args_rst()
+            +   Like command_with_args_repr() but suitable for reST format.
     4.  It can be requested to change KeyBinding objects as follows:
         +   Change happens only at instantiation time.
 
@@ -491,14 +491,14 @@ class KeyBinding:
 
         return result
 
-    def command_as_function_repr(self) -> str:
+    def command_with_args_repr(self) -> str:
         command = self._command
 
         if self._args is not None:
             args_repr = self.args_json()
-            result = f'{command}( {args_repr} )'
+            result = f'{command} {args_repr}'
         else:
-            result = f'{command}()'
+            result = command
 
         return result
 
@@ -633,7 +633,7 @@ class KeyBinding:
         else:
             result = ''
 
-        cmd_as_func = self.command_as_function_repr()
+        cmd_as_func = self.command_with_args_repr()
         keypresses_json = json.dumps(self._keys)
         result += f'{indent}{{ {keypresses_json}, {cmd_as_func}'
 
@@ -748,8 +748,17 @@ class ReportKeyBinding(KeyBinding):
 
         return result
 
-    def command_as_function_rst(self) -> str:
-        result = self.command_as_function_repr()
+    def command_with_args_rst(self) -> str:
+        command = self._command
+
+        if self._args is not None:
+            args_repr = self.args_json()
+            if 'res://' in args_repr:
+                result = f'{command}  {args_repr}'
+            else:
+                result = f'{command} |nbsp| |nbsp| |nbsp| {args_repr}'
+        else:
+            result = command
 
         if 'res://' in result:
             # Wrap the whole thing in literal markup.
