@@ -649,10 +649,20 @@ class KeyBindingData:
         '_debugging_filtering_stage_i',
         '_debugging_filtering_stage_ii',
         '_debugging_building_main_key_dict',
-        '_debugging_building_key_seq_dict'
+        '_debugging_building_key_seq_dict',
+        'key_groups',
+        'key_names',
+        'keypress_list',
+        'limit_to_packages',
+        'limit_to_context',
+        'fmt',
+        'flags',
     ]
 
-    def __init__(self):
+    def __init__(self, fmt: int = 0, flags: int = 0,
+            ):
+        self.fmt = fmt
+        self.flags = flags
         self.mdictByMainKey = {}
         self.mdictByKeySquence = {}
         self.mdictByKeySquenceLeadingKeys = {}
@@ -1252,7 +1262,7 @@ class KeyBindingData:
         else:
             view = None
 
-        key_data = KeyBindingData()
+        key_data = KeyBindingData(fmt, flags)
         key_data.gather(key_groups, key_names, keypress_list, packages, view)
 
         class KeyGroup(IntEnum):
@@ -1389,6 +1399,16 @@ class KeyBindingData:
         --------------------------------
         See ``self._build_report_data()`` docstring for details.
         """
+
+        # -----------------------------------------------------------------
+        # Remember args for things in the future, such as generating a
+        # report specification or making decisions downstream.
+        # -----------------------------------------------------------------
+        self.key_groups = key_groups
+        self.key_names = key_names
+        self.keypress_list = keypress_list
+        self.limit_to_packages = limit_to_packages
+        self.limit_to_context = (( view is not None ))
 
         # ---------------------------------------------------------------------
         # Enforce precondition.

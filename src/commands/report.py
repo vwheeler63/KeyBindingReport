@@ -272,7 +272,7 @@ def _generate_report(
     """
     t0 = datetime.now()
     view = self.view
-    key_data = data.KeyBindingData()
+    key_data = data.KeyBindingData(fmt, flags)
 
     if limit_to_context:
         rpt_gen_view = self.view
@@ -398,7 +398,6 @@ def _generate_report(
                         )
 
                 content_parts.append(tbl_and_footnotes)
-
 
     # This leaves `last_footnote_num` containing the last-used footnote
     # number in case we should need to add more content below.

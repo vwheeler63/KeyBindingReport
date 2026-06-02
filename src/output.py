@@ -365,7 +365,7 @@ def _append_rows_to_table_for_one_keypress(
         fmt                 : ascii_table.Format,
         footnotes           : list[Footnote],
         prev_footnote_num   : int,
-        ):
+        ) -> int:
     footnote_num = prev_footnote_num
 
     if binding_list:
@@ -540,6 +540,7 @@ def main_key_table(
     footnote_num = prev_footnote_num
     heading_row = _heading_row(flags)
     by_main_key_dict = key_data.mdictByMainKey
+    key_groups_requested = bool(key_data.key_groups) # is not None and len() > 0.
 
     table = [heading_row]
     footnotes = []
@@ -548,8 +549,10 @@ def main_key_table(
         binding_lists_by_mod_code = by_main_key_dict[main_key_name]
         has_no_key_bindings = not any(binding_lists_by_mod_code)
 
-        # Do not iterate through (16) sub-items when none have bindings.
-        if has_no_key_bindings:
+        # Do not iterate through empty binding lists when none have bindings,
+        # unless `key_groups` was part of the user request, in which case
+        # the user wants to see the keys with no bindings.
+        if has_no_key_bindings and not key_groups_requested:
             continue
 
         if include_unbound_keypresses:
@@ -665,6 +668,7 @@ def main_key_tables(
     footnote_num = prev_footnote_num
     heading_row = _heading_row(flags)
     by_main_key_dict = key_data.mdictByMainKey
+    key_groups_requested = bool(key_data.key_groups) # is not None and len() > 0.
 
     table_list = []
 
@@ -681,8 +685,10 @@ def main_key_tables(
             binding_lists_by_mod_code = by_main_key_dict[main_key_name]
             has_no_key_bindings = not any(binding_lists_by_mod_code)
 
-            # Do not iterate through (16) sub-items when none have bindings.
-            if has_no_key_bindings:
+            # Do not iterate through empty binding lists when none have bindings,
+            # unless `key_groups` was part of the user request, in which case
+            # the user wants to see the keys with no bindings.
+            if has_no_key_bindings and not key_groups_requested:
                 continue
 
             if include_unbound_keypresses:
