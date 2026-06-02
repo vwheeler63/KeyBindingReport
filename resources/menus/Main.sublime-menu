@@ -1,23 +1,12 @@
 [
 	{
 		"id": "tools",
-		"children":
-		[
+		"children": [
 			{
-				"caption": "KeyBindingReport",
-				"children":
-				[
-					{
-						"caption": "Key Bindings Report",
-						"mnemonic": "K",
-						"command": "show_overlay",
-						"args": {"overlay": "command_palette", "text": "KeyBindingReport: "}
-					},
-					{
-						"caption": "Which Binding Report",
-						"command": "key_binding_report_which_binding",
-					},
-				]
+				"caption": "Key Bindings Report",
+				"mnemonic": "K",
+				"command": "show_overlay",
+				"args": {"overlay": "command_palette", "text": "KeyBindingReport: "}
 			},
 		]
 	},
@@ -32,6 +21,7 @@
 				"children": [
 					{
 						"caption": "KeyBindingReport",
+						"mnemonic": "K",
 						"children": [
 							{
 								"caption": "README",

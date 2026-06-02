@@ -19,14 +19,6 @@
 			"default": "{\n\t$0\n}\n"
 		}
 	},
-	{
-		"caption": "Preferences: KeyBindingReport Key Bindings",
-		"command": "edit_settings",
-		"args": {
-			"base_file": "${packages}/KeyBindingReport/resources/keymaps/Default ($platform).sublime-keymap",
-			"default": "[\n\t$0\n]\n"
-		}
-	},
 
 
 	// ====================================================================
@@ -63,7 +55,7 @@
 		"command": "key_binding_report_overrides",
 	},
 	{
-		"caption": "KeyBindingReport: Key-Binding Overrides in Current Context",
+		"caption": "KeyBindingReport: Key-Binding Overrides (in Current Context)",
 		"command": "key_binding_report_context_overrides",
 	},
 
