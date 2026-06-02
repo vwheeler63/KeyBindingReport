@@ -119,7 +119,7 @@ reload(package_name + '.src')  # Recurse into .src/ subpackage.
 # to call it during the imports below.
 from .lib import *     # noqa: E402, F403
 from .src import *     # noqa: E402, F403
-#from .src import core  # noqa: E402  # Makes LSP-pyright happy.
+from .src import core  # noqa: E402  # Not required, but makes LSP-pyright happy.
 
 
 
