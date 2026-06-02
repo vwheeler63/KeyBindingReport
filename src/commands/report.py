@@ -26,68 +26,12 @@ from .. import output
 
 _report_title          = f'{core.package_name}:  Specified Key-Bindings ({{$platform}})'
 _report_short_title    = 'Key-Binding Report ({$platform})'
-_flags_format_spec_bin = '018_b'
-_flags_format_spec_hex = '04X'
-
 
 
 
 # *************************************************************************
 # Function Definitions
 # *************************************************************************
-
-def _report_specification_repr(
-        key_groups       : Iterable[data.KeyGroup] | None,
-        key_names        : Iterable[str]           | None,
-        keypress_list    : Iterable[Iterable[str]] | None,
-        limit_to_packages: Iterable[str]           | None,
-        limit_to_context : bool,
-        fmt              : ascii_table.Format,
-        flags            : output.FlagBits,
-        indent_level     : int = 0
-        ) -> str:
-    indent = '  ' * indent_level
-    parts = []
-    parts.append(f'{indent}Specification:')
-
-    if key_groups:
-        key_grp_list = []
-        for kg_i in key_groups:
-            key_grp_list.append(data.KeyGroup(kg_i))
-        parts.append(f'{indent}    key_groups        = {key_grp_list}')
-    if key_names:
-        parts.append(f'{indent}    {key_names         = }')
-    if keypress_list:
-        parts.append(f'{indent}    {keypress_list     = }')
-    if limit_to_packages:
-        parts.append(f'{indent}    {limit_to_packages = }')
-
-    parts.append(f'{indent}    {limit_to_context  = }')
-    parts.append(f'{indent}    format            = {ascii_table.Format(fmt)!r}')
-    parts.append(f'{indent}    flags             = 0x{flags:{_flags_format_spec_hex}}')
-
-    # Compute length of longest FlagBits enumeration name.
-    longest_name_len = 0
-    for enum_bit_val in output.FlagBits:
-        if enum_bit_val != output.FlagBits.ALL and enum_bit_val != output.FlagBits.ANY:
-            if flags & enum_bit_val._value_:
-                name = enum_bit_val._name_
-                if name:
-                    name_len = len(name)
-                    if name_len > longest_name_len:
-                        longest_name_len = name_len
-
-    # Report.
-    for enum_bit_val in output.FlagBits:
-        if enum_bit_val != output.FlagBits.ALL and enum_bit_val != output.FlagBits.ANY:
-            if flags & enum_bit_val._value_:
-                parts.append(
-                        f'{indent}      - {enum_bit_val._name_:{longest_name_len}}:  '
-                        f'0x{enum_bit_val._value_:{_flags_format_spec_hex}}'
-                        )
-
-    return '\n'.join(parts)
-
 
 def _table_key_repr(fmt: ascii_table.Format, include_win_key: bool = False) -> str:
     parts = []
@@ -133,7 +77,7 @@ def _key_table_and_footnotes_repr(
         table        : list[list[str]],
         footnotes    : list[output.Footnote],
         fmt          : ascii_table.Format,
-        flags        : output.FlagBits,
+        flags        : data.FlagBits,
         debugging    : int,
         lead_keypr   : str | None = None,
         ) -> str:
@@ -167,12 +111,12 @@ def _key_table_and_footnotes_repr(
     tight_col_specs.extend([True, True, True, True, True, True])
 
     # Source
-    if flags & output.FlagBits.ADD_SOURCE_COLUMN:
+    if flags & data.FlagBits.ADD_SOURCE_COLUMN:
         col_alignment_specs.append('')
         tight_col_specs.append(False)
 
     # Comments
-    if flags & output.FlagBits.ADD_COMMENTS_COLUMN:
+    if flags & data.FlagBits.ADD_COMMENTS_COLUMN:
         col_alignment_specs.append('')
         tight_col_specs.append(False)
 
@@ -193,7 +137,7 @@ def _key_table_and_footnotes_repr(
         container_directive = None
         indent = ''
 
-    if flags & output.FlagBits.TABLE_KEY_AFTER_TABLE:
+    if flags & data.FlagBits.TABLE_KEY_AFTER_TABLE:
         if container_directive:
             parts.append(container_directive)
             parts.append('')
@@ -229,7 +173,7 @@ def _key_table_and_footnotes_repr(
     if platform.is_osx():
         output_dir = core.setting__output_directory_for_osx
 
-    if output_dir and (flags & output.FlagBits.OUTPUT_TO_FILES):
+    if output_dir and (flags & data.FlagBits.OUTPUT_TO_FILES):
         key_group_file_name = data.key_group_file_names[key_group_idx]
         var_str = '{$leading_keypress}'
         if lead_keypr and var_str in key_group_file_name:
@@ -263,7 +207,7 @@ def _generate_report(
         limit_to_packages: Iterable[str]           | None,
         limit_to_context : bool,
         fmt              : ascii_table.Format,
-        flags            : output.FlagBits,
+        flags            : data.FlagBits,
         debugging        : int
         ) -> tuple[datetime, datetime, datetime, datetime]:
     """
@@ -280,6 +224,9 @@ def _generate_report(
         rpt_gen_view = None
 
     key_data.gather(key_groups, key_names, keypress_list, limit_to_packages, rpt_gen_view)
+    if debugging:
+        print(key_data.specification(indent_level = 1))
+
     t1 = datetime.now()
 
     # Write verification/validation files.
@@ -293,7 +240,7 @@ def _generate_report(
     # =================================================================
     last_footnote_num = 0
 
-    if flags & output.FlagBits.INCLUDE_UNBOUND_KEYPRESSES:
+    if flags & data.FlagBits.INCLUDE_UNBOUND_KEYPRESSES:
         note = 'Keypresses with empty Commands are not bound.'
     else:
         note = ''
@@ -305,22 +252,12 @@ def _generate_report(
     content_parts = []
     content_parts.append(output.report_heading(rpt_title, note))
     content_parts.append('')
-    content_parts.append(
-            _report_specification_repr(
-                    key_groups,
-                    key_names,
-                    keypress_list,
-                    limit_to_packages,
-                    limit_to_context,
-                    fmt,
-                    flags,
-                    )
-            )
+    content_parts.append(key_data.specification())
 
     # -----------------------------------------------------------------
     # Add Main-Key table parts.
     # -----------------------------------------------------------------
-    if flags & output.FlagBits.SEPARATE_TABLES_BY_KEY_GROUPS:
+    if flags & data.FlagBits.SEPARATE_TABLES_BY_KEY_GROUPS:
         table_pkg_list = output.main_key_tables(key_data, flags, fmt, last_footnote_num)
         #     list[tuple] (table_pkg) each tuple containing:
         #         (key_group_idx, table, footnotes, last_footnote_num)
@@ -451,7 +388,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             limit_to_packages: Iterable[str]           | None = None,
             limit_to_context : bool = False,
             fmt              : ascii_table.Format = ascii_table.Format.OUTLINED,
-            flags            : output.FlagBits = output.FlagBits.INCLUDE_UNBOUND_KEYPRESSES,
+            flags            : data.FlagBits = data.FlagBits.INCLUDE_UNBOUND_KEYPRESSES,
             platform_code    : str | None = None
             ):
         r"""
@@ -523,8 +460,8 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
             Default:  ``ascii_table.Format.OUTLINED``
 
         :param flags:
-            Bitwise-OR-ed combination of ``output.FlagBits`` flag bits.
-            Default:  ``output.FlagBits.INCLUDE_UNBOUND_KEYPRESSES``
+            Bitwise-OR-ed combination of ``data.FlagBits`` flag bits.
+            Default:  ``data.FlagBits.INCLUDE_UNBOUND_KEYPRESSES``
 
         :param platform_code:
             Optional:  Platform to simulate, or None to use current platform.
@@ -649,17 +586,6 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         debugging = is_debugging(DebugBits.KEY_BINDING_REPORT)
         if debugging:
             print('In KeyBindingReportCommand.run()....')
-            print(_report_specification_repr(
-                    key_groups,
-                    key_names,
-                    keypress_list,
-                    limit_to_packages,
-                    limit_to_context,
-                    fmt,
-                    flags,
-                    indent_level = 1
-                    )
-                 )
 
         if platform_code and platform_code not in platform.platform_names_by_code:
             raise AssertionError(f'`platform_code` must be one of {platform.platform_codes!r}.')
@@ -667,7 +593,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
         if not (ascii_table.Format.FIRST <= fmt <= ascii_table.Format.LAST):
             fmt = ascii_table.Format.OUTLINED
 
-        if flags & output.FlagBits.ALL_PLATFORMS:
+        if flags & data.FlagBits.ALL_PLATFORMS:
             # Run once for each platform.
             platform_code_tuple = (
                     platform.windows_platform_code,

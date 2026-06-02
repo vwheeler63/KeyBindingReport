@@ -66,7 +66,7 @@ B.  There is a concept of a ``Footnote`` object:  a container for a
     1.  It has:
         +   a reference to the key binding whose context it represents,
         +   the footnote number it was assigned,
-        +   flag bits (bit-wise OR-ed FlagBits class enumerator values) containing
+        +   flag bits (bit-wise OR-ed data.FlagBits class enumerator values) containing
             what type of contexts were originally requested in the report, and
         +   the requested data format (affects its output representation when
             the requested format is reStructuredText).
@@ -110,7 +110,6 @@ formats from that data.
 @version  1.0  22-Apr-2026 15:54  vw  - Created.
 ***************************************************************************"""
 
-from enum import IntFlag
 from datetime import datetime
 from ..lib.debug import DebugBits, is_debugging
 from ..lib import ascii_table
@@ -134,28 +133,6 @@ from . import key_binding
 min_column_count = 8
 
 
-class FlagBits(IntFlag):
-    # Output Flags
-    INCLUDE_UNBOUND_KEYPRESSES        = 0x0001  #     1
-    INCLUDE_UNBOUND_KEYPRESSES_ONLY   = 0x0002  #     2
-    INCLUDE_UNTRANSLATED_CONTEXTS     = 0x0004  #     4
-    INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0x0008  #     8
-    ADD_SOURCE_COLUMN                 = 0x0010  #    16
-    ADD_COMMENTS_COLUMN               = 0x0020  #    32
-    TABLE_KEY_AFTER_TABLE             = 0x0040  #    64
-    INCLUDE_WINDOWS_KEY               = 0x0080  #   128
-    SEPARATE_TABLES_BY_KEY_GROUPS     = 0x0100  #   256
-    OUTPUT_TO_FILES                   = 0x0200  #   512
-    ALL_PLATFORMS                     = 0x0400  #  1024
-
-    # Utility Bits
-    ANY_UNBOUND_KEYPRESSES            = 0x0001 | 0x0002  #     3
-    ANY_CONTEXT_REQUESTED             = 0x0004 | 0x0008  #    12
-    NONE                              = 0x0000           #     0
-    ALL                               = 0xFFFF           # 65535
-    ANY                               = 0xFFFF           # 65535
-
-
 
 # *************************************************************************
 # Classes
@@ -169,7 +146,7 @@ class Footnote:
             self,
             key_binding: key_binding.ReportKeyBinding,
             number     : int,
-            flags      : FlagBits,
+            flags      : data.FlagBits,
             format     : ascii_table.Format
             ):
         self.key_binding = key_binding
@@ -196,8 +173,8 @@ class Footnote:
         context = binding.smart_context()
 
         if context:
-            raw          = bool(self.flags & FlagBits.INCLUDE_UNTRANSLATED_CONTEXTS)
-            natural_lang = bool(self.flags & FlagBits.INCLUDE_NATURAL_LANGUAGE_CONTEXTS)
+            raw          = bool(self.flags & data.FlagBits.INCLUDE_UNTRANSLATED_CONTEXTS)
+            natural_lang = bool(self.flags & data.FlagBits.INCLUDE_NATURAL_LANGUAGE_CONTEXTS)
 
             footnote_str = context.formatted(
                     2,
@@ -307,10 +284,10 @@ def section_heading(title: str, underline_char: str) ->str:
     return '\n'.join(parts)
 
 
-def include_windows_key(flags: FlagBits):
+def include_windows_key(flags: data.FlagBits):
     return ((
                platform.is_osx()
-            or bool(flags & FlagBits.INCLUDE_WINDOWS_KEY)
+            or bool(flags & data.FlagBits.INCLUDE_WINDOWS_KEY)
             ))
 
 
@@ -319,7 +296,7 @@ def include_windows_key(flags: FlagBits):
 # Function Definitions
 # *************************************************************************
 
-def _heading_row(flags: FlagBits) -> list[str]:
+def _heading_row(flags: data.FlagBits) -> list[str]:
     if include_windows_key(flags):
         effective_min_col_count = min_column_count
 
@@ -349,9 +326,9 @@ def _heading_row(flags: FlagBits) -> list[str]:
     if len(result) != effective_min_col_count:
         raise AssertionError('output.main_key_table():  length of `result` and `min_col_count` must match.')
 
-    if flags & FlagBits.ADD_SOURCE_COLUMN:
+    if flags & data.FlagBits.ADD_SOURCE_COLUMN:
         result.append('Source')
-    if flags & FlagBits.ADD_COMMENTS_COLUMN:
+    if flags & data.FlagBits.ADD_COMMENTS_COLUMN:
         result.append('Comments')
 
     return result
@@ -361,7 +338,7 @@ def _append_rows_to_table_for_one_keypress(
         main_or_2nd_key_name: str,
         mod_key_flags_tpl   : tuple[str, str, str, str],
         binding_list        : list[key_binding.ReportKeyBinding],
-        flags               : FlagBits,
+        flags               : data.FlagBits,
         fmt                 : ascii_table.Format,
         footnotes           : list[Footnote],
         prev_footnote_num   : int,
@@ -391,7 +368,7 @@ def _append_rows_to_table_for_one_keypress(
             # Context
             # ---------------------------------------------------------
             if binding.has_context():
-                if flags & FlagBits.ANY_CONTEXT_REQUESTED:
+                if flags & data.FlagBits.ANY_CONTEXT_REQUESTED:
                     # User requested detailed context information
                     footnote_num += 1
                     footnote = Footnote(binding, footnote_num, flags, fmt)
@@ -425,9 +402,9 @@ def _append_rows_to_table_for_one_keypress(
             # ---------------------------------------------------------
             # Remaining optional columns.
             # ---------------------------------------------------------
-            if flags & FlagBits.ADD_SOURCE_COLUMN:
+            if flags & data.FlagBits.ADD_SOURCE_COLUMN:
                 row.append(binding.source())
-            if flags & FlagBits.ADD_COMMENTS_COLUMN:
+            if flags & data.FlagBits.ADD_COMMENTS_COLUMN:
                 row.append(' ' * comments_column_width)
 
             table.append(row)
@@ -438,7 +415,7 @@ def _append_empty_row_to_table(
         table              : list[list],
         main_key_name      : str,
         mod_key_flags_tpl  : tuple[str, str, str, str],
-        flags              : FlagBits,
+        flags              : data.FlagBits,
         fmt                : ascii_table.Format,
         ):
     include_win_key = include_windows_key(flags)
@@ -480,16 +457,16 @@ def _append_empty_row_to_table(
     # -----------------------------------------------------------------
     # Remaining optional columns.
     # -----------------------------------------------------------------
-    if flags & FlagBits.ADD_SOURCE_COLUMN:
+    if flags & data.FlagBits.ADD_SOURCE_COLUMN:
         row.append(space)
-    if flags & FlagBits.ADD_COMMENTS_COLUMN:
+    if flags & data.FlagBits.ADD_COMMENTS_COLUMN:
         row.append(' ' * comments_column_width)
 
     table.append(row)
 
 def main_key_table(
         key_data         : data.KeyBindingData,
-        flags            : FlagBits,
+        flags            : data.FlagBits,
         fmt              : ascii_table.Format,
         prev_footnote_num: int = 0
         ) -> tuple[list[list[str]], list[Footnote], int]:
@@ -522,7 +499,7 @@ def main_key_table(
     -----------------
     Key W A C S Command  Args  Context  Source  Comments
 
-    :param flags:              OR-ed combination of FlagBits bits
+    :param flags:              OR-ed combination of data.FlagBits bits
     :param fmt:                needed to instantiate Footnote objects
     :param prev_footnote_num:  one-based last-footnote number;
                                  0 = first footnote has not yet been generated.
@@ -534,8 +511,8 @@ def main_key_table(
         print('In output.main_key_table()...')
         print(f'  {flags = :#011_b}')
 
-    include_unbound_keypresses = flags & FlagBits.ANY_UNBOUND_KEYPRESSES
-    include_no_bindings = flags & FlagBits.INCLUDE_UNBOUND_KEYPRESSES_ONLY
+    include_unbound_keypresses = flags & data.FlagBits.ANY_UNBOUND_KEYPRESSES
+    include_no_bindings = flags & data.FlagBits.INCLUDE_UNBOUND_KEYPRESSES_ONLY
     include_win_key = include_windows_key(flags)
     footnote_num = prev_footnote_num
     heading_row = _heading_row(flags)
@@ -612,7 +589,7 @@ def main_key_table(
 
 def main_key_tables(
         key_data         : data.KeyBindingData,
-        flags            : FlagBits,
+        flags            : data.FlagBits,
         fmt              : ascii_table.Format,
         prev_footnote_num: int = 0
         ) -> list[    tuple[int, list[list[str]], list[Footnote], int]    ]:
@@ -650,7 +627,7 @@ def main_key_tables(
     -----------------
     Key W A C S Command  Args  Context  Source  Comments
 
-    :param flags:              OR-ed combination of FlagBits bits
+    :param flags:              OR-ed combination of data.FlagBits bits
     :param fmt:                needed to instantiate Footnote objects
     :param prev_footnote_num:  one-based last-footnote number;
                                  0 = first footnote has not yet been generated.
@@ -662,8 +639,8 @@ def main_key_tables(
         print('In output.main_key_tables()...')
         print(f'  {flags = :#011_b}')
 
-    include_unbound_keypresses = flags & FlagBits.ANY_UNBOUND_KEYPRESSES
-    include_no_bindings = flags & FlagBits.INCLUDE_UNBOUND_KEYPRESSES_ONLY
+    include_unbound_keypresses = flags & data.FlagBits.ANY_UNBOUND_KEYPRESSES
+    include_no_bindings = flags & data.FlagBits.INCLUDE_UNBOUND_KEYPRESSES_ONLY
     include_win_key = include_windows_key(flags)
     footnote_num = prev_footnote_num
     heading_row = _heading_row(flags)
@@ -763,7 +740,7 @@ def main_key_tables(
 
 def key_seq_tables(
         key_data         : data.KeyBindingData,
-        flags            : FlagBits,
+        flags            : data.FlagBits,
         fmt              : ascii_table.Format,
         prev_footnote_num: int = 0
         ) -> list[    tuple[str, list[list[str]], list[Footnote], int]    ]:
@@ -797,7 +774,7 @@ def key_seq_tables(
     -----------------
     Key W A C S Command  Args  Context  Source  Comments
 
-    :param flags:              OR-ed combination of FlagBits bits
+    :param flags:              OR-ed combination of data.FlagBits bits
     :param fmt:                needed to instantiate Footnote objects
     :param prev_footnote_num:  one-based last-footnote number;
                                  0 = first footnote has not yet been generated.

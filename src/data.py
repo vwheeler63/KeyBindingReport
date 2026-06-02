@@ -398,19 +398,50 @@ See ``KeyBindingReportCommand`` docstring for details.
 import re
 import pprint
 from typing import Set, Iterable, Sequence
-from enum import IntEnum
+from enum import IntEnum, IntFlag
 import sublime
 from ..lib.debug import DebugBits, is_debugging
+from ..lib import ascii_table
 from . import platform
 from . import core
 from . import key_binding
 from . import smart_context
 
 
+# *************************************************************************
+# Configuration
+# *************************************************************************
+
+_flags_format_spec_bin = '018_b'
+_flags_format_spec_hex = '04X'
+
+
 
 # *************************************************************************
 # Constants (can be assigned/generated once on Package load)
 # *************************************************************************
+
+class FlagBits(IntFlag):
+    # Output Flags
+    INCLUDE_UNBOUND_KEYPRESSES        = 0x0001  #     1
+    INCLUDE_UNBOUND_KEYPRESSES_ONLY   = 0x0002  #     2
+    INCLUDE_UNTRANSLATED_CONTEXTS     = 0x0004  #     4
+    INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0x0008  #     8
+    ADD_SOURCE_COLUMN                 = 0x0010  #    16
+    ADD_COMMENTS_COLUMN               = 0x0020  #    32
+    TABLE_KEY_AFTER_TABLE             = 0x0040  #    64
+    INCLUDE_WINDOWS_KEY               = 0x0080  #   128
+    SEPARATE_TABLES_BY_KEY_GROUPS     = 0x0100  #   256
+    OUTPUT_TO_FILES                   = 0x0200  #   512
+    ALL_PLATFORMS                     = 0x0400  #  1024
+
+    # Utility Bits
+    ANY_UNBOUND_KEYPRESSES            = 0x0001 | 0x0002  #     3
+    ANY_CONTEXT_REQUESTED             = 0x0004 | 0x0008  #    12
+    NONE                              = 0x0000           #     0
+    ALL                               = 0xFFFF           # 65535
+    ANY                               = 0xFFFF           # 65535
+
 
 class KeyGroup(IntEnum):
     """ Values in range FIRST-LAST index into ``key_name_groups``. """
@@ -674,6 +705,49 @@ class KeyBindingData:
 
     def __repr__(self) -> str:
         return self.main_key_repr()
+
+    def specification(self, indent_level: int = 0) -> str:
+        indent = '  ' * indent_level
+        parts = []
+        parts.append(f'{indent}Specification:')
+
+        if self.key_groups:
+            key_grp_list = []
+            for kg_i in self.key_groups:
+                key_grp_list.append(KeyGroup(kg_i))
+            parts.append(f'{indent}    key_groups        = {key_grp_list}')
+        if self.key_names:
+            parts.append(f'{indent}    key_names         = {self.key_names}')
+        if self.keypress_list:
+            parts.append(f'{indent}    keypress_list     = {self.keypress_list}')
+        if self.limit_to_packages:
+            parts.append(f'{indent}    limit_to_packages = {self.limit_to_packages}')
+
+        parts.append(f'{indent}    limit_to_context  = {self.limit_to_context}')
+        parts.append(f'{indent}    format            = {ascii_table.Format(self.fmt)!r}')
+        parts.append(f'{indent}    flags             = 0x{self.flags:{_flags_format_spec_hex}}')
+
+        # Compute length of longest FlagBits enumeration name.
+        longest_name_len = 0
+        for enum_bit_val in FlagBits:
+            if enum_bit_val != FlagBits.ALL and enum_bit_val != FlagBits.ANY:
+                if self.flags & enum_bit_val._value_:
+                    name = enum_bit_val._name_
+                    if name:
+                        name_len = len(name)
+                        if name_len > longest_name_len:
+                            longest_name_len = name_len
+
+        # Report.
+        for enum_bit_val in FlagBits:
+            if enum_bit_val != FlagBits.ALL and enum_bit_val != FlagBits.ANY:
+                if self.flags & enum_bit_val._value_:
+                    parts.append(
+                            f'{indent}      - {enum_bit_val._name_:{longest_name_len}}:  '
+                            f'0x{enum_bit_val._value_:{_flags_format_spec_hex}}'
+                            )
+
+        return '\n'.join(parts)
 
     def main_key_repr(self) -> str:
         components = []
