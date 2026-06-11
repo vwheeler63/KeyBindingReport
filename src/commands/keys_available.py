@@ -56,8 +56,8 @@ class KeyBindingReportKeysAvailableCommand(sublime_plugin.TextCommand):
                 raise AssertionError(f'`platform_code` must be one of {platform.platform_codes!r}.')
 
         flags = (
-                  output.FlagBits.INCLUDE_UNBOUND_KEYPRESSES_ONLY
-                | output.FlagBits.INCLUDE_WINDOWS_KEY
+                  data.FlagBits.INCLUDE_UNBOUND_KEYPRESSES_ONLY
+                | data.FlagBits.INCLUDE_WINDOWS_KEY
                 )
 
         # Note:  passing "key_groups": [data.KeyGroup.ALL] does not work
