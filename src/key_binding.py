@@ -77,16 +77,16 @@ A.  There is a concept of a ``KeyBinding`` object.
 B.  There is a concept of a ``ReportKeyBinding`` object (inherits from ``KeyBinding``).
 
     1.  It has (in addition to KeyBinding attributes and methods):
-        +   _modifier_codes (list[int])
+        +   _modifier_codes (List[int])
             +   list of modifier codes (flags OR-ed from ModifierKeyBits bits)
     3.  It can be asked:
         +   Same queries as for ``KeyBinding``
         +   modifier_codes()
             +   list of modifier codes (flags OR-ed from ModifierKeyBits bits)
         +   args_rst()         Args in reStructuredText repr
-        +   keypresses_human_friendly_list()  list[str] of human-friendly keypress repr
+        +   keypresses_human_friendly_list()  List[str] of human-friendly keypress repr
             +   Example:  "Ctrl-Shift-B"
-        +   keypresses_human_friendly_rst_list()  list[str] of reST keypress repr:
+        +   keypresses_human_friendly_rst_list()  List[str] of reST keypress repr:
             +   Example:  :kbd:`Ctrl-Shift-B`
         +   command_with_args_rst()
             +   Like command_with_args_repr() but suitable for reST format.
@@ -116,6 +116,7 @@ See ``can_override()`` docstring.
 ***************************************************************************"""
 
 import json
+from typing import List, Tuple, Dict
 from enum import IntFlag
 from sublime_types import CommandArgs, Value
 from ..lib import rst_utils
@@ -162,7 +163,7 @@ _context_key = 'context'
 # Utilities
 # *************************************************************************
 
-def modifier_flag_characters(modifier_code: int, mod_flag_char: str) -> tuple[str, str, str, str]:
+def modifier_flag_characters(modifier_code: int, mod_flag_char: str) -> Tuple[str, str, str, str]:
     """
     Tuple of ``mod_flag_char`` or space characters based on ``ModifierKeyBits``
     set in ``modifier_code``.  Example:
@@ -317,7 +318,7 @@ class Keypress:
         parts.append(self.main_key_name)
         return '-'.join(parts).title()
 
-    def modifier_flag_characters(self, flag_char: str) -> tuple[str, str, str, str]:
+    def modifier_flag_characters(self, flag_char: str) -> Tuple[str, str, str, str]:
         """
         Tuple of ``flag_char`` or space characters based on ``ModifierKeyBits``
         set in ``modifier_code``.  Example:
@@ -373,7 +374,7 @@ class KeyBinding:
         'keypresses',
     ]
 
-    def __init__(self, decoded_binding: dict[str, Value], source: str, source_entry_no: int):
+    def __init__(self, decoded_binding: Dict[str, Value], source: str, source_entry_no: int):
         """
         :param decoded_binding:  key binding decoded from JSON in .sublime-keymap
         :param path:                 for improved debug output
@@ -393,7 +394,7 @@ class KeyBinding:
             raise AssertionError(f'Invalid `decoded_binding`: "keys" entry was {keys!r}')
         self._keys = keys
 
-        keypresses: list[Keypress] = []
+        keypresses: List[Keypress] = []
         for keypress_str in keys:
             if isinstance(keypress_str, str):
                 keypresses.append(Keypress(keypress_str))
@@ -446,10 +447,10 @@ class KeyBinding:
         """
         return len(self._keys)
 
-    def keypress_list(self) -> list[str]:
+    def keypress_list(self) -> List[str]:
         return self._keys
 
-    def keypress_tuple(self) -> tuple[str]:
+    def keypress_tuple(self) -> Tuple[str]:
         if self._cached_keypress_tuple is None:
             self._cached_keypress_tuple = tuple(self._keys)
         return self._cached_keypress_tuple
@@ -505,7 +506,7 @@ class KeyBinding:
     def has_context(self) -> bool:
         return (( self._smart_context is not None ))
 
-    def context_list(self) -> list[dict] | None:
+    def context_list(self) -> List[dict] | None:
         return self._context
 
     def context_json(self) -> str:
@@ -546,14 +547,14 @@ class KeyBinding:
     def source(self) -> str:
         return self._source
 
-    def parts(self) -> tuple[tuple[str], str, CommandArgs, list[dict[str, Value]] | None, str]:
+    def parts(self) -> Tuple[Tuple[str], str, CommandArgs, List[Dict[str, Value]] | None, str]:
         """
         Parts of JSON Key-Binding object, extracted as:
 
-        - keys   :   tuple[str]   (e.g. ("alt+up"))
+        - keys   :   Tuple[str]   (e.g. ("alt+up"))
         - command:   str          (e.g. 'box_drawing_draw_one_character')
         - args   :   dict or None (e.g. {'direction': 0, 'line_count': 1})
-        - context:   list[dict]   (e.g. [{'key': 'box_drawing.ok_to_draw', 'match_all': true}])
+        - context:   List[dict]   (e.g. [{'key': 'box_drawing.ok_to_draw', 'match_all': true}])
         - source :   str
 
         Examples above use this JSON binding as input:
@@ -679,7 +680,7 @@ class ReportKeyBinding(KeyBinding):
     """
     # __slots__ = ['_smart_context', '_source', '_main_key_names', '_modifier_codes']
 
-    def __init__(self, decoded_binding: dict[str, Value], source: str, source_entry_no: int):
+    def __init__(self, decoded_binding: Dict[str, Value], source: str, source_entry_no: int):
         # Incorporate contents of `decoded_binding` into `self`.
         super().__init__(decoded_binding, source, source_entry_no)
 
@@ -731,7 +732,7 @@ class ReportKeyBinding(KeyBinding):
 
         return result
 
-    def keypresses_human_friendly_list(self) -> list[str]:
+    def keypresses_human_friendly_list(self) -> List[str]:
         """ e.g. Alt-Shift-R """
         result = []
         for keypress in self.keypresses:
@@ -739,7 +740,7 @@ class ReportKeyBinding(KeyBinding):
 
         return result
 
-    def keypresses_human_friendly_rst_list(self) -> list[str]:
+    def keypresses_human_friendly_rst_list(self) -> List[str]:
         result = []
         hf_list = self.keypresses_human_friendly_list()
         for hf_str in hf_list:

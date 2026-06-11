@@ -48,7 +48,7 @@ if debugging:
 # Load / Reload
 # *************************************************************************
 
-def reload(dotted_subpkg: str, submodules: tuple[str, ...] | None = None):
+def reload(dotted_subpkg: str, submodules: Tuple[str, ...] | None = None):
     """
     Reload each module in `submodules` only if previously loaded.  This is a
     precondition of calling ``importlib.reload()`` but is also for efficiency:

@@ -111,6 +111,7 @@ formats from that data.
 ***************************************************************************"""
 
 from datetime import datetime
+from typing import List, Tuple
 from ..lib.debug import DebugBits, is_debugging
 from ..lib import ascii_table
 from ..lib import rst_utils
@@ -214,8 +215,8 @@ class TablePackage:
             ):
         self.fmt = fmt
         self.flags = flags
-        self.table: list[list[str]] = []
-        self.footnotes: list[Footnote] = []
+        self.table: List[List[str]] = []
+        self.footnotes: List[Footnote] = []
         self.last_footnote_number = prev_footnote_num
 
     def append_heading_row(self):
@@ -257,7 +258,7 @@ class TablePackage:
 
     def append_rows_for_one_keypress(self,
             main_key_name  : str,
-            binding_list   : list[key_binding.ReportKeyBinding],
+            binding_list   : List[key_binding.ReportKeyBinding],
             is_2nd_keypress: bool = False,
             ):
         """
@@ -601,7 +602,7 @@ def main_key_tables(
         flags            : data.FlagBits,
         fmt              : ascii_table.Format,
         prev_footnote_num: int = 0
-        ) -> list[  tuple[int, TablePackage]  ]:
+        ) -> List[  Tuple[int, TablePackage]  ]:
     """
     Like ``main_key_table()`` only it creates a LIST of main-key tables,
     1 table per key-group occurring in the data.
@@ -655,7 +656,7 @@ def main_key_tables(
     by_main_key_dict = key_data.mdictByMainKey
     key_groups_requested = bool(key_data.key_groups) # is not None and len() > 0.
 
-    tbl_pkg_list: list[tuple[int, TablePackage]] = []
+    tbl_pkg_list: List[Tuple[int, TablePackage]] = []
 
     for key_group_idx, key_group_list in enumerate(data.key_name_groups):
         # Start new table.  Don't add headings yet until
@@ -715,7 +716,7 @@ def key_seq_tables(
         fmt              : ascii_table.Format,
         flags            : data.FlagBits,
         prev_footnote_num: int = 0
-        ) -> list[  tuple[str, TablePackage]  ]:
+        ) -> List[  Tuple[str, TablePackage]  ]:
     """
     Generate and return:
 
@@ -751,7 +752,7 @@ def key_seq_tables(
     :param prev_footnote_num:  one-based last-footnote number;
                                  0 = first footnote has not yet been generated.
 
-    :return:  list[tuple] each tuple containing:
+    :return:  List[tuple] each tuple containing:
                 (lead_keypr_str, table, footnotes, last_footnote_num)
     """
     debugging = is_debugging(DebugBits.OUTPUT)
@@ -781,7 +782,7 @@ def key_seq_tables(
     # -----------------------------------------------------------------
     # Create top-level list.
     # -----------------------------------------------------------------
-    tbl_pkg_list: list[  tuple[str, TablePackage]  ] = []
+    tbl_pkg_list: List[  Tuple[str, TablePackage]  ] = []
 
     if len(lead_keypr_str_set) > 0:
         footnote_num = prev_footnote_num

@@ -145,6 +145,7 @@ return a Boolean value.
 import os
 import re
 import json
+from typing import List, Tuple, Dict
 from enum import IntEnum
 import importlib
 from datetime import datetime
@@ -240,7 +241,7 @@ def language_supported(language_code: str) -> bool:
     return (( language_code in supported_languages_by_code ))
 
 
-def supported_language_codes() -> list[str]:
+def supported_language_codes() -> List[str]:
     """ List of languages supported, e.g. ['English', 'German'] """
     lang_codes = supported_languages_by_code.keys()
     #     This is a `view` of the dictionary, with live objects, and
@@ -253,7 +254,7 @@ def supported_language_codes() -> list[str]:
     return result_list
 
 
-def supported_languages() -> list[str]:
+def supported_languages() -> List[str]:
     """ List of languages supported, e.g. ['English', 'German'] """
     lang_names = supported_languages_by_code.values()
     #     This is a `view` of the dictionary, with live objects, and
@@ -761,7 +762,7 @@ def _curr_word_for_snippet(view, rgn):
     return result
 
 
-def _view_element_found_in_list(view, test_list: list[str]):
+def _view_element_found_in_list(view, test_list: List[str]):
     """ Do any of ``test_list`` strings appear in ``view.element()``? """
     result   = False
     element  = view.element()
@@ -1879,7 +1880,7 @@ class SmartContext:
         if condition_list is None:
             raise AssertionError('`binding` "context" entry not present.')
 
-        conditions: list[ContextCondition] = []
+        conditions: List[ContextCondition] = []
 
         if len(condition_list) > 0:
             for cond_dict in condition_list:
@@ -1917,7 +1918,7 @@ class SmartContext:
         """ Is ``self`` equal to ``other``? """
         return self.is_equivalent(other)
 
-    def _equivalent_to_any_condition(self, self_cond, other_cond_list) -> tuple[int, bool]:
+    def _equivalent_to_any_condition(self, self_cond, other_cond_list) -> Tuple[int, bool]:
         result = False
         i = -1
 
@@ -2199,7 +2200,7 @@ def _english_match_all_qualfier(self: ContextCondition) -> str:
     return result
 
 
-def _english_is_any(self: ContextCondition) -> tuple[str, str]:
+def _english_is_any(self: ContextCondition) -> Tuple[str, str]:
     not_str      = _english_not_string(self, bool)
     is_any       = 'Is any'
     are_there_no = 'Are there no'

@@ -397,7 +397,7 @@ See ``KeyBindingReportCommand`` docstring for details.
 """
 import re
 import pprint
-from typing import Set, Iterable, Sequence
+from typing import Set, Iterable, List, Tuple
 from enum import IntEnum, IntFlag
 import sublime
 from ..lib.debug import DebugBits, is_debugging
@@ -576,7 +576,7 @@ class ScoredKeySequence:
     """
     __slots__ = ['keypress_tuple', 'second_main_key_name', 'mod_code', 'seq_no', '_score']
 
-    def __init__(self, keypress_tuple: tuple[str, str], seq_no: int):
+    def __init__(self, keypress_tuple: Tuple[str, str], seq_no: int):
         if keypress_tuple is None or len(keypress_tuple) < 2:
             raise AssertionError('`keypress_tuple` must have at least 2 elements.')
 
@@ -619,8 +619,8 @@ class ScoredKeySequence:
 
 
 def sort_keypress_tuple_list_by_secondary_key(
-        keypress_tuple_list: list[tuple[str, str]]
-        ) -> list[ScoredKeySequence]:
+        keypress_tuple_list: List[Tuple[str, str]]
+        ) -> List[ScoredKeySequence]:
     """
     [
         ("ctrl+k", "ctrl+t"),
@@ -859,9 +859,9 @@ class KeyBindingData:
             f.write(self.key_seq_repr())
 
     def _extracted_overrides(self,
-            binding_list: list[key_binding.ReportKeyBinding],
+            binding_list: List[key_binding.ReportKeyBinding],
             debugging   : int
-            ) -> list[list[key_binding.ReportKeyBinding]] | None:
+            ) -> List[List[key_binding.ReportKeyBinding]] | None:
         """
         List of overrides present in ``binding_list``.
 
@@ -893,7 +893,7 @@ class KeyBindingData:
         if binding_list is None or len(binding_list) < 2:
             raise AssertionError('binding_list must exist and contain multiple bindings.')
 
-        result: list[list[key_binding.ReportKeyBinding]] | None = []
+        result: List[List[key_binding.ReportKeyBinding]] | None = []
 
         # First make a shallow copy of ``binding_list`` so we're not
         # deleting elements in the the input data.
@@ -957,7 +957,7 @@ class KeyBindingData:
 
                     # If ``indices_of_bindings_involved`` is not empty:
                     # - start a result binding list with [];
-                    bindings_involved: list[key_binding.ReportKeyBinding] = []
+                    bindings_involved: List[key_binding.ReportKeyBinding] = []
                     for k in reversed(indices_of_bindings_involved):
                         # - Pop binding from list so indices are not invalidated
                         #   (in reverse order).
@@ -993,7 +993,7 @@ class KeyBindingData:
 
     def binding_overrides(self,
             view: sublime.View | None = None
-            ) -> list[list[key_binding.ReportKeyBinding]]:
+            ) -> List[List[key_binding.ReportKeyBinding]]:
         """
         Locate key binding overrides defined as:
 
@@ -1015,7 +1015,7 @@ class KeyBindingData:
                                 to report all Key Bindings that fit the
                                 definition above.
 
-        :return:  list[list[ReportKeyBinding]]; each inner list is 2 or more
+        :return:  List[List[ReportKeyBinding]]; each inner list is 2 or more
                   key bindings wherein the binding lowest in the list overrides
                   the binding(s) above it.
 
@@ -1041,7 +1041,7 @@ class KeyBindingData:
             self.gather(key_groups=[KeyGroup.ALL])
 
         # =================================================================
-        # From the input data, generate list[list[ReportKeyBinding]] where
+        # From the input data, generate List[List[ReportKeyBinding]] where
         # each inner list shows bindings that:
         #
         # - use the same keypresses, and
@@ -1076,7 +1076,7 @@ class KeyBindingData:
         # all the keypresses encountered that did not get reported here.
         # -----------------------------------------------------------------
         main_key_reported = {}
-        result: list[list[key_binding.ReportKeyBinding]] = []
+        result: List[List[key_binding.ReportKeyBinding]] = []
 
         if debugging:
             print('  Entering 1st loop...', flush=True)
@@ -1135,8 +1135,8 @@ class KeyBindingData:
         return result
 
     def which_binding(self,
-                keypress_list: Sequence[str],
-                view: sublime.View
+                keypress_list: Iterable[str],
+                view         : sublime.View
                 ) -> key_binding.ReportKeyBinding | None:
         """
         Locate the key binding this ``keypress_list`` would hit (if any),
@@ -1172,7 +1172,7 @@ class KeyBindingData:
             limit_to_packages = None
             self.gather(key_groups, key_names, [keypress_list], limit_to_packages, view)
 
-            keypress_tuple = tuple(keypress_list)
+            keypress_tuple = Tuple(keypress_list)
             if keypress_tuple in self.mdictByKeySquence:
                 binding_list = self.mdictByKeySquence[keypress_tuple]
                 # In a bottom-up search, return first binding whose context is a match.
@@ -1233,7 +1233,7 @@ class KeyBindingData:
         return result
 
     def leading_key_count_in_key_sequences(self,
-                keypress_list: Sequence[str]
+                keypress_list: Iterable[str]
                 ) -> int:
         """
         Number of times first keypress in ``keypress_list`` appears as
@@ -1725,7 +1725,7 @@ class KeyBindingData:
     def _build_report_data(self,
             limit_to_packages      : Set[str] | None,
             include_key_name_set   : Set[str] | None,
-            keypress_tuple_set     : Set[tuple[str]] | None,
+            keypress_tuple_set     : Set[Tuple[str]] | None,
             incl_all_multi_key_seqs: bool,
             view                   : sublime.View | None
             ):
@@ -1950,7 +1950,7 @@ class KeyBindingData:
             pkg_name               : str,
             file_name              : str,
             include_key_name_set   : Set[str] | None,
-            keypress_tuple_set        : Set[tuple[str]] | None,
+            keypress_tuple_set     : Set[Tuple[str]] | None,
             incl_all_multi_key_seqs: bool,
             view                   : sublime.View | None
             ):
@@ -1958,7 +1958,7 @@ class KeyBindingData:
         Add key bindings from ``path``, which key bindings are included in these args:
 
         - include_key_name_set   : Optional[Set[str]],
-        - keypress_tuple_set        : Optional[Set[tuple[str]]],
+        - keypress_tuple_set        : Optional[Set[Tuple[str]]],
         - incl_all_multi_key_seqs: bool,
         - view                   : sublime.View
 

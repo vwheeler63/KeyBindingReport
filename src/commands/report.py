@@ -7,7 +7,7 @@ end of this file.  The details of the algorithm are in the docstring for
 that command.
 """
 import os
-from typing import Iterable
+from typing import Iterable, Tuple
 from datetime import datetime
 import sublime_plugin
 import sublime
@@ -209,7 +209,7 @@ def _generate_report(
         fmt              : ascii_table.Format,
         flags            : data.FlagBits,
         debugging        : int
-        ) -> tuple[datetime, datetime, datetime, datetime]:
+        ) -> Tuple[datetime, datetime, datetime, datetime]:
     """
     Do work for KeyBindingReportCommand, so that the command itself can
     iterate calling this repeatedly to fulfil the new ALL_PLATFORMS flag.
@@ -259,7 +259,7 @@ def _generate_report(
     # -----------------------------------------------------------------
     if flags & data.FlagBits.SEPARATE_TABLES_BY_KEY_GROUPS:
         table_pkg_list = output.main_key_tables(key_data, flags, fmt, last_footnote_num)
-        #     list[tuple] (table_pkg) each tuple containing:
+        #     List[tuple] (table_pkg) each tuple containing:
         #         (key_group_idx, table, footnotes, last_footnote_num)
 
         if table_pkg_list:
@@ -303,7 +303,7 @@ def _generate_report(
     # Add Key-Sequence table(s) parts.
     # -----------------------------------------------------------------
     table_pkg_list = output.key_seq_tables(key_data, fmt, flags, last_footnote_num)
-    #     list[tuple] (table_pkg) each tuple containing:
+    #     List[tuple] (table_pkg) each tuple containing:
     #         (lead_keypr_str, table, footnotes, last_footnote_num)
 
     if table_pkg_list:

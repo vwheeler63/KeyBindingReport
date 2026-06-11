@@ -2,6 +2,7 @@
 Which Binding Report
 ********************
 """
+from typing import List
 from datetime import datetime
 import sublime_plugin
 import sublime
@@ -38,7 +39,7 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
 
     def run(self,
             edit         : sublime.Edit,
-            keypress_list: list[str] = ["ctrl+k", "ctrl+u"],
+            keypress_list: List[str] = ["ctrl+k", "ctrl+u"],
             platform_code: str | None = None
             ):
         """
