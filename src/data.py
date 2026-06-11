@@ -397,7 +397,7 @@ See ``KeyBindingReportCommand`` docstring for details.
 """
 import re
 import pprint
-from typing import Set, Iterable, List, Tuple
+from typing import Set, Sequence, List, Tuple
 from enum import IntEnum, IntFlag
 import sublime
 from ..lib.debug import DebugBits, is_debugging
@@ -1135,7 +1135,7 @@ class KeyBindingData:
         return result
 
     def which_binding(self,
-                keypress_list: Iterable[str],
+                keypress_list: Sequence[str],
                 view         : sublime.View
                 ) -> key_binding.ReportKeyBinding | None:
         """
@@ -1172,7 +1172,7 @@ class KeyBindingData:
             limit_to_packages = None
             self.gather(key_groups, key_names, [keypress_list], limit_to_packages, view)
 
-            keypress_tuple = Tuple(keypress_list)
+            keypress_tuple = tuple(keypress_list)
             if keypress_tuple in self.mdictByKeySquence:
                 binding_list = self.mdictByKeySquence[keypress_tuple]
                 # In a bottom-up search, return first binding whose context is a match.
@@ -1233,7 +1233,7 @@ class KeyBindingData:
         return result
 
     def leading_key_count_in_key_sequences(self,
-                keypress_list: Iterable[str]
+                keypress_list: Sequence[str]
                 ) -> int:
         """
         Number of times first keypress in ``keypress_list`` appears as
@@ -1259,10 +1259,10 @@ class KeyBindingData:
         return result
 
     def gather(self,
-            key_groups       : Iterable[KeyGroup] | None = None,
-            key_names        : Iterable[str] | None = None,
-            keypress_list    : Iterable[Iterable[str]] | None = None,
-            limit_to_packages: Iterable[str] | None = None,
+            key_groups       : Sequence[KeyGroup] | None = None,
+            key_names        : Sequence[str] | None = None,
+            keypress_list    : Sequence[Sequence[str]] | None = None,
+            limit_to_packages: Sequence[str] | None = None,
             view             : sublime.View | None = None
             ):
         r"""
@@ -1305,7 +1305,7 @@ class KeyBindingData:
                             List of package names data should be limited to;
                             ``None`` or ``[]`` when packages are not limited.
 
-        :param view:        Passing a view means "do not include key bindings
+        :param view:        Passing a View means "do not include key bindings
                             that do not match the current context in that View.
                             ``None`` means report content is not limited to
                             current context.

@@ -7,7 +7,7 @@ end of this file.  The details of the algorithm are in the docstring for
 that command.
 """
 import os
-from typing import Iterable, Tuple
+from typing import Sequence, Tuple
 from datetime import datetime
 import sublime_plugin
 import sublime
@@ -201,10 +201,10 @@ def _key_sequence_table_title(keypress_str: str) -> str:
 
 def _generate_report(
         self,
-        key_groups       : Iterable[data.KeyGroup] | None,
-        key_names        : Iterable[str]           | None,
-        keypress_list    : Iterable[Iterable[str]] | None,
-        limit_to_packages: Iterable[str]           | None,
+        key_groups       : Sequence[data.KeyGroup] | None,
+        key_names        : Sequence[str]           | None,
+        keypress_list    : Sequence[Sequence[str]] | None,
+        limit_to_packages: Sequence[str]           | None,
         limit_to_context : bool,
         fmt              : ascii_table.Format,
         flags            : data.FlagBits,
@@ -230,9 +230,9 @@ def _generate_report(
     t1 = datetime.now()
 
     # Write verification/validation files.
-    # main_key_path = r'r:\by_main_key.txt'
-    # key_seq_path  = r'r:\by_key_seq.txt'
-    # key_data.dump_to_files(main_key_path, key_seq_path)
+    main_key_path = r'r:\by_main_key.txt'
+    key_seq_path  = r'r:\by_key_seq.txt'
+    key_data.dump_to_files(main_key_path, key_seq_path)
     t2 = datetime.now()
 
     # =================================================================
@@ -372,10 +372,10 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
     def run(
             self,
             edit             : sublime.Edit,
-            key_groups       : Iterable[data.KeyGroup] | None = None,
-            key_names        : Iterable[str]           | None = None,
-            keypress_list    : Iterable[Iterable[str]] | None = None,
-            limit_to_packages: Iterable[str]           | None = None,
+            key_groups       : Sequence[data.KeyGroup] | None = None,
+            key_names        : Sequence[str]           | None = None,
+            keypress_list    : Sequence[Sequence[str]] | None = None,
+            limit_to_packages: Sequence[str]           | None = None,
             limit_to_context : bool = False,
             fmt              : ascii_table.Format = ascii_table.Format.OUTLINED,
             flags            : data.FlagBits = data.FlagBits.INCLUDE_UNBOUND_KEYPRESSES,
