@@ -15,12 +15,10 @@
 					{
 						"caption": "Outlined Format",
 						"mnemonic": "O",
-						"command": "edit_settings",
 						"children": [
 							{
 								"caption": "Default Package",
 								"mnemonic": "D",
-								"command": "edit_settings",
 								"children": [
 									{
 										"caption": "1 All Keypress Combinations",
@@ -126,7 +124,6 @@
 							{
 								"caption": "All Installed Packages",
 								"mnemonic": "A",
-								"command": "edit_settings",
 								"children": [
 									{
 										"caption": "1 All Keypress Combinations",
@@ -225,12 +222,10 @@
 					{
 						"caption": "reStructuredText Format",
 						"mnemonic": "R",
-						"command": "edit_settings",
 						"children": [
 							{
 								"caption": "Default Package",
 								"mnemonic": "D",
-								"command": "edit_settings",
 								"children": [
 									{
 										"caption": "1 All Keypress Combinations",
@@ -336,7 +331,6 @@
 							{
 								"caption": "All Installed Packages",
 								"mnemonic": "A",
-								"command": "edit_settings",
 								"children": [
 									{
 										"caption": "1 All Keypress Combinations",
@@ -435,7 +429,6 @@
 					{
 						"caption": "Other Reports",
 						"mnemonic": "R",
-						"command": "edit_settings",
 						"children": [
 							{
 								"caption": "Keys Used Report (Current Platform)",
