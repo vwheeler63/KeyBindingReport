@@ -45,19 +45,8 @@
 										},
 									},
 									{
-										"caption": "3 Keypress Sequences",
+										"caption": "3 Number Keys",
 										"mnemonic": "3",
-										"command": "key_binding_report",
-										"args": {
-											"limit_to_packages": ["Default"],
-											"key_groups": [6],
-											"fmt": 1,
-											"flags": 21
-										},
-									},
-									{
-										"caption": "4 Number Keys",
-										"mnemonic": "4",
 										"command": "key_binding_report",
 										"args": {
 											"limit_to_packages": ["Default"],
@@ -67,8 +56,8 @@
 										},
 									},
 									{
-										"caption": "5 Letter Keys",
-										"mnemonic": "5",
+										"caption": "4 Letter Keys",
+										"mnemonic": "4",
 										"command": "key_binding_report",
 										"args": {
 											"limit_to_packages": ["Default"],
@@ -78,8 +67,8 @@
 										},
 									},
 									{
-										"caption": "6 Function Keys",
-										"mnemonic": "6",
+										"caption": "5 Function Keys",
+										"mnemonic": "5",
 										"command": "key_binding_report",
 										"args": {
 											"limit_to_packages": ["Default"],
@@ -89,8 +78,8 @@
 										},
 									},
 									{
-										"caption": "7 Symbol Keys",
-										"mnemonic": "7",
+										"caption": "6 Symbol Keys",
+										"mnemonic": "6",
 										"command": "key_binding_report",
 										"args": {
 											"limit_to_packages": ["Default"],
@@ -100,8 +89,8 @@
 										},
 									},
 									{
-										"caption": "8 Named Keys",
-										"mnemonic": "8",
+										"caption": "7 Named Keys",
+										"mnemonic": "7",
 										"command": "key_binding_report",
 										"args": {
 											"limit_to_packages": ["Default"],
@@ -111,12 +100,23 @@
 										},
 									},
 									{
-										"caption": "9 Keypad Keys",
-										"mnemonic": "9",
+										"caption": "8 Keypad Keys",
+										"mnemonic": "8",
 										"command": "key_binding_report",
 										"args": {
 											"limit_to_packages": ["Default"],
 											"key_groups": [5],
+											"fmt": 1,
+											"flags": 21
+										},
+									},
+									{
+										"caption": "9 Keypress Sequences",
+										"mnemonic": "9",
+										"command": "key_binding_report",
+										"args": {
+											"limit_to_packages": ["Default"],
+											"key_groups": [6],
 											"fmt": 1,
 											"flags": 21
 										},
@@ -149,18 +149,8 @@
 										},
 									},
 									{
-										"caption": "3 Keypress Sequences",
+										"caption": "3 Number Keys",
 										"mnemonic": "3",
-										"command": "key_binding_report",
-										"args": {
-											"key_groups": [6],
-											"fmt": 1,
-											"flags": 21
-										},
-									},
-									{
-										"caption": "4 Number Keys",
-										"mnemonic": "4",
 										"command": "key_binding_report",
 										"args": {
 											"key_groups": [0],
@@ -169,8 +159,8 @@
 										},
 									},
 									{
-										"caption": "5 Letter Keys",
-										"mnemonic": "5",
+										"caption": "4 Letter Keys",
+										"mnemonic": "4",
 										"command": "key_binding_report",
 										"args": {
 											"key_groups": [1],
@@ -179,8 +169,8 @@
 										},
 									},
 									{
-										"caption": "6 Function Keys",
-										"mnemonic": "6",
+										"caption": "5 Function Keys",
+										"mnemonic": "5",
 										"command": "key_binding_report",
 										"args": {
 											"key_groups": [2],
@@ -189,8 +179,8 @@
 										},
 									},
 									{
-										"caption": "7 Symbol Keys",
-										"mnemonic": "7",
+										"caption": "6 Symbol Keys",
+										"mnemonic": "6",
 										"command": "key_binding_report",
 										"args": {
 											"key_groups": [3],
@@ -199,8 +189,8 @@
 										},
 									},
 									{
-										"caption": "8 Named Keys",
-										"mnemonic": "8",
+										"caption": "7 Named Keys",
+										"mnemonic": "7",
 										"command": "key_binding_report",
 										"args": {
 											"key_groups": [4],
@@ -209,11 +199,21 @@
 										},
 									},
 									{
-										"caption": "9 Keypad Keys",
-										"mnemonic": "9",
+										"caption": "8 Keypad Keys",
+										"mnemonic": "8",
 										"command": "key_binding_report",
 										"args": {
 											"key_groups": [5],
+											"fmt": 1,
+											"flags": 21
+										},
+									},
+									{
+										"caption": "9 Keypress Sequences",
+										"mnemonic": "9",
+										"command": "key_binding_report",
+										"args": {
+											"key_groups": [6],
 											"fmt": 1,
 											"flags": 21
 										},
@@ -255,19 +255,8 @@
 										},
 									},
 									{
-										"caption": "3 Keypress Sequences",
+										"caption": "3 Number Keys",
 										"mnemonic": "3",
-										"command": "key_binding_report",
-										"args": {
-											"limit_to_packages": ["Default"],
-											"key_groups": [6],
-											"fmt": 3,
-											"flags": 21
-										},
-									},
-									{
-										"caption": "4 Number Keys",
-										"mnemonic": "4",
 										"command": "key_binding_report",
 										"args": {
 											"limit_to_packages": ["Default"],
@@ -277,8 +266,8 @@
 										},
 									},
 									{
-										"caption": "5 Letter Keys",
-										"mnemonic": "5",
+										"caption": "4 Letter Keys",
+										"mnemonic": "4",
 										"command": "key_binding_report",
 										"args": {
 											"limit_to_packages": ["Default"],
@@ -288,8 +277,8 @@
 										},
 									},
 									{
-										"caption": "6 Function Keys",
-										"mnemonic": "6",
+										"caption": "5 Function Keys",
+										"mnemonic": "5",
 										"command": "key_binding_report",
 										"args": {
 											"limit_to_packages": ["Default"],
@@ -299,8 +288,8 @@
 										},
 									},
 									{
-										"caption": "7 Symbol Keys",
-										"mnemonic": "7",
+										"caption": "6 Symbol Keys",
+										"mnemonic": "6",
 										"command": "key_binding_report",
 										"args": {
 											"limit_to_packages": ["Default"],
@@ -310,8 +299,8 @@
 										},
 									},
 									{
-										"caption": "8 Named Keys",
-										"mnemonic": "8",
+										"caption": "7 Named Keys",
+										"mnemonic": "7",
 										"command": "key_binding_report",
 										"args": {
 											"limit_to_packages": ["Default"],
@@ -321,12 +310,23 @@
 										},
 									},
 									{
-										"caption": "9 Keypad Keys",
-										"mnemonic": "9",
+										"caption": "8 Keypad Keys",
+										"mnemonic": "8",
 										"command": "key_binding_report",
 										"args": {
 											"limit_to_packages": ["Default"],
 											"key_groups": [5],
+											"fmt": 3,
+											"flags": 21
+										},
+									},
+									{
+										"caption": "9 Keypress Sequences",
+										"mnemonic": "9",
+										"command": "key_binding_report",
+										"args": {
+											"limit_to_packages": ["Default"],
+											"key_groups": [6],
 											"fmt": 3,
 											"flags": 21
 										},
@@ -359,18 +359,8 @@
 										},
 									},
 									{
-										"caption": "3 Keypress Sequences",
+										"caption": "3 Number Keys",
 										"mnemonic": "3",
-										"command": "key_binding_report",
-										"args": {
-											"key_groups": [6],
-											"fmt": 3,
-											"flags": 21
-										},
-									},
-									{
-										"caption": "4 Number Keys",
-										"mnemonic": "4",
 										"command": "key_binding_report",
 										"args": {
 											"key_groups": [0],
@@ -379,8 +369,8 @@
 										},
 									},
 									{
-										"caption": "5 Letter Keys",
-										"mnemonic": "5",
+										"caption": "4 Letter Keys",
+										"mnemonic": "4",
 										"command": "key_binding_report",
 										"args": {
 											"key_groups": [1],
@@ -389,8 +379,8 @@
 										},
 									},
 									{
-										"caption": "6 Function Keys",
-										"mnemonic": "6",
+										"caption": "5 Function Keys",
+										"mnemonic": "5",
 										"command": "key_binding_report",
 										"args": {
 											"key_groups": [2],
@@ -399,8 +389,8 @@
 										},
 									},
 									{
-										"caption": "7 Symbol Keys",
-										"mnemonic": "7",
+										"caption": "6 Symbol Keys",
+										"mnemonic": "6",
 										"command": "key_binding_report",
 										"args": {
 											"key_groups": [3],
@@ -409,8 +399,8 @@
 										},
 									},
 									{
-										"caption": "8 Named Keys",
-										"mnemonic": "8",
+										"caption": "7 Named Keys",
+										"mnemonic": "7",
 										"command": "key_binding_report",
 										"args": {
 											"key_groups": [4],
@@ -419,11 +409,21 @@
 										},
 									},
 									{
-										"caption": "9 Keypad Keys",
-										"mnemonic": "9",
+										"caption": "8 Keypad Keys",
+										"mnemonic": "8",
 										"command": "key_binding_report",
 										"args": {
 											"key_groups": [5],
+											"fmt": 3,
+											"flags": 21
+										},
+									},
+									{
+										"caption": "9 Keypress Sequences",
+										"mnemonic": "9",
+										"command": "key_binding_report",
+										"args": {
+											"key_groups": [6],
 											"fmt": 3,
 											"flags": 21
 										},

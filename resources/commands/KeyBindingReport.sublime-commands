@@ -135,16 +135,6 @@
 		},
 	},
 	{
-		"caption": "KeyBindingReport: Keypress Sequences in Default Package",
-		"command": "key_binding_report",
-		"args": {
-			"limit_to_packages": ["Default"],
-			"key_groups": [6],
-			"fmt": 1,
-			"flags": 21, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN
-		},
-	},
-	{
 		"caption": "KeyBindingReport: Number Keys in Default Package",
 		"command": "key_binding_report",
 		"args": {
@@ -204,6 +194,16 @@
 			"flags": 21, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN
 		},
 	},
+	{
+		"caption": "KeyBindingReport: Keypress Sequences in Default Package",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [6],
+			"fmt": 1,
+			"flags": 21, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN
+		},
+	},
 
 	// --------------------------------------------------------------------
 	// For All Installed Packages
@@ -224,15 +224,6 @@
 			"key_groups": [7],
 			"fmt": 1,
 			"flags": 277, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN | SEPARATE_TABLES_BY_KEY_GROUPS
-		},
-	},
-	{
-		"caption": "KeyBindingReport: Key Sequences for All Installed Packages",
-		"command": "key_binding_report",
-		"args": {
-			"key_groups": [6],
-			"fmt": 1,
-			"flags": 21, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN
 		},
 	},
 	{
@@ -289,6 +280,15 @@
 			"flags": 21, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN
 		},
 	},
+	{
+		"caption": "KeyBindingReport: Key Sequences for All Installed Packages",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [6],
+			"fmt": 1,
+			"flags": 21, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN
+		},
+	},
 
 	// ====================================================================
 	// Binding List Report; reStructuredText Format
@@ -314,16 +314,6 @@
 			"key_groups": [7],
 			"fmt": 3,
 			"flags": 277, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN | SEPARATE_TABLES_BY_KEY_GROUPS
-		},
-	},
-	{
-		"caption": "KeyBindingReport: Keypress Sequences in Default Package (reStructuredText)",
-		"command": "key_binding_report",
-		"args": {
-			"limit_to_packages": ["Default"],
-			"key_groups": [6],
-			"fmt": 3,
-			"flags": 21, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN
 		},
 	},
 	{
@@ -386,6 +376,16 @@
 			"flags": 21, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN
 		},
 	},
+	{
+		"caption": "KeyBindingReport: Keypress Sequences in Default Package (reStructuredText)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [6],
+			"fmt": 3,
+			"flags": 21, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN
+		},
+	},
 
 	{
 		"caption": "KeyBindingReport: All Keypress Combinations for All Installed Packages (reStructuredText)",
@@ -403,15 +403,6 @@
 			"key_groups": [7],
 			"fmt": 3,
 			"flags": 277, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN | SEPARATE_TABLES_BY_KEY_GROUPS
-		},
-	},
-	{
-		"caption": "KeyBindingReport: Key Sequences for All Installed Packages (reStructuredText)",
-		"command": "key_binding_report",
-		"args": {
-			"key_groups": [6],
-			"fmt": 3,
-			"flags": 21, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN
 		},
 	},
 	{
@@ -468,6 +459,15 @@
 			"flags": 21, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN
 		},
 	},
+	{
+		"caption": "KeyBindingReport: Key Sequences for All Installed Packages (reStructuredText)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [6],
+			"fmt": 3,
+			"flags": 21, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN
+		},
+	},
 
 	// --------------------------------------------------------------------
 	// Output to View + Files -- Limited to Default Package
@@ -490,16 +490,6 @@
 			"key_groups": [7],
 			"fmt": 3,
 			"flags": 789, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN | SEPARATE_TABLES_BY_KEY_GROUPS | OUTPUT_TO_FILES
-		},
-	},
-	{
-		"caption": "KeyBindingReport: Keypress Sequences in Default Package (reStructuredText) (Output to Files)",
-		"command": "key_binding_report",
-		"args": {
-			"limit_to_packages": ["Default"],
-			"key_groups": [6],
-			"fmt": 3,
-			"flags": 533, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN | OUTPUT_TO_FILES
 		},
 	},
 	{
@@ -562,6 +552,16 @@
 			"flags": 533, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN | OUTPUT_TO_FILES
 		},
 	},
+	{
+		"caption": "KeyBindingReport: Keypress Sequences in Default Package (reStructuredText) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [6],
+			"fmt": 3,
+			"flags": 533, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN | OUTPUT_TO_FILES
+		},
+	},
 
 	// --------------------------------------------------------------------
 	// Output to View + Files -- For All Installed Packages
@@ -582,15 +582,6 @@
 			"key_groups": [7],
 			"fmt": 3,
 			"flags": 789, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN | SEPARATE_TABLES_BY_KEY_GROUPS | OUTPUT_TO_FILES
-		},
-	},
-	{
-		"caption": "KeyBindingReport: Key Sequences for All Installed Packages (reStructuredText) (Output to Files)",
-		"command": "key_binding_report",
-		"args": {
-			"key_groups": [6],
-			"fmt": 3,
-			"flags": 533, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN | OUTPUT_TO_FILES
 		},
 	},
 	{
@@ -643,6 +634,15 @@
 		"command": "key_binding_report",
 		"args": {
 			"key_groups": [5],
+			"fmt": 3,
+			"flags": 533, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN | OUTPUT_TO_FILES
+		},
+	},
+	{
+		"caption": "KeyBindingReport: Key Sequences for All Installed Packages (reStructuredText) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [6],
 			"fmt": 3,
 			"flags": 533, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | ADD_SOURCE_COLUMN | OUTPUT_TO_FILES
 		},
