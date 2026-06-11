@@ -2,6 +2,7 @@
 Which Binding Report
 ********************
 """
+import os
 from typing import List
 from datetime import datetime
 import sublime_plugin
@@ -75,11 +76,15 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
 
         t1 = datetime.now()
 
-        # Write verification/validation files.
-        # main_key_path = r'r:\by_main_key.txt'
-        # key_seq_path  = r'r:\by_key_seq.txt'
-        # key_data.dump_to_files(main_key_path, key_seq_path)
-        # key_data.dump_leading_keys_data(r'r:\leading_keys.txt')
+        if debugging:
+            # Write verification/validation files.
+            temp_dir = sublime.cache_path()
+            main_key_path = os.path.join(temp_dir, 'by_main_key.txt')
+            key_seq_path = os.path.join(temp_dir, 'by_key_seq.txt')
+            leading_keys_path = os.path.join(temp_dir, 'leading_keys.txt')
+            key_data.dump_to_files(main_key_path, key_seq_path)
+            key_data.dump_leading_keys_data(leading_keys_path)
+
         t2 = datetime.now()
 
         # =================================================================

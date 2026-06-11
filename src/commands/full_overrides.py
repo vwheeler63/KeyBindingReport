@@ -5,7 +5,9 @@ Report Key Bindings that fully override other key bindings
 See ``context_overrides.py`` docstring for detailed description.
 """
 
+import os
 from datetime import datetime
+import sublime
 import sublime_plugin
 from ...lib.debug import DebugBits, is_debugging
 from ...lib import output_view
@@ -55,6 +57,13 @@ class KeyBindingReportOverridesCommand(sublime_plugin.ApplicationCommand):
         # do not match current context.
         override_list = key_data.binding_overrides()
         t1 = datetime.now()
+
+        if debugging:
+            # Write verification/validation files.
+            temp_dir = sublime.cache_path()
+            main_key_path = os.path.join(temp_dir, 'by_main_key.txt')
+            key_seq_path = os.path.join(temp_dir, 'by_key_seq.txt')
+            key_data.dump_to_files(main_key_path, key_seq_path)
 
         # Write verification/validation files.
         # main_key_path = r'r:\by_main_key.txt'
