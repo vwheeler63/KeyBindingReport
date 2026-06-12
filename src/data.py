@@ -2156,9 +2156,9 @@ class KeyBindingData:
             # Now add them in the order of ``all_key_names``.
             for key_name in all_key_names:
                 if key_name in main_keys:
-                    # Verify assumption that de-duplicating resulted
-                    # in no duplicates.  ``key_name`` should *not* be
-                    # in dictionary already.
+                    # Verify assumption that previous de-duplicating resulted
+                    # in no duplicates.  ``key_name`` should *not* be in
+                    # dictionary already.
                     if key_name in self.mdictByMainKey:
                         raise AssertionError(
                             f'Main key {key_name} in one of the keypresses in `keypress_tuple_set`\n'
