@@ -2,8 +2,9 @@ r"""***********************************************************************
 Key-Binding Data
 ****************
 
-This module does all the gathering of data for selected key bindings
-for the ``report`` module.
+This module does the gathering of data for selected key bindings
+for the ``report``, ``which_binding``, ``full_overrides`` and
+``context_overrides`` modules.
 
 Each time ``key_data.gather()`` is called produces a new data set.
 No memory of the previous call remains.
@@ -13,20 +14,20 @@ No memory of the previous call remains.
 Definitions
 ***********
 
-key-modifier code
-    integer value defining the possible combination of the modifier
-    keys [⊞]/[Command], [Ctrl], [Alt] and [Shift] that were part of a
-    keypress.  The ``ModifierKeyBits`` class provides bits which are
-    bitwise-OR-ed together to form the integer value [0-15].  See "Design
-    Factor" below for the reason this is needed.
-
 keypress
-    a single keystroke with a possible key modifiers.
+    a single keystroke with possible key modifiers.
 
     Each keypress has a "main" key, which is in the ``data.key_name_groups``
     list.
 
     Examples:  "ctrl+p", "ctrl+shift+p", "f5", "alt+f5", "command+f5", "primary+f5".
+
+key-modifier code
+    integer value defining the possible combination of the modifier
+    keys [⊞]/[Command], [Ctrl], [Alt] and [Shift] that were part of a
+    keypress.  The ``ModifierKeyBits`` class provides bits which are
+    bitwise-OR-ed together to form an integer value in the range [0x0-0xF].
+    See "Design Factor" below for the reason this is needed.
 
 keypress sequence
     A keypress sequence is when a Command is bound to a sequence of more than one
@@ -38,7 +39,7 @@ keypress sequence
 
 keys (plural)
     List[str]:  corresponds with the ``.sublime-keymap`` entries called
-    "keys", each of which has a value which is itself a lists of 1 or more
+    "keys", each of which has a value which is a lists of 1 or more
     keypresses.  They must contain at least 1 string.  Examples:
 
     - ["ctrl+shift+p"]
@@ -47,7 +48,7 @@ keys (plural)
     - ["enter"]
 
 keypress_list
-    list[list[str]]:  a list of "keys" as defined above.  They can
+    List[List[str]]:  a list of "keys" as defined above.  They can
     contain 0 or more "keys", and may even contain duplicate keypresses/
     keypress sequences since they may be supplied by a user calling
     ``view.run_command("key_binding_report", custom_args)``.  Examples:
@@ -59,18 +60,15 @@ keypress_list
     - [["enter"], ["ctrl+k", "ctrl+u"], ["ctrl+k", "ctrl+u"]]
 
 key ID
-    index into the ``data.all_key_names`` list identifying a particular keyboard key.
+    Index into the ``data.all_key_names`` list identifying a particular keyboard key.
+    This list is programmatically generated from ``data.key_name_groups`` when the
+    ``data`` module is loaded.
 
 encoded keypress
     an integer whose bits are the bitwise-OR-ed combination of the key ID
     and the key-modifier value:
 
-        encoded_keypress = (i << 4) | modifier_value
-
-    where:
-
-    - ``i`` is the key ID (index into the ``data.all_key_names`` list), and
-    - ``modifier_value`` is comprised of OR-ed bits from ``ModifierKeyBits``.
+        encoded_keypress = (key_id << 4) | key_modifier_code
 
 JSON key-binding object
     a Python dictionary representation of a key-binding object from any of
@@ -93,10 +91,12 @@ JSON key-binding object
         },
 
 ReportKeyBinding object
-    an instance of the ``ReportKeyBinding`` class, containing the JSON key-binding
-    object from a ``.sublime-keymap`` file (defining the binding of an individual
-    keypress/keypress sequence), plus some additional data:  its source (the file
-    it came from), e.g. "User/Default (OSX).sublime-keymap".
+    an instance of the ``ReportKeyBinding`` class, containing a representation of
+    the JSON key-binding object from a ``.sublime-keymap`` file (defining the binding
+    of an individual keypress/keypress sequence), plus some additional data:  its
+    source (the file it came from), e.g. "User/Default (OSX).sublime-keymap", and
+    some behaviors germane to the reporting needs of this Package (e.g. formatting
+    output for reStructuredText format).
 
 
 
@@ -106,7 +106,8 @@ Design Factor
 In the ``Default`` Package and in most other places where official ``.sublime-keymap``
 files can be found, the "keys" entry (e.g. ``"keys": ["alt+shift+up"]``) in each
 JSON key-binding object has a specific order of modifier-key strings among the '+'
-characters, and it is always in this sequence:
+characters, and in the Windows and Linux default keymaps, it is always in
+this sequence:
 
 - command
 - ctrl
@@ -118,7 +119,7 @@ However, Sublime |nbsp| Text allows users to include key overrides in
 instead of "alt+shift+8"), so when we read in JSON key-binding objects from
 ``.sublime-keymap`` files, we cannot rely on this sequence since some of
 them are user override files.  Therefore, we use the ``ModifierKeyBits``
-class to generate a numeric value in the range [0x0-0xF] which gives a
+class to generate a numeric value in the range [0x0-0xF], which gives a
 consistent unique integer value which can be used in different ways as
 needed.  Such values are created something like this:
 
@@ -167,14 +168,17 @@ based on the caret's current scope.
 
 This data structure is NOT identical to what Sublime Text uses internally,
 because this report is not processing individual keypresses (which brings
-additional requirements to the data structure), but is processing a finished
-list of keypresses.  So the structures built are no doubt slightly simpler.
+additional requirements to the data structure).  Instead, the reporting
+process processes a finished list of keypresses.  So the structures built
+are no doubt slightly simpler.
 
 In this design we are NOT building a "big master database" from which
 lookups can be done, but instead are using input arguments from the
 caller to limit what data is gathered.  Then the report is generated
-from ALL the data thus gathered.  Since each report can be different,
-the data is gathered afresh for each report.
+from ALL the data thus gathered.
+
+Since each report can be different, the data is gathered afresh for
+each report.
 
 Here are the data structures used.
 
@@ -191,9 +195,13 @@ See key names below.  Example:  "up".
 
 VALUES:
 
-Each entry's VALUE is a list of exactly 16 possible key modifiers, where
+Each entry's VALUE is a list of either 8 or 16 possible key modifiers, where
 the ``ModifierKeyBits`` class combinations of modifier keys forms the index
-of which list item, as described above under "Design Factor".
+of which list item, as described above under "Design Factor".  (Only 8 are
+generated when the Windows key is not included as part of the report.
+Reason:  Windows and Linux platforms largely survive without use of the
+Windows key.  It is called the Command key on OSX and for that platform
+it is *always* included.)
 
 Key:
     W = ⊞ Windows  (or ⌘ Command on OSX platform)
@@ -225,7 +233,9 @@ Key:
 
 Note:  this modifier-key order is for the report.  This differs from the
 conventional modifier-key order of strings found in ``.sublime-keymap``
-files, which is typically "ctrl", "alt", then "shift", in that order.
+files, which is typically "ctrl", "alt", then "shift", in that order, as
+explained above in the "Design Factor" section.
+
 Note that this is a *convention*, not a requirement of Sublime Text, which
 permits users to provide keymap overrides that use a different order (so
 long as the main key is last).  The `ModifierKeyBits` class helps compute
@@ -246,28 +256,29 @@ sequences, including the source ``.sublime-keymap`` it came from.
 
 .. code-block:: text
 
+
     by_main_key_dict
-        "a": [  <-- binding_lists_by_mod_code
-                None,   # binding list for unmodified 'a' key
-                None,   # binding list for [Shift-a]
-                [...],  # binding list for [Ctrl-a]       <-- binding_list
-                [...],  # binding list for [Ctrl-Shift-a] <-- binding_list
-                None,   # binding list for [Alt-a]
-                None,   # binding list for [Alt-Shift-a]
-                None,   # binding list for [Alt-Ctrl-a]
-                None,   # binding list for [Alt-Ctrl-Shift-a]
-                None,   # binding list for [Command-a]
-                None,   # binding list for [Command-Shift-a]
-                [...],  # binding list for [Command-Ctrl-a]       <-- binding_list
-                [...],  # binding list for [Command-Ctrl-Shift-a] <-- binding_list
-                None,   # binding list for [Command-Alt-a]
-                None,   # binding list for [Command-Alt-Shift-a]
-                None,   # binding list for [Command-Alt-Ctrl-a]
-                None,   # binding list for [Command-Alt-Ctrl-Shift-a]
+        "a": [  <-- binding_lists_by_mod_code                          Mod Code
+                None,   # binding list for unmodified 'a' key           0x0
+                None,   # binding list for [Shift-a]                    0x1
+        _____/  [...],  # binding list for [Ctrl-a]                     0x2
+       |     \  [...],  # binding list for [Ctrl-Shift-a]               0x3
+       |        None,   # binding list for [Alt-a]                      0x4
+       |        None,   # binding list for [Alt-Shift-a]                0x5
+     binding    None,   # binding list for [Alt-Ctrl-a]                 0x6
+     lists      None,   # binding list for [Alt-Ctrl-Shift-a]           0x7
+       |        None,   # binding list for [Command-a]                  0x8
+       |        None,   # binding list for [Command-Shift-a]            0x9
+       |_____/  [...],  # binding list for [Command-Ctrl-a]             0xA
+             \  [...],  # binding list for [Command-Ctrl-Shift-a]       0xB
+                None,   # binding list for [Command-Alt-a]              0xC
+                None,   # binding list for [Command-Alt-Shift-a]        0xD
+                None,   # binding list for [Command-Alt-Ctrl-a]         0xE
+                None,   # binding list for [Command-Alt-Ctrl-Shift-a]   0xF
             ]
 
 
-By Keypress Sequence Dictionary
+By-Keypress-Sequence Dictionary
 ===============================
 
 This dictionary is for key bindings that involve more than one keypress.
@@ -303,8 +314,8 @@ search on that list, until it finds a context that matches the current
 context.
 
 This also makes it possible to, to provide a "Which Binding?" report that
-looks up keypresses in the same way Sublime Text does, and reports which
-key bindings were selected from a list of input keypress sequences,
+looks up keypress sequences in the same way Sublime Text does, and reports
+which key bindings were selected from a list of input keypress sequences,
 including the source ``.sublime-keymap`` it came from.
 
 .. code-block:: text
@@ -323,8 +334,8 @@ including the source ``.sublime-keymap`` it came from.
 Main Key Names
 **************
 
-When modifier keys are used in :term:`keypresses <keypress>`, these unshifted key
-names must be used with them:
+When modifier keys are used in keypresses, these (unshifted) main key names
+must be used with them:
 
 .. code-block:: text
 
@@ -350,7 +361,7 @@ names must be used with them:
                 f17      clear            escape                       browser_search
                 f18                       context_menu                 browser_stop
                 f19
-                f20
+                f20                                                    + (Spanish keyboard)
     ^   \___/    ^   ^     ^              \______________________________________________/
     |     |      |   |     |                                |
     |     |      |   |     |                                +-- NAMED_KEYS
@@ -379,13 +390,23 @@ Attempting to do so generates no errors, but does not work.
     " "                            # <-- Works as an unmodified key,
                                    #     but is redundant with `space`.
 
-The following is a specialty application, such as if your Plugin temporarily
-either suppresses or captures all keystrokes with a custom key context.
-This key name (with angle brackets) captures all printable keypresses:
 
-.. code-block:: text
+<character>
+===========
 
-    <character>
+The ["<character>"] keypress is a specialty application, such as if your
+Plugin needs to temporarily either suppress or capture all keystrokes with
+a custom key context.  This key name (with angle brackets) captures all
+printable keypresses.  Example:
+
+.. code-block:: json
+
+    {
+        "keys": ["<character>"],
+        "command": "noop",
+        "context": [{"key": "setting.lsp_suppress_input"}]
+    },
+
 
 
 Ways to Limit Output
@@ -1049,23 +1070,23 @@ class KeyBindingData:
         # =================================================================
         # -----------------------------------------------------------------
         # by_main_key_dict
-        #     "a": [  <-- binding_lists_by_mod_code
-        #             None,   # binding list for unmodified 'a' key
-        #             None,   # binding list for [Shift-a]
-        #             [...],  # binding list for [Ctrl-a]       <-- binding_list
-        #             [...],  # binding list for [Ctrl-Shift-a] <-- binding_list
-        #             None,   # binding list for [Alt-a]
-        #             None,   # binding list for [Alt-Shift-a]
-        #             None,   # binding list for [Alt-Ctrl-a]
-        #             None,   # binding list for [Alt-Ctrl-Shift-a]
-        #             None,   # binding list for [Command-a]
-        #             None,   # binding list for [Command-Shift-a]
-        #             [...],  # binding list for [Command-Ctrl-a]       <-- binding_list
-        #             [...],  # binding list for [Command-Ctrl-Shift-a] <-- binding_list
-        #             None,   # binding list for [Command-Alt-a]
-        #             None,   # binding list for [Command-Alt-Shift-a]
-        #             None,   # binding list for [Command-Alt-Ctrl-a]
-        #             None,   # binding list for [Command-Alt-Ctrl-Shift-a]
+        #     "a": [  <-- binding_lists_by_mod_code                          Mod Code
+        #             None,   # binding list for unmodified 'a' key           0x0
+        #             None,   # binding list for [Shift-a]                    0x1
+        #     _____/  [...],  # binding list for [Ctrl-a]                     0x2
+        #    |     \  [...],  # binding list for [Ctrl-Shift-a]               0x3
+        #    |        None,   # binding list for [Alt-a]                      0x4
+        #    |        None,   # binding list for [Alt-Shift-a]                0x5
+        #  binding    None,   # binding list for [Alt-Ctrl-a]                 0x6
+        #  lists      None,   # binding list for [Alt-Ctrl-Shift-a]           0x7
+        #    |        None,   # binding list for [Command-a]                  0x8
+        #    |        None,   # binding list for [Command-Shift-a]            0x9
+        #    |_____/  [...],  # binding list for [Command-Ctrl-a]             0xA
+        #          \  [...],  # binding list for [Command-Ctrl-Shift-a]       0xB
+        #             None,   # binding list for [Command-Alt-a]              0xC
+        #             None,   # binding list for [Command-Alt-Shift-a]        0xD
+        #             None,   # binding list for [Command-Alt-Ctrl-a]         0xE
+        #             None,   # binding list for [Command-Alt-Ctrl-Shift-a]   0xF
         #         ]
         #
         # Sorted doesn't do well for `self.mdictByMainKey` because it mixes
@@ -1188,23 +1209,23 @@ class KeyBindingData:
                             break
         else:
             # by_main_key_dict
-            #     "a": [  <-- binding_lists_by_mod_code
-            #             None,   # binding list for unmodified 'a' key
-            #             None,   # binding list for [Shift-a]
-            #             [...],  # binding list for [Ctrl-a]       <-- binding_list
-            #             [...],  # binding list for [Ctrl-Shift-a] <-- binding_list
-            #             None,   # binding list for [Alt-a]
-            #             None,   # binding list for [Alt-Shift-a]
-            #             None,   # binding list for [Alt-Ctrl-a]
-            #             None,   # binding list for [Alt-Ctrl-Shift-a]
-            #             None,   # binding list for [Command-a]
-            #             None,   # binding list for [Command-Shift-a]
-            #             [...],  # binding list for [Command-Ctrl-a]       <-- binding_list
-            #             [...],  # binding list for [Command-Ctrl-Shift-a] <-- binding_list
-            #             None,   # binding list for [Command-Alt-a]
-            #             None,   # binding list for [Command-Alt-Shift-a]
-            #             None,   # binding list for [Command-Alt-Ctrl-a]
-            #             None,   # binding list for [Command-Alt-Ctrl-Shift-a]
+            #     "a": [  <-- binding_lists_by_mod_code                          Mod Code
+            #             None,   # binding list for unmodified 'a' key           0x0
+            #             None,   # binding list for [Shift-a]                    0x1
+            #     _____/  [...],  # binding list for [Ctrl-a]                     0x2
+            #    |     \  [...],  # binding list for [Ctrl-Shift-a]               0x3
+            #    |        None,   # binding list for [Alt-a]                      0x4
+            #    |        None,   # binding list for [Alt-Shift-a]                0x5
+            #  binding    None,   # binding list for [Alt-Ctrl-a]                 0x6
+            #  lists      None,   # binding list for [Alt-Ctrl-Shift-a]           0x7
+            #    |        None,   # binding list for [Command-a]                  0x8
+            #    |        None,   # binding list for [Command-Shift-a]            0x9
+            #    |_____/  [...],  # binding list for [Command-Ctrl-a]             0xA
+            #          \  [...],  # binding list for [Command-Ctrl-Shift-a]       0xB
+            #             None,   # binding list for [Command-Alt-a]              0xC
+            #             None,   # binding list for [Command-Alt-Shift-a]        0xD
+            #             None,   # binding list for [Command-Alt-Ctrl-a]         0xE
+            #             None,   # binding list for [Command-Alt-Ctrl-Shift-a]   0xF
             #         ]
             key_groups        = [KeyGroup.KEY_SEQUENCES]
             key_names         = None
@@ -1288,7 +1309,7 @@ class KeyBindingData:
                             specifies including all possible key-modifier
                             combinations with this key.  Each key only has
                             an impact on data gathered if it is found in
-                            ``all_key_names``.
+                            ``all_key_names`` (generated from ``key_name_groups``).
                             ``None`` or ``[]`` when not applicable.
 
         :param keypress_list:
@@ -1324,11 +1345,11 @@ class KeyBindingData:
         Usage:
         ------
 
-        key_groups       = [KeyGroup.NUMBERS]
-        key_names        = ["q", "w", "a", "s"]
-        keypress_list    = [["ctrl+p"], ["ctrl+shift+p"], ["ctrl+k", "ctrl+u"]]
-        limit_to_packages         = ["Default"]
-        limit_to_context = True
+        key_groups        = [KeyGroup.NUMBERS]
+        key_names         = ["q", "w", "a", "s"]
+        keypress_list     = [["ctrl+p"], ["ctrl+shift+p"], ["ctrl+k", "ctrl+u"]]
+        limit_to_packages = ["Default"]
+        view              = view
 
         if limit_to_context:
             view = current_view
@@ -1368,38 +1389,31 @@ class KeyBindingData:
             OUTPUT_TO_FILES                   = 0x0200  #   512
             ALL_PLATFORMS                     = 0x0400  #  1024
 
-            # Utility Bits
-            ANY_UNBOUND_KEYPRESSES            = 0x0001 | 0x0002  #     3
-            ANY_CONTEXT_REQUESTED             = 0x0004 | 0x0008  #    12
-            NONE                              = 0x0000           #     0
-            ALL                               = 0xFFFF           # 65535
-            ANY                               = 0xFFFF           # 65535
-
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
         | Description                   |packages   |key_groups   |key_names | keypress_list                          |
         +===============================+===========+=============+==========+========================================+
-        | By Package:  output all key   |['pkgname']| None or []  |None or []| None or []                             |
+        | By Package:  output all key   |["pkgname"]|    None     |   None   |    None                                |
         | bindings contained in Package |           |             |          |                                        |
         | (e.g. Default or a 3rd-party  |           |             |          |                                        |
         | Package)                      |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified key limited      |['pkgname']| None or []  |['a', ...]| None or []                             |
+        | By specified key limited      |["pkgname"]|    None     |["a", ...]|    None                                |
         | to a Package:  output all     |           |             |          |                                        |
         | of key's binding(s)           |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified key:  output     |None or [] | None or []  |['a', ...]| None or []                             |
+        | By specified key:  output     |   None    |    None     |["a", ...]|    None                                |
         | that key's bindings in all    |           |             |          |                                        |
         | Packages that contain         |           |             |          |                                        |
-        | binding(s) for that key       |           |             |          |                                        |
+        | bindings for that key         |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified ``KeyGroup``     |None or [] |[F_KEYS, ...]|None or []| None or []                             |
+        | By specified ``KeyGroup``     |   None    |[F_KEYS, ...]|   None   |    None                                |
         | using bindings from all       |           |             |          |                                        |
         | Packages.                     |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified ``KeyGroup``     |['pkgname']|[F_KEYS, ...]|None or []| None or []                             |
+        | By specified ``KeyGroup``     |["pkgname"]|[F_KEYS, ...]|   None   |    None                                |
         | limited to a Package.         |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified ``keypress_list``|None or [] | None or []  |None or []|[["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]]|
+        | By specified ``keypress_list``|   None    |    None     |   None   |[["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]]|
         | for all Packages.             |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
 
@@ -1477,11 +1491,11 @@ class KeyBindingData:
         # Remember args for things in the future, such as generating a
         # report specification or making decisions downstream.
         # -----------------------------------------------------------------
-        self.key_groups = key_groups
-        self.key_names = key_names
-        self.keypress_list = keypress_list
+        self.key_groups        = key_groups
+        self.key_names         = key_names
+        self.keypress_list     = keypress_list
         self.limit_to_packages = limit_to_packages
-        self.limit_to_context = (( view is not None ))
+        self.limit_to_context  = (( view is not None ))
 
         # ---------------------------------------------------------------------
         # Enforce precondition.
@@ -1887,28 +1901,28 @@ class KeyBindingData:
                     )
 
     def _build_empty_main_key_dict(self):
-        """
+        r"""
         ``by_main_key_dict`` has a structure that will only ever be partially
         populated, but must be fully represented with its empty parts.
 
         by_main_key_dict
-            "a": [  <-- binding_lists_by_mod_code
-                    None,   # binding list for unmodified 'a' key
-                    None,   # binding list for [Shift-a]
-                    [...],  # binding list for [Ctrl-a]       <-- binding_list
-                    [...],  # binding list for [Ctrl-Shift-a] <-- binding_list
-                    None,   # binding list for [Alt-a]
-                    None,   # binding list for [Alt-Shift-a]
-                    None,   # binding list for [Alt-Ctrl-a]
-                    None,   # binding list for [Alt-Ctrl-Shift-a]
-                    None,   # binding list for [Command-a]
-                    None,   # binding list for [Command-Shift-a]
-                    [...],  # binding list for [Command-Ctrl-a]       <-- binding_list
-                    [...],  # binding list for [Command-Ctrl-Shift-a] <-- binding_list
-                    None,   # binding list for [Command-Alt-a]
-                    None,   # binding list for [Command-Alt-Shift-a]
-                    None,   # binding list for [Command-Alt-Ctrl-a]
-                    None,   # binding list for [Command-Alt-Ctrl-Shift-a]
+            "a": [  <-- binding_lists_by_mod_code                          Mod Code
+                    None,   # binding list for unmodified 'a' key           0x0
+                    None,   # binding list for [Shift-a]                    0x1
+            _____/  [...],  # binding list for [Ctrl-a]                     0x2
+           |     \  [...],  # binding list for [Ctrl-Shift-a]               0x3
+           |        None,   # binding list for [Alt-a]                      0x4
+           |        None,   # binding list for [Alt-Shift-a]                0x5
+         binding    None,   # binding list for [Alt-Ctrl-a]                 0x6
+         lists      None,   # binding list for [Alt-Ctrl-Shift-a]           0x7
+           |        None,   # binding list for [Command-a]                  0x8
+           |        None,   # binding list for [Command-Shift-a]            0x9
+           |_____/  [...],  # binding list for [Command-Ctrl-a]             0xA
+                 \  [...],  # binding list for [Command-Ctrl-Shift-a]       0xB
+                    None,   # binding list for [Command-Alt-a]              0xC
+                    None,   # binding list for [Command-Alt-Shift-a]        0xD
+                    None,   # binding list for [Command-Alt-Ctrl-a]         0xE
+                    None,   # binding list for [Command-Alt-Ctrl-Shift-a]   0xF
                 ]
         """
         debugging = self._debugging_building_main_key_dict
@@ -2179,25 +2193,25 @@ class KeyBindingData:
             self.mdictByKeySquenceLeadingKeys[leading_keypress] = 1
 
     def _add_binding_to_main_key_dict(self, rpt_binding: key_binding.ReportKeyBinding, main_key_name: str, key_mod_code: int):
-        """
+        r"""
         by_main_key_dict
-            "a": [  <-- binding_lists_by_mod_code
-                    None,   # binding list for unmodified 'a' key
-                    None,   # binding list for [Shift-a]
-                    [...],  # binding list for [Ctrl-a]       <-- binding_list
-                    [...],  # binding list for [Ctrl-Shift-a] <-- binding_list
-                    None,   # binding list for [Alt-a]
-                    None,   # binding list for [Alt-Shift-a]
-                    None,   # binding list for [Alt-Ctrl-a]
-                    None,   # binding list for [Alt-Ctrl-Shift-a]
-                    None,   # binding list for [Command-a]
-                    None,   # binding list for [Command-Shift-a]
-                    [...],  # binding list for [Command-Ctrl-a]       <-- binding_list
-                    [...],  # binding list for [Command-Ctrl-Shift-a] <-- binding_list
-                    None,   # binding list for [Command-Alt-a]
-                    None,   # binding list for [Command-Alt-Shift-a]
-                    None,   # binding list for [Command-Alt-Ctrl-a]
-                    None,   # binding list for [Command-Alt-Ctrl-Shift-a]
+            "a": [  <-- binding_lists_by_mod_code                          Mod Code
+                    None,   # binding list for unmodified 'a' key           0x0
+                    None,   # binding list for [Shift-a]                    0x1
+            _____/  [...],  # binding list for [Ctrl-a]                     0x2
+           |     \  [...],  # binding list for [Ctrl-Shift-a]               0x3
+           |        None,   # binding list for [Alt-a]                      0x4
+           |        None,   # binding list for [Alt-Shift-a]                0x5
+         binding    None,   # binding list for [Alt-Ctrl-a]                 0x6
+         lists      None,   # binding list for [Alt-Ctrl-Shift-a]           0x7
+           |        None,   # binding list for [Command-a]                  0x8
+           |        None,   # binding list for [Command-Shift-a]            0x9
+           |_____/  [...],  # binding list for [Command-Ctrl-a]             0xA
+                 \  [...],  # binding list for [Command-Ctrl-Shift-a]       0xB
+                    None,   # binding list for [Command-Alt-a]              0xC
+                    None,   # binding list for [Command-Alt-Shift-a]        0xD
+                    None,   # binding list for [Command-Alt-Ctrl-a]         0xE
+                    None,   # binding list for [Command-Alt-Ctrl-Shift-a]   0xF
                 ]
         """
         if rpt_binding.keypress_count() != 1:

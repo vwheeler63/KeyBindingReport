@@ -511,29 +511,29 @@ def main_key_table(
         fmt              : ascii_table.Format,
         prev_footnote_num: int = 0
         ) -> TablePackage:
-    """
+    r"""
     Generate and return main-key table.
 
     Input Data Structure:
     ---------------------
     by_main_key_dict
-        "a": [  <-- binding_lists_by_mod_code
-                None,   # binding list for unmodified 'a' key
-                None,   # binding list for [Shift-a]
-                [...],  # binding list for [Ctrl-a]       <-- binding_list
-                [...],  # binding list for [Ctrl-Shift-a] <-- binding_list
-                None,   # binding list for [Alt-a]
-                None,   # binding list for [Alt-Shift-a]
-                None,   # binding list for [Alt-Ctrl-a]
-                None,   # binding list for [Alt-Ctrl-Shift-a]
-                None,   # binding list for [Command-a]
-                None,   # binding list for [Command-Shift-a]
-                [...],  # binding list for [Command-Ctrl-a]       <-- binding_list
-                [...],  # binding list for [Command-Ctrl-Shift-a] <-- binding_list
-                None,   # binding list for [Command-Alt-a]
-                None,   # binding list for [Command-Alt-Shift-a]
-                None,   # binding list for [Command-Alt-Ctrl-a]
-                None,   # binding list for [Command-Alt-Ctrl-Shift-a]
+        "a": [  <-- binding_lists_by_mod_code                          Mod Code
+                None,   # binding list for unmodified 'a' key           0x0
+                None,   # binding list for [Shift-a]                    0x1
+        _____/  [...],  # binding list for [Ctrl-a]                     0x2
+       |     \  [...],  # binding list for [Ctrl-Shift-a]               0x3
+       |        None,   # binding list for [Alt-a]                      0x4
+       |        None,   # binding list for [Alt-Shift-a]                0x5
+     binding    None,   # binding list for [Alt-Ctrl-a]                 0x6
+     lists      None,   # binding list for [Alt-Ctrl-Shift-a]           0x7
+       |        None,   # binding list for [Command-a]                  0x8
+       |        None,   # binding list for [Command-Shift-a]            0x9
+       |_____/  [...],  # binding list for [Command-Ctrl-a]             0xA
+             \  [...],  # binding list for [Command-Ctrl-Shift-a]       0xB
+                None,   # binding list for [Command-Alt-a]              0xC
+                None,   # binding list for [Command-Alt-Shift-a]        0xD
+                None,   # binding list for [Command-Alt-Ctrl-a]         0xE
+                None,   # binding list for [Command-Alt-Ctrl-Shift-a]   0xF
             ]
 
     Possible Columns:
@@ -603,7 +603,7 @@ def main_key_tables(
         fmt              : ascii_table.Format,
         prev_footnote_num: int = 0
         ) -> List[  Tuple[int, TablePackage]  ]:
-    """
+    r"""
     Like ``main_key_table()`` only it creates a LIST of main-key tables,
     1 table per key-group occurring in the data.
 
@@ -614,23 +614,23 @@ def main_key_tables(
     Input Data Structure:
     ---------------------
     by_main_key_dict
-        "a": [  <-- binding_lists_by_mod_code
-                None,   # binding list for unmodified 'a' key
-                None,   # binding list for [Shift-a]
-                [...],  # binding list for [Ctrl-a]       <-- binding_list
-                [...],  # binding list for [Ctrl-Shift-a] <-- binding_list
-                None,   # binding list for [Alt-a]
-                None,   # binding list for [Alt-Shift-a]
-                None,   # binding list for [Alt-Ctrl-a]
-                None,   # binding list for [Alt-Ctrl-Shift-a]
-                None,   # binding list for [Command-a]
-                None,   # binding list for [Command-Shift-a]
-                [...],  # binding list for [Command-Ctrl-a]       <-- binding_list
-                [...],  # binding list for [Command-Ctrl-Shift-a] <-- binding_list
-                None,   # binding list for [Command-Alt-a]
-                None,   # binding list for [Command-Alt-Shift-a]
-                None,   # binding list for [Command-Alt-Ctrl-a]
-                None,   # binding list for [Command-Alt-Ctrl-Shift-a]
+        "a": [  <-- binding_lists_by_mod_code                          Mod Code
+                None,   # binding list for unmodified 'a' key           0x0
+                None,   # binding list for [Shift-a]                    0x1
+        _____/  [...],  # binding list for [Ctrl-a]                     0x2
+       |     \  [...],  # binding list for [Ctrl-Shift-a]               0x3
+       |        None,   # binding list for [Alt-a]                      0x4
+       |        None,   # binding list for [Alt-Shift-a]                0x5
+     binding    None,   # binding list for [Alt-Ctrl-a]                 0x6
+     lists      None,   # binding list for [Alt-Ctrl-Shift-a]           0x7
+       |        None,   # binding list for [Command-a]                  0x8
+       |        None,   # binding list for [Command-Shift-a]            0x9
+       |_____/  [...],  # binding list for [Command-Ctrl-a]             0xA
+             \  [...],  # binding list for [Command-Ctrl-Shift-a]       0xB
+                None,   # binding list for [Command-Alt-a]              0xC
+                None,   # binding list for [Command-Alt-Shift-a]        0xD
+                None,   # binding list for [Command-Alt-Ctrl-a]         0xE
+                None,   # binding list for [Command-Alt-Ctrl-Shift-a]   0xF
             ]
 
     Possible Columns:
