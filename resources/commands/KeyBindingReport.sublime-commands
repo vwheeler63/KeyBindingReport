@@ -115,7 +115,7 @@
 	// Limited to Default Package
 	// --------------------------------------------------------------------
 	{
-		"caption": "KeyBindingReport: All Keypress Combinations in Default Package",
+		"caption": "KeyBindingReport: All Key Combinations in Default Package",
 		"command": "key_binding_report",
 		"args": {
 			"limit_to_packages": ["Default"],
@@ -125,7 +125,7 @@
 		},
 	},
 	{
-		"caption": "KeyBindingReport: All Keypress Combinations in Default Package (Separate Tables)",
+		"caption": "KeyBindingReport: All Key Combinations in Default Package (Separate Tables)",
 		"command": "key_binding_report",
 		"args": {
 			"limit_to_packages": ["Default"],
@@ -209,7 +209,7 @@
 	// For All Installed Packages
 	// --------------------------------------------------------------------
 	{
-		"caption": "KeyBindingReport: All Keypress Combinations for All Installed Packages",
+		"caption": "KeyBindingReport: All Key Combinations for All Installed Packages",
 		"command": "key_binding_report",
 		"args": {
 			"key_groups": [7],
@@ -218,7 +218,7 @@
 		},
 	},
 	{
-		"caption": "KeyBindingReport: All Keypress Combinations for All Installed Packages (Separate Tables)",
+		"caption": "KeyBindingReport: All Key Combinations for All Installed Packages (Separate Tables)",
 		"command": "key_binding_report",
 		"args": {
 			"key_groups": [7],
@@ -297,7 +297,7 @@
 	// Output to View -- Limited to Default Package
 	// --------------------------------------------------------------------
 	{
-		"caption": "KeyBindingReport: All Keypress Combinations in Default Package (reStructuredText)",
+		"caption": "KeyBindingReport: All Key Combinations in Default Package (reStructuredText)",
 		"command": "key_binding_report",
 		"args": {
 			"limit_to_packages": ["Default"],
@@ -307,7 +307,7 @@
 		},
 	},
 	{
-		"caption": "KeyBindingReport: All Keypress Combinations in Default Package (reStructuredText) (Separate Tables)",
+		"caption": "KeyBindingReport: All Key Combinations in Default Package (reStructuredText) (Separate Tables)",
 		"command": "key_binding_report",
 		"args": {
 			"limit_to_packages": ["Default"],
@@ -388,7 +388,7 @@
 	},
 
 	{
-		"caption": "KeyBindingReport: All Keypress Combinations for All Installed Packages (reStructuredText)",
+		"caption": "KeyBindingReport: All Key Combinations for All Installed Packages (reStructuredText)",
 		"command": "key_binding_report",
 		"args": {
 			"key_groups": [7],
@@ -397,7 +397,7 @@
 		},
 	},
 	{
-		"caption": "KeyBindingReport: All Keypress Combinations for All Installed Packages (reStructuredText) (Separate Tables)",
+		"caption": "KeyBindingReport: All Key Combinations for All Installed Packages (reStructuredText) (Separate Tables)",
 		"command": "key_binding_report",
 		"args": {
 			"key_groups": [7],
@@ -473,7 +473,7 @@
 	// Output to View + Files -- Limited to Default Package
 	// --------------------------------------------------------------------
 	{
-		"caption": "KeyBindingReport: All Keypress Combinations in Default Package (reStructuredText) (Output to Files)",
+		"caption": "KeyBindingReport: All Key Combinations in Default Package (reStructuredText) (Output to Files)",
 		"command": "key_binding_report",
 		"args": {
 			"limit_to_packages": ["Default"],
@@ -483,7 +483,7 @@
 		},
 	},
 	{
-		"caption": "KeyBindingReport: All Keypress Combinations in Default Package (reStructuredText) (Separate Tables) (Output to Files)",
+		"caption": "KeyBindingReport: All Key Combinations in Default Package (reStructuredText) (Separate Tables) (Output to Files)",
 		"command": "key_binding_report",
 		"args": {
 			"limit_to_packages": ["Default"],
@@ -567,7 +567,7 @@
 	// Output to View + Files -- For All Installed Packages
 	// --------------------------------------------------------------------
 	{
-		"caption": "KeyBindingReport: All Keypress Combinations for All Installed Packages (reStructuredText) (Output to Files)",
+		"caption": "KeyBindingReport: All Key Combinations for All Installed Packages (reStructuredText) (Output to Files)",
 		"command": "key_binding_report",
 		"args": {
 			"key_groups": [7],
@@ -576,7 +576,7 @@
 		},
 	},
 	{
-		"caption": "KeyBindingReport: All Keypress Combinations for All Installed Packages (reStructuredText) (Separate Tables) (Output to Files)",
+		"caption": "KeyBindingReport: All Key Combinations for All Installed Packages (reStructuredText) (Separate Tables) (Output to Files)",
 		"command": "key_binding_report",
 		"args": {
 			"key_groups": [7],
