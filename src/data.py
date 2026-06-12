@@ -1836,7 +1836,7 @@ class KeyBindingData:
             smart_context.update_view_event_listeners(view)
 
         # Start fresh.
-        self._build_empty_main_key_dict()
+        self._build_empty_main_key_dict(include_key_name_set, keypress_tuple_set)
         self._build_empty_key_seq_dict()
 
         # Loop through list of .sublime-keymap files in keymap-load order.
@@ -1900,65 +1900,6 @@ class KeyBindingData:
                     incl_all_multi_key_seqs,
                     view
                     )
-
-    def _build_empty_main_key_dict(self):
-        r"""
-        ``by_main_key_dict`` has a structure that will only ever be partially
-        populated, but must be fully represented with its empty parts.
-
-        by_main_key_dict
-            "a": [  <-- binding_lists_by_mod_code                          Mod Code
-                    None,   # binding list for unmodified 'a' key           0x0
-                    None,   # binding list for [Shift-a]                    0x1
-            _____/  [...],  # binding list for [Ctrl-a]                     0x2
-           |     \  [...],  # binding list for [Ctrl-Shift-a]               0x3
-           |        None,   # binding list for [Alt-a]                      0x4
-           |        None,   # binding list for [Alt-Shift-a]                0x5
-         binding    None,   # binding list for [Alt-Ctrl-a]                 0x6
-         lists      None,   # binding list for [Alt-Ctrl-Shift-a]           0x7
-           |        None,   # binding list for [Command-a]                  0x8
-           |        None,   # binding list for [Command-Shift-a]            0x9
-           |_____/  [...],  # binding list for [Command-Ctrl-a]             0xA
-                 \  [...],  # binding list for [Command-Ctrl-Shift-a]       0xB
-                    None,   # binding list for [Command-Alt-a]              0xC
-                    None,   # binding list for [Command-Alt-Shift-a]        0xD
-                    None,   # binding list for [Command-Alt-Ctrl-a]         0xE
-                    None,   # binding list for [Command-Alt-Ctrl-Shift-a]   0xF
-                ]
-        """
-        debugging = self._debugging_building_main_key_dict
-        if debugging:
-            print('In _build_empty_main_key_dict()')
-
-        self.mdictByMainKey = {}
-
-        for key_name in all_key_names:
-            empty_list = [None] * 16
-            self.mdictByMainKey[key_name] = empty_list
-
-        # if debugging:
-        #     print('  Empty by-main-key dict:')
-        #     print(repr(self.mdictByMainKey))
-
-    def _build_empty_key_seq_dict(self):
-        """
-        ``by_key_seq_dict`` is valid just being an empty dictionary as it
-        is populated when the keypress sequences are encountered.
-
-        by_key_seq_dict
-            ("ctrl+k", "ctrl+up"):
-                [ <-- binding_list
-                    ReportKeyBinding object,
-                    ReportKeyBinding object,
-                    ReportKeyBinding object,
-                    ...
-                ]
-        """
-        debugging = self._debugging_building_key_seq_dict
-        if debugging:
-            print('In _build_empty_key_seq_dict()')
-
-        self.mdictByKeySquence = {}
 
     def _conditionally_add_bindings_from_keymap(self,
             path                   : str,
@@ -2093,7 +2034,8 @@ class KeyBindingData:
                 # ---------------------------------------------------------
                 # 2+ keypresses
                 #
-                # Exclude if not incl_all_multi_key_seqs and not in ``keypress_tuple_set``.
+                # Exclude if not ``incl_all_multi_key_seqs`` and not in
+                # ``keypress_tuple_set``.
                 # ---------------------------------------------------------
                 if not incl_all_multi_key_seqs:
                     if keypress_tuple_set:
@@ -2150,6 +2092,111 @@ class KeyBindingData:
                 self._add_binding_to_key_seq_dict(binding)
             else:
                 self._add_binding_to_main_key_dict(binding, main_key_name, mod_code)
+
+    def _build_empty_main_key_dict(self,
+            include_key_name_set: Set[str] | None,
+            keypress_tuple_set  : Set[Tuple[str]] | None,
+            ):
+        r"""
+        ``by_main_key_dict`` has a structure that will only ever be partially
+        populated.  Each element of ``include_key_name_set`` and each main key
+        of ``keypress_tuple_set`` gets added with a full set of empty (None)
+        binding lists.
+
+        by_main_key_dict
+            "a": [  <-- binding_lists_by_mod_code                          Mod Code
+                    None,   # binding list for unmodified 'a' key           0x0
+                    None,   # binding list for [Shift-a]                    0x1
+            _____/  [...],  # binding list for [Ctrl-a]                     0x2
+           |     \  [...],  # binding list for [Ctrl-Shift-a]               0x3
+           |        None,   # binding list for [Alt-a]                      0x4
+           |        None,   # binding list for [Alt-Shift-a]                0x5
+         binding    None,   # binding list for [Alt-Ctrl-a]                 0x6
+         lists      None,   # binding list for [Alt-Ctrl-Shift-a]           0x7
+           |        None,   # binding list for [Command-a]                  0x8
+           |        None,   # binding list for [Command-Shift-a]            0x9
+           |_____/  [...],  # binding list for [Command-Ctrl-a]             0xA
+                 \  [...],  # binding list for [Command-Ctrl-Shift-a]       0xB
+                    None,   # binding list for [Command-Alt-a]              0xC
+                    None,   # binding list for [Command-Alt-Shift-a]        0xD
+                    None,   # binding list for [Command-Alt-Ctrl-a]         0xE
+                    None,   # binding list for [Command-Alt-Ctrl-Shift-a]   0xF
+                ]
+
+        TODO: if both tis function and ``_build_empty_key_seq_dict()``
+              remain simply creating an empty dictionary, remove them
+              and create the empty dictionaries where these are called.
+        """
+        debugging = self._debugging_building_main_key_dict
+        if debugging:
+            print('In _build_empty_main_key_dict()')
+
+        self.mdictByMainKey = {}
+
+        if include_key_name_set:
+            # Insert structures for all key names in `include_key_name_set`,
+            # but insert them in the order of ``all_key_names``.
+            for key_name in all_key_names:
+                if key_name in include_key_name_set:
+                    empty_list = [None] * 16
+                    self.mdictByMainKey[key_name] = empty_list
+
+        if keypress_tuple_set:
+            # Insert structures for all main-key names in ``keypress_tuple_set``,
+            # but insert them in the order of ``all_key_names``.
+            #
+            # 1.  We know there is only one keypress per keypress_tuple.
+            # 2.  Duplicates have been filtered out, so these main keys were
+            #     *not* included in include_key_name_set.
+            #
+            # To make this fast, we need to first build a list of main keys.
+            main_keys = []
+            for keypress_tuple in keypress_tuple_set:
+                for keypress_str in keypress_tuple:
+                    keypress = key_binding.Keypress(keypress_str)
+                    main_key_name = keypress.main_key_name
+                    main_keys.append(main_key_name)
+
+            # Now add them in the order of ``all_key_names``.
+            for key_name in all_key_names:
+                if key_name in main_keys:
+                    # Verify assumption that de-duplicating resulted
+                    # in no duplicates.  ``key_name`` should *not* be
+                    # in dictionary already.
+                    if key_name in self.mdictByMainKey:
+                        raise AssertionError(
+                            f'Main key {key_name} in one of the keypresses in `keypress_tuple_set`\n'
+                            f'{keypress_tuple_set}\n'
+                            'was found in dictionary `self.mdictByMainKey` but should not have been.\n'
+                            'Reason:  duplicates should have already been removed from it.'
+                            )
+                    else:
+                        empty_list = [None] * 16
+                        self.mdictByMainKey[main_key_name] = empty_list
+
+        # if debugging:
+        #     print('  Empty by-main-key dict:')
+        #     print(repr(self.mdictByMainKey))
+
+    def _build_empty_key_seq_dict(self):
+        """
+        ``by_key_seq_dict`` is valid just being an empty dictionary as it
+        is populated when the keypress sequences are encountered.
+
+        by_key_seq_dict
+            ("ctrl+k", "ctrl+up"):
+                [ <-- binding_list
+                    ReportKeyBinding object,
+                    ReportKeyBinding object,
+                    ReportKeyBinding object,
+                    ...
+                ]
+        """
+        debugging = self._debugging_building_key_seq_dict
+        if debugging:
+            print('In _build_empty_key_seq_dict()')
+
+        self.mdictByKeySquence = {}
 
     def _add_binding_to_key_seq_dict(self, rpt_binding: key_binding.ReportKeyBinding):
         """
@@ -2217,8 +2264,6 @@ class KeyBindingData:
         """
         if rpt_binding.keypress_count() != 1:
             raise AssertionError(f'Number of elements in `keys` expected 1, got {rpt_binding.keypress_count()}!')
-        if main_key_name not in self.mdictByMainKey:
-            raise AssertionError(f'  ERROR!  Found key name [{main_key_name}] not in mdictByMainKey.')
 
         debugging = self._debugging_building_main_key_dict
         if debugging:
@@ -2226,6 +2271,13 @@ class KeyBindingData:
             print(f'  {main_key_name=}')
             print(f'  {key_mod_code=}')
             print(f'  rpt_binding={rpt_binding.formatted(1)}')
+
+        if main_key_name not in self.mdictByMainKey:
+            # Lazy Creation TODO: rmv after settled.
+            # empty_list = [None] * 16
+            # self.mdictByMainKey[main_key_name] = empty_list
+            # Validate assumption that this record has already been added.
+            raise AssertionError(f'  ERROR!  Found key name [{main_key_name}] not in mdictByMainKey.')
 
         # -----------------------------------------------------------------
         # Add `rpt_binding` to `self.mdictByMainKey`.
