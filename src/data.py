@@ -2122,10 +2122,6 @@ class KeyBindingData:
                     None,   # binding list for [Command-Alt-Ctrl-a]         0xE
                     None,   # binding list for [Command-Alt-Ctrl-Shift-a]   0xF
                 ]
-
-        TODO: if both tis function and ``_build_empty_key_seq_dict()``
-              remain simply creating an empty dictionary, remove them
-              and create the empty dictionaries where these are called.
         """
         debugging = self._debugging_building_main_key_dict
         if debugging:
@@ -2273,10 +2269,6 @@ class KeyBindingData:
             print(f'  rpt_binding={rpt_binding.formatted(1)}')
 
         if main_key_name not in self.mdictByMainKey:
-            # Lazy Creation TODO: rmv after settled.
-            # empty_list = [None] * 16
-            # self.mdictByMainKey[main_key_name] = empty_list
-            # Validate assumption that this record has already been added.
             raise AssertionError(f'  ERROR!  Found key name [{main_key_name}] not in mdictByMainKey.')
 
         # -----------------------------------------------------------------
