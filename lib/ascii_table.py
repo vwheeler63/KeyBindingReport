@@ -1,4 +1,4 @@
-from typing import List, Iterable
+from typing import List, Sequence
 from enum import IntEnum
 
 
@@ -28,7 +28,7 @@ class AsciiTable():
             'debugging'
             ]
 
-    def __init__(self, table: List[Iterable[str]]):
+    def __init__(self, table: List[Sequence[str]]):
         if table is None:
             msg = '`table` must be a list of iterables elements.  Got `None` instead.'
             raise AssertionError(msg)
@@ -62,7 +62,7 @@ class AsciiTable():
         self.column_alignments = [''] * self.column_count
         self.tight_columns = [False] * self.column_count
 
-    def set_column_alignments(self, alignment_list: Iterable[str]):
+    def set_column_alignments(self, alignment_list: Sequence[str]):
         """
         Align Specifiers
         ----------------
@@ -82,7 +82,7 @@ class AsciiTable():
             raise AssertionError(msg)
         self.column_alignments = alignment_list
 
-    def set_tight_columns(self, tight_col_list: Iterable[bool]):
+    def set_tight_columns(self, tight_col_list: Sequence[bool]):
         """
         Set whether each column is considered "tight".
 
