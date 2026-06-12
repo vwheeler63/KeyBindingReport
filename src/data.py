@@ -1724,9 +1724,9 @@ class KeyBindingData:
         # Build report data.
         # ---------------------------------------------------------------------
         self._build_report_data(
-                limit_to_packages_set,
                 include_key_name_set,
                 keypress_tuple_set,
+                limit_to_packages_set,
                 incl_all_multi_key_seqs,
                 view
                 )
@@ -1737,9 +1737,9 @@ class KeyBindingData:
         return (( T is list or T is tuple or T is set ))
 
     def _build_report_data(self,
-            limit_to_packages      : Set[str] | None,
             include_key_name_set   : Set[str] | None,
             keypress_tuple_set     : Set[Tuple[str]] | None,
+            limit_to_packages      : Set[str] | None,
             incl_all_multi_key_seqs: bool,
             view                   : sublime.View | None
             ):
@@ -1756,10 +1756,6 @@ class KeyBindingData:
         what is left in the INPUT data is exactly what the user requested.
 
 
-        :param limit_to_packages:
-                            Optional:  Set of packages to limit data to;
-                            ``None`` == no limits on packages.
-
         :param include_key_name_set:
                             Optional:  Set against which to compare key names when
                             keypress count == 1, to accept or reject key bindings
@@ -1773,6 +1769,15 @@ class KeyBindingData:
                             contains TUPLES since tuples can use operators like
                             `==`, `!=` and `in`!  ``None`` == no specific
                             keypress/keypress sequences are added.
+
+        :param limit_to_packages:
+                            Optional:  Set of packages to limit data to;
+                            ``None`` == no limits on packages.
+
+        :param incl_all_multi_key_seqs:
+                            Whether to accept all keypress sequences (i.e. JSON
+                            key-binding "keys" list values that have more than
+                            one keypress string in them).
 
         :param view:        ``None`` means NOT to limit report to only those
                             bindings that match the current context (i.e.
@@ -1789,11 +1794,6 @@ class KeyBindingData:
                             When a View is supplied in this parameter, the
                             report excludes key bindings that do not match
                             the context of this View.  (Takes longer.)
-
-        :param incl_all_multi_key_seqs:
-                            Whether to accept all keypress sequences (i.e. JSON
-                            key-binding "keys" list values that have more than
-                            one keypress string in them).
 
         :return:  None
 
@@ -1813,17 +1813,18 @@ class KeyBindingData:
             - Default (Windows).sublime-keymap
 
             only the keymap applicable to the current platform is used as input.
+            (Caller can simulate being on a different platform.)
 
 
         """
         debugging = self._debugging_filtering_stage_i
         if debugging:
             print('In _build_report_data()')
-            print(f'  {limit_to_packages=}')
             print(f'  {include_key_name_set=}')
             print(f'  {keypress_tuple_set=}')
-            print(f'  {view=}')
+            print(f'  {limit_to_packages=}')
             print(f'  {incl_all_multi_key_seqs=}')
+            print(f'  {view=}')
 
         if view is not None:
             # Conditionally update any ViewEventListeners so they are using
