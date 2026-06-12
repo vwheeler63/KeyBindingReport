@@ -28,7 +28,7 @@
 											"limit_to_packages": ["Default"],
 											"key_groups": [7],
 											"fmt": 1,
-											"flags": 21,
+											"flags": 29,
 										},
 									},
 									{
@@ -39,7 +39,7 @@
 											"limit_to_packages": ["Default"],
 											"key_groups": [7],
 											"fmt": 1,
-											"flags": 277
+											"flags": 285
 										},
 									},
 									{
@@ -50,7 +50,7 @@
 											"limit_to_packages": ["Default"],
 											"key_groups": [0],
 											"fmt": 1,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -61,7 +61,7 @@
 											"limit_to_packages": ["Default"],
 											"key_groups": [1],
 											"fmt": 1,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -72,7 +72,7 @@
 											"limit_to_packages": ["Default"],
 											"key_groups": [2],
 											"fmt": 1,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -83,7 +83,7 @@
 											"limit_to_packages": ["Default"],
 											"key_groups": [3],
 											"fmt": 1,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -94,7 +94,7 @@
 											"limit_to_packages": ["Default"],
 											"key_groups": [4],
 											"fmt": 1,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -105,7 +105,7 @@
 											"limit_to_packages": ["Default"],
 											"key_groups": [5],
 											"fmt": 1,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -116,7 +116,7 @@
 											"limit_to_packages": ["Default"],
 											"key_groups": [6],
 											"fmt": 1,
-											"flags": 21
+											"flags": 29
 										},
 									},
 								]
@@ -132,7 +132,7 @@
 										"args": {
 											"key_groups": [7],
 											"fmt": 1,
-											"flags": 21,
+											"flags": 29,
 										},
 									},
 									{
@@ -142,7 +142,7 @@
 										"args": {
 											"key_groups": [7],
 											"fmt": 1,
-											"flags": 277
+											"flags": 285
 										},
 									},
 									{
@@ -152,7 +152,7 @@
 										"args": {
 											"key_groups": [0],
 											"fmt": 1,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -162,7 +162,7 @@
 										"args": {
 											"key_groups": [1],
 											"fmt": 1,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -172,7 +172,7 @@
 										"args": {
 											"key_groups": [2],
 											"fmt": 1,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -182,7 +182,7 @@
 										"args": {
 											"key_groups": [3],
 											"fmt": 1,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -192,7 +192,7 @@
 										"args": {
 											"key_groups": [4],
 											"fmt": 1,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -202,7 +202,7 @@
 										"args": {
 											"key_groups": [5],
 											"fmt": 1,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -212,7 +212,7 @@
 										"args": {
 											"key_groups": [6],
 											"fmt": 1,
-											"flags": 21
+											"flags": 29
 										},
 									},
 								]
@@ -221,7 +221,7 @@
 					},
 					{
 						"caption": "reStructuredText Format",
-						"mnemonic": "R",
+						"mnemonic": "r",
 						"children": [
 							{
 								"caption": "Default Package",
@@ -235,7 +235,7 @@
 											"limit_to_packages": ["Default"],
 											"key_groups": [7],
 											"fmt": 3,
-											"flags": 21,
+											"flags": 29,
 										},
 									},
 									{
@@ -246,7 +246,7 @@
 											"limit_to_packages": ["Default"],
 											"key_groups": [7],
 											"fmt": 3,
-											"flags": 277
+											"flags": 285
 										},
 									},
 									{
@@ -257,7 +257,7 @@
 											"limit_to_packages": ["Default"],
 											"key_groups": [0],
 											"fmt": 3,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -268,7 +268,7 @@
 											"limit_to_packages": ["Default"],
 											"key_groups": [1],
 											"fmt": 3,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -279,7 +279,7 @@
 											"limit_to_packages": ["Default"],
 											"key_groups": [2],
 											"fmt": 3,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -290,7 +290,7 @@
 											"limit_to_packages": ["Default"],
 											"key_groups": [3],
 											"fmt": 3,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -301,7 +301,7 @@
 											"limit_to_packages": ["Default"],
 											"key_groups": [4],
 											"fmt": 3,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -312,7 +312,7 @@
 											"limit_to_packages": ["Default"],
 											"key_groups": [5],
 											"fmt": 3,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -323,7 +323,7 @@
 											"limit_to_packages": ["Default"],
 											"key_groups": [6],
 											"fmt": 3,
-											"flags": 21
+											"flags": 29
 										},
 									},
 								]
@@ -339,7 +339,7 @@
 										"args": {
 											"key_groups": [7],
 											"fmt": 3,
-											"flags": 21,
+											"flags": 29,
 										},
 									},
 									{
@@ -349,7 +349,7 @@
 										"args": {
 											"key_groups": [7],
 											"fmt": 3,
-											"flags": 277
+											"flags": 285
 										},
 									},
 									{
@@ -359,7 +359,7 @@
 										"args": {
 											"key_groups": [0],
 											"fmt": 3,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -369,7 +369,7 @@
 										"args": {
 											"key_groups": [1],
 											"fmt": 3,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -379,7 +379,7 @@
 										"args": {
 											"key_groups": [2],
 											"fmt": 3,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -389,7 +389,7 @@
 										"args": {
 											"key_groups": [3],
 											"fmt": 3,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -399,7 +399,7 @@
 										"args": {
 											"key_groups": [4],
 											"fmt": 3,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -409,7 +409,7 @@
 										"args": {
 											"key_groups": [5],
 											"fmt": 3,
-											"flags": 21
+											"flags": 29
 										},
 									},
 									{
@@ -419,7 +419,7 @@
 										"args": {
 											"key_groups": [6],
 											"fmt": 3,
-											"flags": 21
+											"flags": 29
 										},
 									},
 								]
