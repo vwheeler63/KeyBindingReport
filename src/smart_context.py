@@ -145,7 +145,7 @@ return a Boolean value.
 import os
 import re
 import json
-from typing import List, Tuple, Dict
+from typing import List, Tuple
 from enum import IntEnum
 import importlib
 from datetime import datetime
@@ -1232,16 +1232,20 @@ def _test_panel(view, operator, operand, match_all):
         print(f'_test_panel:  expected operand to be a string, got {operand_type} instead.')
     else:
         win = view.window()
-        panel_name = win.active_panel()
-        if panel_name:
-            result = _evaluate_test(panel_name, operator, operand)
+        if win is not None:
+            panel_name = win.active_panel()
+            if panel_name:
+                result = _evaluate_test(panel_name, operator, operand)
+            else:
+                # This branch handles things when no panel is visible, so tests like:
+                # - { "key": "panel", "operator": "not_equal", "operand": 'console' }
+                #   correctly tests TRUE , and
+                # - { "key": "panel", "operator": "equal", "operand": 'console' }
+                #   correctly tests FALSE.
+                result = _evaluate_test('non-existent_panel', operator, operand)
         else:
-            # This branch handles things when no panel is visible, so tests like:
-            # - { "key": "panel", "operator": "not_equal", "operand": 'console' }
-            #   correctly tests TRUE , and
-            # - { "key": "panel", "operator": "equal", "operand": 'console' }
-            #   correctly tests FALSE.
-            result = _evaluate_test('non-existent_panel', operator, operand)
+            pass
+            # ``result`` is already ``False``.  Nothing to do.
 
     return result
 
