@@ -22,7 +22,7 @@
     - All Key Combinations for All Installed Packages (Separate Tables)
       (Tables are separated by key groups.)
 
-- Find out what key binding Sublime Text is choosing for a given key combination in a given editing context. Editing contexts can also include when the caret is in a Panel (e.g. one of the Find Panels) or in an Overlay (e.g. Command Palette).
+- Find out what key binding Sublime Text is choosing for a given key combination in a given editing context. Editing contexts can also include when the caret is in a Panel (e.g. one of the Find Panels, Console Panel, etc.) or in an Overlay (e.g. Command Palette, Input Overlay, etc.).
 
   - Pre-Built Reports that Do This:
 
@@ -239,7 +239,7 @@ Optional:  case-sensitive list of package names that the gathered key-binding da
 
 ### `limit_to_context` Argument
 
-Optional (Boolean):  Default: `false`.  Passing `True` for this argument means:  exclude key bindings whose "context" entries do not match the current editing context in the View that was active when the `key_binding_report` command was run.  The active View can be any View, including input and output views that are involved in Panels (e.g. one of the Find Panels) as well as Overlays (e.g. Command Palette).
+Optional (Boolean):  Default: `false`.  Passing `True` for this argument means:  exclude key bindings whose "context" entries do not match the current editing context in the View that was active when the `key_binding_report` command was run.  The active View can be any View, including input and output views that are involved in Panels (e.g. one of the Find Panels, Console Panel, etc.) as well as Overlays (e.g. Command Palette, Input Overlay, etc.).
 
 
 
