@@ -28,7 +28,7 @@ and most others) are returned to their original state:  current platform.
 """
 
 import sublime
-from ..lib.debug import DebugBits, is_debugging
+from ..lib.debug import IntFlag, DebugBits, is_debugging
 
 
 

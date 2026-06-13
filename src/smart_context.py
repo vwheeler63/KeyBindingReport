@@ -153,7 +153,7 @@ from xml.etree import ElementTree as ET
 import sublime
 from sublime import QueryOperator
 import sublime_plugin
-from ..lib.debug import DebugBits, is_debugging
+from ..lib.debug import IntFlag, DebugBits, is_debugging
 
 
 

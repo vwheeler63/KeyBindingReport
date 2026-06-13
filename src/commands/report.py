@@ -11,7 +11,7 @@ from typing import Sequence, Tuple
 from datetime import datetime
 import sublime_plugin
 import sublime
-from ...lib.debug import DebugBits, is_debugging
+from ...lib.debug import IntFlag, DebugBits, is_debugging
 from ...lib import ascii_table
 from ...lib import output_view
 from .. import platform

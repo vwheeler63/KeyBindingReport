@@ -112,7 +112,7 @@ formats from that data.
 
 from datetime import datetime
 from typing import List, Tuple
-from ..lib.debug import DebugBits, is_debugging
+from ..lib.debug import IntFlag, DebugBits, is_debugging
 from ..lib import ascii_table
 from ..lib import rst_utils
 from . import platform

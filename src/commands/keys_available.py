@@ -6,7 +6,7 @@ See docstring under ``KeyBindingReportKeysAvailableCommand.run()`` method.
 """
 
 import sublime_plugin
-from ...lib.debug import DebugBits, is_debugging
+from ...lib.debug import IntFlag, DebugBits, is_debugging
 from ...lib import ascii_table
 from .. import platform
 from .. import data

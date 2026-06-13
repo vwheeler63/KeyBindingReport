@@ -299,7 +299,7 @@ import os
 from datetime import datetime
 import sublime
 import sublime_plugin
-from ...lib.debug import DebugBits, is_debugging
+from ...lib.debug import IntFlag, DebugBits, is_debugging
 from ...lib import output_view
 from .. import platform
 from .. import core

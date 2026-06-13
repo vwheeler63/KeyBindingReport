@@ -421,7 +421,7 @@ import pprint
 from typing import Set, Sequence, List, Tuple
 from enum import IntEnum, IntFlag
 import sublime
-from ..lib.debug import DebugBits, is_debugging
+from ..lib.debug import IntFlag, DebugBits, is_debugging
 from ..lib import ascii_table
 from . import platform
 from . import core

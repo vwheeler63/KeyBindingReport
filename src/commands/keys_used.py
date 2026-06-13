@@ -7,7 +7,7 @@ See docstring under ``KeyBindingReportKeysUsedCommand.run()`` method.
 
 import sublime_plugin
 import sublime
-from ...lib.debug import DebugBits, is_debugging
+from ...lib.debug import IntFlag, DebugBits, is_debugging
 from ...lib import ascii_table
 from ...lib import output_view
 from .. import platform
