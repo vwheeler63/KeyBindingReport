@@ -1503,21 +1503,21 @@ class KeyBindingData:
         req_type = 'list, tuple or set'
         after_msg = '  Aborting.'
         if key_groups:
-            if not self._is_list_tuple_or_set(key_groups):
+            if not isinstance(key_groups, (list, tuple, set)):
                 msg = core.arg_type_error_message(key_groups, 'key_groups', req_type, after_msg)
                 raise TypeError(msg)
         if keypress_list:
-            if not self._is_list_tuple_or_set(keypress_list):
+            if not isinstance(keypress_list, (list, tuple, set)):
                 msg = core.arg_type_error_message(keypress_list, 'keypress_list', req_type, after_msg)
                 raise TypeError(msg)
             # If execution arrives here, then we need to also test its members.
             for keypresses in keypress_list:
-                if not self._is_list_tuple_or_set(keypresses):
+                if not isinstance(keypresses, (list, tuple, set)):
                     msg = f'  Each of the keypresses in `keypress_list` arg must be a {req_type}.' \
                           f'  At least 1 was type {type(keypresses)}.{after_msg}'
                     raise TypeError(msg)
         if limit_to_packages:
-            if not self._is_list_tuple_or_set(limit_to_packages):
+            if not isinstance(limit_to_packages, (list, tuple, set)):
                 msg = core.arg_type_error_message(limit_to_packages, 'limit_to_packages', req_type, after_msg)
                 raise TypeError(msg)
 
@@ -1730,11 +1730,6 @@ class KeyBindingData:
                 incl_all_multi_key_seqs,
                 view
                 )
-
-    def _is_list_tuple_or_set(self, obj) -> bool:
-        """ Is passed class a list, set or tuple? """
-        T = type(obj)
-        return (( T is list or T is tuple or T is set ))
 
     def _build_report_data(self,
             include_key_name_set   : Set[str] | None,
