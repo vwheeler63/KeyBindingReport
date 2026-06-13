@@ -58,6 +58,9 @@ keypress_list
     - [["ctrl+k", "ctrl+u"]]
     - [["up"], ["f5"], ["shift+f5"], ["ctrl+shift+f5"], ["ctrl+k", "ctrl+u"]]
     - [["enter"], ["ctrl+k", "ctrl+u"], ["ctrl+k", "ctrl+u"]]
+                                        ^^^^^^^^^^^^^^^^^^^^
+                                        Note this is a duplicate.
+                                        Duplicates are removed by report logic.
 
 key ID
     Index into the ``data.all_key_names`` list identifying a particular keyboard key.
@@ -2121,6 +2124,8 @@ class KeyBindingData:
         debugging = self._debugging_building_main_key_dict
         if debugging:
             print('In _build_empty_main_key_dict()')
+            print(f'  {include_key_name_set=}')
+            print(f'  {keypress_tuple_set=}')
 
         self.mdictByMainKey = {}
 
@@ -2136,17 +2141,19 @@ class KeyBindingData:
             # Insert structures for all main-key names in ``keypress_tuple_set``,
             # but insert them in the order of ``all_key_names``.
             #
-            # 1.  We know there is only one keypress per keypress_tuple.
+            # 1.  We DO NOT know there is only one keypress per ``keypress_tuple``.
+            #     Some ``keypress_tuple``s may have 2 or more keypresses in them.
             # 2.  Duplicates have been filtered out, so these main keys were
             #     *not* included in include_key_name_set.
             #
             # To make this fast, we need to first build a list of main keys.
             main_keys = []
             for keypress_tuple in keypress_tuple_set:
-                for keypress_str in keypress_tuple:
-                    keypress = key_binding.Keypress(keypress_str)
-                    main_key_name = keypress.main_key_name
-                    main_keys.append(main_key_name)
+                if len(keypress_tuple) == 1:
+                    for keypress_str in keypress_tuple:
+                        keypress = key_binding.Keypress(keypress_str)
+                        main_key_name = keypress.main_key_name
+                        main_keys.append(main_key_name)
 
             # Now add them in the order of ``all_key_names``.
             for key_name in all_key_names:
