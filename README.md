@@ -8,37 +8,38 @@
 
 - Find out what key conflicts that are in your installation that you didn't already know about.
 
-  - Pre-Built Reports that Do This:
+  Pre-Built reports that do this:
 
-    - Key-Binding Overrides
-    - Key-Binding Overrides (in Current Context)
+  - Key-Binding Overrides
+  - Key-Binding Overrides (in Current Context)
 
 - Find out what key combinations are available for your Plugin or other Sublime Text customization(s).
-  - Pre-Built Reports that Do This:
 
-    - <key group> for All Installed Packages
-      (There are 7 key groups: numbers, letters, function keys, symbols, named keys, keypad keys, and key sequences [e.g. "ctrl+k", "ctrl+u"].)
-    - All Key Combinations for All Installed Packages
-    - All Key Combinations for All Installed Packages (Separate Tables)
-      (Tables are separated by key groups.)
+  Pre-Built reports that do this:
 
-- Find out what key binding Sublime Text is choosing for a given key combination in a given editing context. Editing contexts can also include when the caret is in a Panel (e.g. one of the Find Panels, Console Panel, etc.) or in an Overlay (e.g. Command Palette, Input Overlay, etc.).
-
-  - Pre-Built Reports that Do This:
-
-    - Which Binding? Report
+  - <key group> for All Installed Packages
+    (There are 7 key groups: numbers, letters, function keys, symbols, named keys, keypad keys, and key sequences [e.g. "ctrl+k", "ctrl+u"].)
+  - All Key Combinations for All Installed Packages
+  - All Key Combinations for All Installed Packages (Separate Tables)
+    (Tables are separated by key groups.)
 
 - Find out the names of all keys (including modifier keys) that currently having bindings in your Sublime Text installation, including how many times each key was used in a binding.
 
-  - Pre-Built Reports that Do This:
+  Pre-Built reports that do this:
 
-    - Keys Used Report (Current Platform)
+  - Keys Used Report (Current Platform)
 
 - Find out all key combinations that have no key bindings.
 
-  - Pre-Built Reports that Do This:
+  Pre-Built reports that do this:
 
-    - Keys Available Report (Current Platform)
+  - Keys Available Report (Current Platform)
+
+- Find out what key binding Sublime Text is choosing for a given key combination in a given editing context.  Editing contexts can also include when the caret is in a Panel (e.g. one of the Find Panels, Console Panel, etc.) or in an Overlay (e.g. Command Palette, Input Overlay, etc.).
+
+  Pre-Built reports that do this:
+
+  - Which Binding? Report
 
 - If you're not already an expert at interpreting key binding "context" entries, the natural-language descriptions of key-binding "context" entries can speed your understanding of what they mean.
 
@@ -131,11 +132,38 @@ As of this writing, there are 59 pre-built reports that this package can generat
         self.view.run_command('key_binding_report', args)
   ```
 
-- **KeyBindingReport: Which Binding?**, generates a Key-Binding Report for a specified keypress or keypress sequence, based on the context in current View.  This command may be run when keyboard focus is in any View, including input Views in any Panels (e.g. Find) or Overlays (e.g. Command Palette).
-
 - **KeyBindingReport: Key-Binding Overrides**, reports Key Bindings that, considering their "context" entries, override other key bindings, considering all shipped, installed and custom Packages present on your system.
 
 - **KeyBindingReport: Key-Binding Overrides (in Current Context)**, is the same as the above, with the addition that the current context in the current View is also taken into account.  Bindings are excluded whose "context" entries do not match the current editing context.
+
+- **KeyBindingReport: Which Binding?**, generates a Key-Binding Report for a specified keypress or keypress sequence, based on the context in current View.  This command may be run when keyboard focus is in any View, including input or output Views in any Panel (e.g. one of the Find Panels, Console Panel, etc.) or in an Overlay (e.g. Command Palette, Input Overlay, etc.).
+
+  To catch the context in part of the user interface (i.e. in a Panel or Overlay), you will need to bind the Command to a keypress or mouse action, and pass hard-coded "keypress_list" and "platform_code"—otherwise the user prompt to enter the keypress list will move focus (and thus context) away from the Panel or Overlay that it is in when the Command is initiated.
+
+  Here is an example of doing so while the cursor is in the "Find" View (textbox) of the Find-in-Files Panel:
+
+  ```
+  *************************************
+  KeyBindingReport:  Which Key Binding?
+  *************************************
+  
+  As of   :  13-Jun-2026 17:14
+  Platform:  Windows
+  
+  Note:
+      Binding Selected for ['enter'] in Current Context:
+      View(38) is part of the user interface:  find_in_files:input:find.
+      Line : "1, Col: 5"
+      Scope: "text.plain"
+  
+  Default/Default (Windows).sublime-keymap  (entry 352)
+  { ["enter"], find_all
+    "context": [
+      { "key": "panel"          , "operator": "equal", "operand": "find_in_files", "match_all": false },
+      { "key": "panel_has_focus", "operator": "equal", "operand": true, "match_all": false }
+    ]
+  }
+  ```
 
 
 

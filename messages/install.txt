@@ -25,15 +25,6 @@ What You Can Do, and the Reports that Support It
   - All Key Combinations for All Installed Packages (Separate Tables)
     (Tables are separated by key groups.)
 
-- Find out what key binding Sublime Text is choosing for a given key
-  combination in a given editing context. Editing contexts can also
-  include when the caret is in a text box in a Panel (e.g. one of the
-  Find Panels) or in an Overlay (e.g. Command Palette).
-
-  Pre-Built Reports that Do This:
-
-  - Which Binding? Report
-
 - Find out the names of all keys (including modifier keys) that
   currently having bindings in your Sublime Text installation,
   including how many times each key was used in a binding.
@@ -47,6 +38,15 @@ What You Can Do, and the Reports that Support It
   Pre-Built Reports that Do This:
 
   - Keys Available Report (Current Platform)
+
+- Find out what key binding Sublime Text is choosing for a given key
+  combination in a given editing context. Editing contexts can also
+  include when the caret is in a text box in a Panel (e.g. one of the
+  Find Panels) or in an Overlay (e.g. Command Palette).
+
+  Pre-Built Reports that Do This:
+
+  - Which Binding? Report
 
 - If you're not already an expert at interpreting key binding "context"
   entries, the natural-language descriptions of key-binding "context"
