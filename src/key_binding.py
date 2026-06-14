@@ -151,6 +151,94 @@ _command_key = 'command'
 _args_key    = 'args'
 _context_key = 'context'
 
+# Key Name Groups, indexed by class ``KeyGroup``.
+key_name_groups = [
+    # NUMBER_KEYS == 0
+    ['1','2','3','4','5','6','7','8','9','0'],
+    # LETTER_KEYS == 1
+    ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'],
+    # F_KEYS      == 2
+    ['f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12','f13','f14','f15','f16','f17','f18','f19','f20'],
+    # SYMBOL_KEYS == 3
+    ["'",',','-','.','/',';','=','[','\\',']','`',  # OK with or w/o key modifiers. (Unshifted)
+            '!','"','#','$','%','&','(',            # Only w/o key modifiers.       (Shifted)
+            ')','*','+',':','<','>','?',            # Only w/o key modifiers.       (Shifted)
+            '@','^','_','{','|','}','~',            # Only w/o key modifiers.       (Shifted)
+            ],
+            # The last 3 rows are added because these "bare" keypresses (i.e. having
+            # no ctrl/alt/shift key modifiers) are 100% bind-able in Sublime Text
+            # build 4200, and the first 7 of them can be found in the Default keymap.
+            # These need to be here for KeyBindingReport to find and report on them
+            # in the various keymaps where they occur.
+    # NAMED_KEYS  == 4
+    ['up','down','left','right','insert','delete','home','end','pageup','pagedown',
+        'backspace','tab','enter','pause','break','space','escape','context_menu',
+        'backquote','equals','forward_slash','minus','plus','close','copy','cut',
+        'find','open','paste','redo','save','sysreq','undo','browser_back',
+        'browser_favorites','browser_forward','browser_home','browser_refresh',
+        'browser_search','browser_stop', '<character>'],
+    # KEYPAD_KEYS == 5 == LAST
+    ['keypad0','keypad1','keypad2','keypad3','keypad4','keypad5','keypad6','keypad7','keypad8','keypad9','keypad_period','keypad_divide','keypad_multiply','keypad_minus','keypad_plus','keypad_enter','clear'],
+]
+
+# Indexed by class ``KeyGroup``.
+key_group_names = [
+    "Number Keys",
+    "Letter Keys",
+    "Function Keys",
+    "Symbol Keys",
+    "Named Keys",
+    "Keypad Keys",
+    "Multi-Keypress Bindings",
+    "Single-Keypress Bindings",
+]
+
+# Indexed by class ``KeyGroup``.
+key_group_file_names = [
+    "number_keys.txt",
+    "letter_keys.txt",
+    "function_keys.txt",
+    "symbol_keys.txt",
+    "named_keys.txt",
+    "keypad_keys.txt",
+    "multi-keypress_{$leading_keypress}.txt",
+    "single-keypress.txt",
+]
+
+# Generate ``all_key_names`` from ``key_name_groups``.
+count = 0
+grp = None      # Make LSP-pyright happy.
+key_name = None # Make LSP-pyright happy.
+
+for grp in key_name_groups:
+    count += len(grp)
+
+# Pre-allocate array instead of 103 ``append()`` calls (inefficient).
+all_key_names: list = [None] * count
+i = 0
+
+for grp in key_name_groups:
+    for key_name in grp:
+        all_key_names[i] = key_name
+        i += 1
+
+# Generate ``key_index_by_key_name_dict`` from ``all_key_names``.
+# This dictionary's values index into ``all_key_names``, while also giving
+# each key name an integer value.  This enables us to produce a unique
+# integer value for each possible key with all 8 modifier possibilities
+# with something like this:
+#
+#     encoded_keypress = (i << 4) | modifier_value
+#
+# where ``modifier_value`` is comprised of OR-ed bits from ModifierKeyBits.
+key_index_by_key_name_dict = {}
+
+for i, key_name in enumerate(all_key_names):
+    key_index_by_key_name_dict[key_name] = i
+
+# Clean up.
+del i, count, grp, key_name
+
 
 
 # *************************************************************************
@@ -255,6 +343,8 @@ class Keypress:
         'main_key_name',
         'modifier_key_list',
         'modifier_code',
+        'modifier_key_error_message',
+        'main_key_error_message',
     ]
 
     def __init__(self, keypress_str: str):
@@ -273,9 +363,11 @@ class Keypress:
         | #    alt    # | <-------------+                |
         | #  command  # | <-------------|--+--------+    |
         |    option     | Mac's 'alt' --+  |      [Win]  |
-        |     super     | -----------------+--------+    |
+        |     super     | ---------------- | -------+    |
         |    primary    | -----------------+-------------+
         """
+        self.modifier_key_error_message: str | None = None
+        self.main_key_error_message: str | None = None
         modifier_code = 0
 
         if keypress_str.endswith('++'):
@@ -304,7 +396,11 @@ class Keypress:
                 else:
                     modifier_code |= ModifierKeyBits.CTRL
             else:
-                raise AssertionError(f'{__package__}.Keypress.__init__(): modifier key unrecognized: [{mod_key_name}].')
+                self.modifier_key_error_message = f'Modifier key unrecognized: [{mod_key_name}].'
+
+        # Check main_key_name
+        if main_key_name not in all_key_names:
+            self.main_key_error_message = f'Main key unrecognized: [{main_key_name}].'
 
         self.keypress_str      = keypress_str
         self.main_key_name     = main_key_name
