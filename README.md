@@ -362,7 +362,7 @@ The following are among bits you can OR together to specify what to include in t
 - `ADD_COMMENTS_COLUMN` (0x0020):  include a comments column of the configured width (useful if you intend to copy the report into a document and manually edit it by adding comments for a purpose of your choosing, or print the report and hand-write comments in the comments column).
 - `TABLE_KEY_AFTER_TABLE` (0x0040):  include the Table Key *after* the table instead of *before* it (the default, see note below).
 - `INCLUDE_WINDOWS_KEY` (0x0080):  include the [⊞] (Windows) key for Windows and Linux platforms (the [⌘ Command] key is always included on OSX because it is always heavily used).
-- `SEPARATE_TABLES_BY_KEY_GROUPS` (0x0100):  whether to group keys by key group, generating 1 table and 1 set of footnotes for each key group (numbers, letters, function keys, symbol keys, named keys, keypad keys).
+- `ALL_IN_ONE_TABLE` (0x0100):  whether to combine all output into one table, even if it spans multiple key groups (numbers, letters, function keys, symbols, named keys, keypad keys).
 - `OUTPUT_TO_FILES` (0x0200):  whether to send output to a set of files in addition to a read-only report View(s) on the screen.  The destination directory is configurable for each platform.  The directory must already exist.  **Caution:** Same-named files within that directory are silently overwritten each time the Command is run, so using a directory *other than the live production versions of these files* is recommended.
 - `ALL_PLATFORMS` (0x0400):  whether to include all platforms ("windows", "linux" and "osx") in the report.
 

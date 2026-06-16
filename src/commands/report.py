@@ -260,7 +260,24 @@ def _generate_report(
     # -----------------------------------------------------------------
     # Add Main-Key table parts.
     # -----------------------------------------------------------------
-    if flags & data.FlagBits.SEPARATE_TABLES_BY_KEY_GROUPS:
+    if flags & data.FlagBits.ALL_IN_ONE_TABLE:
+        tbl_pkg = output.main_key_table(key_data, flags, fmt, last_footnote_num)
+
+        if tbl_pkg.table:
+            heading = 'Single-Keypress Table'
+            content_parts.append(output.section_heading(heading, '*'))
+            content_parts.append('')
+
+            tbl_and_footnotes = _key_table_and_footnotes_repr(
+                    data.KeyGroup.ALL,  # All in 1 table
+                    tbl_pkg,
+                    debugging,
+                    None                # lead_keypr
+                    )
+
+            content_parts.append(tbl_and_footnotes)
+
+    else:
         table_pkg_list = output.main_key_tables(key_data, flags, fmt, last_footnote_num)
         #     List[tuple] (table_pkg) each tuple containing:
         #         (key_group_idx, table, footnotes, last_footnote_num)
@@ -284,23 +301,6 @@ def _generate_report(
                             )
 
                     content_parts.append(tbl_and_footnotes)
-
-    else:
-        tbl_pkg = output.main_key_table(key_data, flags, fmt, last_footnote_num)
-
-        if tbl_pkg.table:
-            heading = 'Single-Keypress Table'
-            content_parts.append(output.section_heading(heading, '*'))
-            content_parts.append('')
-
-            tbl_and_footnotes = _key_table_and_footnotes_repr(
-                    data.KeyGroup.ALL,  # All in 1 table
-                    tbl_pkg,
-                    debugging,
-                    None                # lead_keypr
-                    )
-
-            content_parts.append(tbl_and_footnotes)
 
     # -----------------------------------------------------------------
     # Add Key-Sequence table(s) parts.
@@ -517,7 +517,7 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                     //     ADD_COMMENTS_COLUMN               = 0x0020  #    32
                     //     TABLE_KEY_AFTER_TABLE             = 0x0040  #    64
                     //     INCLUDE_WINDOWS_KEY               = 0x0080  #   128
-                    //     SEPARATE_TABLES_BY_KEY_GROUPS     = 0x0100  #   256
+                    //     ALL_IN_ONE_TABLE                  = 0x0100  #   256
                     //     OUTPUT_TO_FILES                   = 0x0200  #   512
                     //     ALL_PLATFORMS                     = 0x0400  #  1024
                     //

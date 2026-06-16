@@ -82,7 +82,7 @@
 	//     ADD_COMMENTS_COLUMN               = 0x0020  #    32
 	//     TABLE_KEY_AFTER_TABLE             = 0x0040  #    64
 	//     INCLUDE_WINDOWS_KEY               = 0x0080  #   128
-	//     SEPARATE_TABLES_BY_KEY_GROUPS     = 0x0100  #   256
+	//     ALL_IN_ONE_TABLE                  = 0x0100  #   256
 	//     OUTPUT_TO_FILES                   = 0x0200  #   512
 	//     ALL_PLATFORMS                     = 0x0400  #  1024
 	//
@@ -115,6 +115,16 @@
 	// Limited to Default Package
 	// --------------------------------------------------------------------
 	{
+		"caption": "KeyBindingReport: All Key Combinations in Default Package (All in One Table)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [7],
+			"fmt": 1,
+			"flags": 285, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | INCLUDE_NATURAL_LANGUAGE_CONTEXTS | ADD_SOURCE_COLUMN | ALL_IN_ONE_TABLE
+		},
+	},
+	{
 		"caption": "KeyBindingReport: All Key Combinations in Default Package",
 		"command": "key_binding_report",
 		"args": {
@@ -122,16 +132,6 @@
 			"key_groups": [7],
 			"fmt": 1,
 			"flags": 29, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | INCLUDE_NATURAL_LANGUAGE_CONTEXTS | ADD_SOURCE_COLUMN
-		},
-	},
-	{
-		"caption": "KeyBindingReport: All Key Combinations in Default Package (Separate Tables)",
-		"command": "key_binding_report",
-		"args": {
-			"limit_to_packages": ["Default"],
-			"key_groups": [7],
-			"fmt": 1,
-			"flags": 285, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | INCLUDE_NATURAL_LANGUAGE_CONTEXTS | ADD_SOURCE_COLUMN | SEPARATE_TABLES_BY_KEY_GROUPS
 		},
 	},
 	{
@@ -209,21 +209,21 @@
 	// For All Installed Packages
 	// --------------------------------------------------------------------
 	{
+		"caption": "KeyBindingReport: All Key Combinations for All Installed Packages (All in One Table)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [7],
+			"fmt": 1,
+			"flags": 285, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | INCLUDE_NATURAL_LANGUAGE_CONTEXTS | ADD_SOURCE_COLUMN | ALL_IN_ONE_TABLE
+		},
+	},
+	{
 		"caption": "KeyBindingReport: All Key Combinations for All Installed Packages",
 		"command": "key_binding_report",
 		"args": {
 			"key_groups": [7],
 			"fmt": 1,
 			"flags": 29, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | INCLUDE_NATURAL_LANGUAGE_CONTEXTS | ADD_SOURCE_COLUMN
-		},
-	},
-	{
-		"caption": "KeyBindingReport: All Key Combinations for All Installed Packages (Separate Tables)",
-		"command": "key_binding_report",
-		"args": {
-			"key_groups": [7],
-			"fmt": 1,
-			"flags": 285, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | INCLUDE_NATURAL_LANGUAGE_CONTEXTS | ADD_SOURCE_COLUMN | SEPARATE_TABLES_BY_KEY_GROUPS
 		},
 	},
 	{
@@ -297,6 +297,16 @@
 	// Output to View -- Limited to Default Package
 	// --------------------------------------------------------------------
 	{
+		"caption": "KeyBindingReport: All Key Combinations in Default Package (reStructuredText) (All in One Table)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [7],
+			"fmt": 3,
+			"flags": 285, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | INCLUDE_NATURAL_LANGUAGE_CONTEXTS | ADD_SOURCE_COLUMN | ALL_IN_ONE_TABLE
+		},
+	},
+	{
 		"caption": "KeyBindingReport: All Key Combinations in Default Package (reStructuredText)",
 		"command": "key_binding_report",
 		"args": {
@@ -304,16 +314,6 @@
 			"key_groups": [7],
 			"fmt": 3,
 			"flags": 29, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | INCLUDE_NATURAL_LANGUAGE_CONTEXTS | ADD_SOURCE_COLUMN
-		},
-	},
-	{
-		"caption": "KeyBindingReport: All Key Combinations in Default Package (reStructuredText) (Separate Tables)",
-		"command": "key_binding_report",
-		"args": {
-			"limit_to_packages": ["Default"],
-			"key_groups": [7],
-			"fmt": 3,
-			"flags": 285, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | INCLUDE_NATURAL_LANGUAGE_CONTEXTS | ADD_SOURCE_COLUMN | SEPARATE_TABLES_BY_KEY_GROUPS
 		},
 	},
 	{
@@ -387,6 +387,18 @@
 		},
 	},
 
+	// --------------------------------------------------------------------
+	// Output to View -- For All Installed Packages
+	// --------------------------------------------------------------------
+	{
+		"caption": "KeyBindingReport: All Key Combinations for All Installed Packages (reStructuredText) (All in One Table)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [7],
+			"fmt": 3,
+			"flags": 285, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | INCLUDE_NATURAL_LANGUAGE_CONTEXTS | ADD_SOURCE_COLUMN | ALL_IN_ONE_TABLE
+		},
+	},
 	{
 		"caption": "KeyBindingReport: All Key Combinations for All Installed Packages (reStructuredText)",
 		"command": "key_binding_report",
@@ -394,15 +406,6 @@
 			"key_groups": [7],
 			"fmt": 3,
 			"flags": 29, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | INCLUDE_NATURAL_LANGUAGE_CONTEXTS | ADD_SOURCE_COLUMN
-		},
-	},
-	{
-		"caption": "KeyBindingReport: All Key Combinations for All Installed Packages (reStructuredText) (Separate Tables)",
-		"command": "key_binding_report",
-		"args": {
-			"key_groups": [7],
-			"fmt": 3,
-			"flags": 285, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | INCLUDE_NATURAL_LANGUAGE_CONTEXTS | ADD_SOURCE_COLUMN | SEPARATE_TABLES_BY_KEY_GROUPS
 		},
 	},
 	{
@@ -473,6 +476,16 @@
 	// Output to View + Files -- Limited to Default Package
 	// --------------------------------------------------------------------
 	{
+		"caption": "KeyBindingReport: All Key Combinations in Default Package (reStructuredText) (All in One Table) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"limit_to_packages": ["Default"],
+			"key_groups": [7],
+			"fmt": 3,
+			"flags": 797, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | INCLUDE_NATURAL_LANGUAGE_CONTEXTS | ADD_SOURCE_COLUMN | ALL_IN_ONE_TABLE | OUTPUT_TO_FILES
+		},
+	},
+	{
 		"caption": "KeyBindingReport: All Key Combinations in Default Package (reStructuredText) (Output to Files)",
 		"command": "key_binding_report",
 		"args": {
@@ -480,16 +493,6 @@
 			"key_groups": [7],
 			"fmt": 3,
 			"flags": 541, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | INCLUDE_NATURAL_LANGUAGE_CONTEXTS | ADD_SOURCE_COLUMN | OUTPUT_TO_FILES
-		},
-	},
-	{
-		"caption": "KeyBindingReport: All Key Combinations in Default Package (reStructuredText) (Separate Tables) (Output to Files)",
-		"command": "key_binding_report",
-		"args": {
-			"limit_to_packages": ["Default"],
-			"key_groups": [7],
-			"fmt": 3,
-			"flags": 797, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | INCLUDE_NATURAL_LANGUAGE_CONTEXTS | ADD_SOURCE_COLUMN | SEPARATE_TABLES_BY_KEY_GROUPS | OUTPUT_TO_FILES
 		},
 	},
 	{
@@ -567,21 +570,21 @@
 	// Output to View + Files -- For All Installed Packages
 	// --------------------------------------------------------------------
 	{
+		"caption": "KeyBindingReport: All Key Combinations for All Installed Packages (reStructuredText) (All in One Table) (Output to Files)",
+		"command": "key_binding_report",
+		"args": {
+			"key_groups": [7],
+			"fmt": 3,
+			"flags": 797, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | INCLUDE_NATURAL_LANGUAGE_CONTEXTS | ADD_SOURCE_COLUMN | ALL_IN_ONE_TABLE | OUTPUT_TO_FILES
+		},
+	},
+	{
 		"caption": "KeyBindingReport: All Key Combinations for All Installed Packages (reStructuredText) (Output to Files)",
 		"command": "key_binding_report",
 		"args": {
 			"key_groups": [7],
 			"fmt": 3,
 			"flags": 541, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | INCLUDE_NATURAL_LANGUAGE_CONTEXTS | ADD_SOURCE_COLUMN | OUTPUT_TO_FILES
-		},
-	},
-	{
-		"caption": "KeyBindingReport: All Key Combinations for All Installed Packages (reStructuredText) (Separate Tables) (Output to Files)",
-		"command": "key_binding_report",
-		"args": {
-			"key_groups": [7],
-			"fmt": 3,
-			"flags": 797, // INCLUDE_UNBOUND_KEYPRESSES | INCLUDE_UNTRANSLATED_CONTEXTS | INCLUDE_NATURAL_LANGUAGE_CONTEXTS | ADD_SOURCE_COLUMN | SEPARATE_TABLES_BY_KEY_GROUPS | OUTPUT_TO_FILES
 		},
 	},
 	{

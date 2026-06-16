@@ -455,7 +455,7 @@ class FlagBits(IntFlag):
     ADD_COMMENTS_COLUMN               = 0x0020  #    32
     TABLE_KEY_AFTER_TABLE             = 0x0040  #    64
     INCLUDE_WINDOWS_KEY               = 0x0080  #   128
-    SEPARATE_TABLES_BY_KEY_GROUPS     = 0x0100  #   256
+    ALL_IN_ONE_TABLE                  = 0x0100  #   256
     OUTPUT_TO_FILES                   = 0x0200  #   512
     ALL_PLATFORMS                     = 0x0400  #  1024
 
@@ -669,7 +669,7 @@ class KeyBindingData:
 
         parts.append(f'{indent}    limit_to_context  = {self.limit_to_context}')
         parts.append(f'{indent}    format            = {ascii_table.Format(self.fmt)!r}')
-        parts.append(f'{indent}    flags             = 0x{self.flags:{_flags_format_spec_hex}}')
+        parts.append(f'{indent}    flags             = 0x{self.flags:{_flags_format_spec_hex}} ({self.flags})')
 
         # Compute length of longest FlagBits enumeration name.
         longest_name_len = 0
@@ -1309,7 +1309,7 @@ class KeyBindingData:
             ADD_COMMENTS_COLUMN               = 0x0020  #    32
             TABLE_KEY_AFTER_TABLE             = 0x0040  #    64
             INCLUDE_WINDOWS_KEY               = 0x0080  #   128
-            SEPARATE_TABLES_BY_KEY_GROUPS     = 0x0100  #   256
+            ALL_IN_ONE_TABLE                  = 0x0100  #   256
             OUTPUT_TO_FILES                   = 0x0200  #   512
             ALL_PLATFORMS                     = 0x0400  #  1024
 
