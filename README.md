@@ -331,6 +331,8 @@ Optional:  case-sensitive list of package names that the gathered key-binding da
 
 Optional (Boolean):  Default: `false`.  Passing `True` for this argument means:  exclude key bindings whose "context" entries do not match the current editing context in the View that was active when the `key_binding_report` command was run.  The active View can be any View, including input and output views that are involved in Panels (e.g. one of the Find Panels, Console Panel, etc.) as well as Overlays (e.g. Command Palette, Input Overlay, etc.).
 
+Note that Package authors can create their own names for context "key" entries, and Sublime Text determines whether that "context" entry applies or not by calling the package's ``on_query_context()`` listener.  When this report encounters such a situation (custom name in a "context" entry's "key" value), that Package's *actual* ``on_query_context()`` listener is consulted and its answer is used to determine whether the context applies or not, exactly as Sublime Text does.
+
 
 
 ### `fmt` Argument
@@ -487,6 +489,55 @@ Key:
         // Does selector [string.quoted.double - punctuation.definition.string.end] NOT match scope at EOL (for all selections)?
     ]
 ```
+
+
+
+### Details about KeyBindingReport's Context Test Implementation
+
+KeyBindingReport's Context testing is as complete an implementation as could be implemented given the logic and API calls currently available from within a Plugin.  Specifically, here is is the list of implemented context tests ("key"-entry names):
+
+#### Fully Implemented
+
+- auto_complete_visible
+- eol_selector
+- following_text
+- group_has_multiselect
+- group_has_transient_sheet
+- has_snippet
+- indented_block
+- is_javadoc
+- last_command
+- last_modifying_command
+- num_selections
+- overlay_has_focus
+- overlay_name
+- overlay_visible
+- panel
+- panel_has_focus
+- panel_type
+- panel_visible
+- popup_visible
+- preceding_text
+- read_only
+- selection_empty
+- selector
+- setting
+- text
+
+#### Partially Implemented
+
+The following context tests ("key"-entry names) were only partially implemented because all the logic required to test the condition was not available from a Plugin or via the Sublime Text API:  part of the logic that determines this condition is only available internally within Sublime Text itself.
+
+- auto_complete_primed (partial implementation uses the same test as `auto_complete_visible`).  This is different from `auto_complete_visible` which tests for whether any of these overlays are visible: `auto-complete`, `mini-auto-complete` or `async-complete visible`, whereas `auto_complete_primed` tests ONLY for whether the `auto-complete` Overlay itself is visible.  There is currently no known way to differentiate which of these Overlays is visible from within a Plugin.
+- overlay_visible (partial implementation uses the same test as `overlay_has_focus`).  There is currently no known way to differentiate which between these two from within a Plugin.
+
+#### Not Implemented
+
+The following context tests ("key"-entry names) were not implemented because the logic needed to do so is currently only available internally within Sublime Text, not from within a Plugin or via the Sublime Text API.
+
+- has_next_field
+- has_prev_field
+- is_recording_macro
 
 
 
