@@ -621,17 +621,17 @@ class KeyBinding:
 
         return result
 
-    def context_readable_repr(self, indent_level: int = 0) -> str:
+    def context_readable_repr(self, indent_level: int = 0, natural_language: bool = False) -> str:
         if self._smart_context:
-            result = self._smart_context.formatted(indent_level)
+            result = self._smart_context.formatted(indent_level, natural_language=natural_language)
         else:
             result = ''
 
         return result
 
-    def context_readable_minimal_repr(self, indent_level: int = 0) -> str:
+    def context_readable_minimal_repr(self, indent_level: int = 0, natural_language: bool = False) -> str:
         if self._smart_context:
-            result = self._smart_context.formatted(indent_level, minimal=True)
+            result = self._smart_context.formatted(indent_level, minimal=True, natural_language=natural_language)
         else:
             result = ''
 
@@ -703,7 +703,7 @@ class KeyBinding:
 
         return result
 
-    def formatted(self, indent_level: int = 0, include_source: bool = False) -> str:
+    def formatted(self, indent_level: int = 0, include_source: bool = False, natural_language: bool = False) -> str:
         """
         Python representation of ``self`` (same structure as in
         .sublime-keymap files) such that the keys and values are in logical order.
@@ -735,7 +735,7 @@ class KeyBinding:
         result += f'{indent}{{ {keypresses_json}, {cmd_as_func}'
 
         if self._smart_context:
-            result += '\n' + self.context_readable_repr(indent_level + 1)
+            result += '\n' + self.context_readable_repr(indent_level + 1, natural_language=natural_language)
             result += f'\n{indent}}}'
         else:
             result += ' }'

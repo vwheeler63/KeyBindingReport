@@ -87,7 +87,9 @@ class KeypressListInputHandler(sublime_plugin.TextInputHandler):
         value (either plain text or HTML) will be shown in the preview area of
         the *Command Palette*.
         """
-        return sublime.Html(f'<strong>Keypress List:</strong> [<em>{text}</em>]')
+        kp_list = _decoded_user_keypress_list(text)
+        kp_list_json = json.dumps(kp_list)
+        return sublime.Html(f'<strong>Keypress List:</strong> {kp_list_json}')
 
     def validate(self, text: str, event: Event | None = None) -> bool:
         """
@@ -100,9 +102,9 @@ class KeypressListInputHandler(sublime_plugin.TextInputHandler):
                          `{'modifier_keys': {}}`.
                        [ctrl+enter] results in `event` containing
                          `{'modifier_keys': {'ctrl': True, 'primary': True}}`.
-                       [shift+ctrl+alt] results in `event` containing
+                       [shift+ctrl+alt+enter] results in `event` containing
                          `{'modifier_keys': {'alt': True, 'ctrl': True, 'primary': True, 'shift': True}}`
-                       [super+shift+ctrl+alt] results in `event` containing
+                       [super+shift+ctrl+alt+enter] results in `event` containing
                          `{'modifier_keys': {'alt': True, 'ctrl': True, 'primary': True, 'shift': True, 'super': True}}``
         """
         if debugging:
@@ -146,9 +148,9 @@ class KeypressListInputHandler(sublime_plugin.TextInputHandler):
                          `{'modifier_keys': {}}`.
                        [ctrl+enter] results in `event` containing
                          `{'modifier_keys': {'ctrl': True, 'primary': True}}`.
-                       [shift+ctrl+alt] results in `event` containing
+                       [shift+ctrl+alt+enter] results in `event` containing
                          `{'modifier_keys': {'alt': True, 'ctrl': True, 'primary': True, 'shift': True}}`
-                       [super+shift+ctrl+alt] results in `event` containing
+                       [super+shift+ctrl+alt+enter] results in `event` containing
                          `{'modifier_keys': {'alt': True, 'ctrl': True, 'primary': True, 'shift': True, 'super': True}}``
         """
         if debugging:
@@ -252,6 +254,8 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
         """
         if 'keypress_list' not in args:
             return KeypressListInputHandler()
+        elif 'platform_code' not in args:
+            return PlatformCodeInputHandler()
 
     def input_description(self):
         return 'Which Binding?'
@@ -309,7 +313,7 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
         window        = view.window()
         file          = view.file_name()
         scope         = view.scope_name(caret_pt).strip()
-        line_info     = f'Line : "{row + 1}, Col: {col + 1}, Point: {caret_pt}'
+        line_info     = f'Line : {row + 1}, Col: {col + 1}, Point: {caret_pt}'
         scope_info    = f'Scope: "{scope}"'
         view_repr     = f'View({view.id()})'
         if debugging:
@@ -358,17 +362,17 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
 
         if element:
             note_parts.append(f'    {view_repr} is part of the user interface:  {element}.')
-            note_parts.append(f'    {line_info}"')
+            note_parts.append(f'    {line_info}')
             note_parts.append(f'    {scope_info}')
         elif window:
             if view.is_scratch():
                 note_parts.append(f'    {view_repr} is a scratch view, not editing a file.')
-                note_parts.append(f'    {line_info}"')
+                note_parts.append(f'    {line_info}')
                 note_parts.append(f'    {scope_info}')
             elif file:
                 note_parts.append(f'    {view_repr} is editing file:')
                 note_parts.append(f'      {file}')
-                note_parts.append(f'    {line_info}"')
+                note_parts.append(f'    {line_info}')
                 note_parts.append(f'    {scope_info}')
             else:
                 note_parts.append(f"    {view_repr}'s is in window {window}.")
@@ -385,7 +389,7 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
         content_parts.append('')
 
         if binding:
-            binding_repr = binding.formatted(0, include_source=True)
+            binding_repr = binding.formatted(0, include_source=True, natural_language=True)
             content_parts.append(binding_repr)
 
             leading_key_count = key_data.leading_key_count_in_key_sequences(keypress_list)
