@@ -1,6 +1,6 @@
 from ..keybindingreport import reload
 
-debugging = True
+debugging = False
 if debugging:
     print(f'{__package__}  >>> module execution....')
 
