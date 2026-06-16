@@ -2529,7 +2529,7 @@ def _english_has_snippet(self: ContextCondition) -> str:
 
 def _english_group_has_multiselect(self: ContextCondition) -> str:
     not_str = _english_not_string(self, bool)
-    return f'Does View group {not_str}have multi-select?'
+    return f'Does View group {not_str}have more than one tab selected?'
 
 
 def _english_group_has_transient_sheet(self: ContextCondition) -> str:
