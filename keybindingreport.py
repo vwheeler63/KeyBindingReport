@@ -6,6 +6,59 @@ KeyBindingReport is a Sublime Text Package that produces a wide variety of
 reports about the current state of Sublime Text key bindings on the system
 it is running on, with a choice of output formats.
 
+
+
+Package Overview
+****************
+
+Directory        Description
+./lib/           Reusable Components
+./messages/      Install and update messages for PackageControl to display
+./resources/     Package resource files (commands, menus, settings)
+./src/           Python source code for Package logic
+./src/commands/  Package Commands, one per file
+
+This file:  coordinates it at the top.  It's function is to load
+(or reload) all the modules in the Package as a response to being
+loaded itself.  This happens:
+
+- at Sublime Text start-up,
+- when PackageControl updates the package, and
+- when this file is saved during development.
+
+
+
+The Big Report
+**************
+
+While there are smaller, more narrowly-focused reports, the one "big"
+report that this package was written for (and supplies logic for most
+of the reports in the Tools > KeyBindingReport > ... menu) is contained
+in these files:
+
+- ./src/commands/report.py   <-- The `KeyBindingReportCommand` Command
+- ./src/data.py              <-- Gathers input data from system-wide key
+                                   binding resources.  That data thereafter
+                                   lives in a `KeyBindingData` object
+                                   until it is disposed of.
+- ./src/output.py            <-- Reads from `KeyBindingData` objects and
+                                   produces output in specified format.
+
+
+
+Other Reports
+*************
+
+The following reports also use `data.py` to gather their data, but
+to a lesser extent:
+
+- full_overrides.py
+- context_overrides.py
+- which_binding.py
+
+The logic for the remaining reports is contained in their respective
+Command files.
+
 See `README.md` and `src/core.py` for more details.
 
 
@@ -31,6 +84,7 @@ else:
     package_name = 'Unknown'
 this_module_name = f'{package_name}.{submodule_name}'
 del _, module_path, submodule_name
+
 _reload_indent_level = -1
 
 # Can't use `debugging = is_debugging(DebugBits.IMPORTING)` here because
@@ -42,11 +96,12 @@ if debugging:
     print(f'{__package__}  >>> module execution....')
 
 
+
 # *************************************************************************
 # Load / Reload
 # *************************************************************************
 
-def reload(dotted_subpkg: str, submodules: tuple[str, ...] | None = None):
+def reload(dotted_subpkg: str, submodules: Tuple[str, ...] | None = None):
     """
     Reload each module in `submodules` only if previously loaded.  This is a
     precondition of calling ``importlib.reload()`` but is also for efficiency:
@@ -117,7 +172,7 @@ reload(package_name + '.src')  # Recurse into .src/ subpackage.
 # to call it during the imports below.
 from .lib import *     # noqa: E402, F403
 from .src import *     # noqa: E402, F403
-#from .src import core  # noqa: E402  # Makes LSP-pyright happy.
+from .src import core  # noqa: E402  # Not required, but makes LSP-pyright happy.
 
 
 

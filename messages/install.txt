@@ -1,67 +1,99 @@
-KeyBindingReport is a Sublime Text Package that produces reports about
-the current state of Sublime Text key bindings, using any of a number
-of output formats.
+KeyBindingReport is a Sublime Text Package that produces a wide variety
+of reports about the current state of Sublime Text key bindings on the
+system it is running on.
 
 
-KeyBindingReport: Generate Report
-=================================
+What You Can Do, and the Reports that Support It
+------------------------------------------------
 
-This command generates a report about current key bindings present in
-your Sublime Text installation.
+- Find out what key conflicts that are in your installation
+  that you didn't already know about.
 
-You can limit this report by passing it:
+  Pre-Built Reports that Do This:
 
-- an optional list of Package names
-- an optional list of Key Groups
-- an optional list of key names
+  - Key-Binding Overrides
+  - Key-Binding Overrides (in Current Context)
 
-You can specify the report's output format, and tell the report
-(through passed flags) whether you would like it to include any or
-all of the following:
+- Find out what key combinations are available for your Plugin
+  or other customization(s).
 
-- unbound key combinations (useful if you're looking for unbound
-  key combinations you can use)
-- the Package name for each binding
-- a comments column (useful if you intend to copy the report into
-  a document and manually edit it by adding comments)
-- untranslated contexts (conditions which limit when that key binding
-  is chosen)
-- those same contexts translated into English
+  Pre-Built Reports that Do This:
+
+  - <key group> for All Installed Packages
+    (There are 7 key groups.)
+  - All Key Combinations for All Installed Packages
+  - All Key Combinations for All Installed Packages (Separate Tables)
+    (Tables are separated by key groups.)
+
+- Find out the names of all keys (including modifier keys) that
+  currently having bindings in your Sublime Text installation,
+  including how many times each key was used in a binding.
+
+  Pre-Built Reports that Do This:
+
+  - Keys Used Report (Current Platform)
+
+- Find out all key combinations that have no key bindings.
+
+  Pre-Built Reports that Do This:
+
+  - Keys Available Report (Current Platform)
+
+- Find out what key binding Sublime Text is choosing for a given key
+  combination in a given editing context. Editing contexts can also
+  include when the caret is in a text box in a Panel (e.g. one of the
+  Find Panels) or in an Overlay (e.g. Command Palette).
+
+  Pre-Built Reports that Do This:
+
+  - Which Binding? Report
+
+- If you're not already an expert at interpreting key binding "context"
+  entries, the natural-language descriptions of key-binding "context"
+  entries can speed your understanding of what they mean.
+
+- Each report is headed by its specification so you can see what
+  arguments generated it.  This is helpful for running your own
+  custom versions of each report to focus on your specific needs.
+
+- Run custom versions of each report from your own Plugins.  You can:
+
+  - focus on specific key groups (`key_groups` argument);
+  - focus on specific keys (`key_names` argument);
+  - focus on specific key combinations (`keypress_list` argument);
+  - limit search to a specified list of Packages (`limit_to_packages` argument);
+  - limit search to take current editing context into account;
+  - specify what format you want from a list of 4 formats;
+  - include or exclude different columns in the report;
+  - include or exclude different pieces of information in the report,
+    including raw (untranslated) and natural-language context descriptions;
+  - simulate being on other platforms (e.g. testing OSX key bindings
+    from a Windows system);
+  - optionally send reports to text files (configurable).
 
 
-KeyBindingReport: Which Binding?
-================================
+Overview
+--------
 
-This command allows you to input (or pass it) a list of key
-combinations, such as
+All reports that come with this Package are accessible through the
+Command Palette and begin with "KeyBindingReport: ...".  Menu option
 
-  [["ctrl+p"]]
-  [["ctrl+k", "ctrl+b"], ["ctrl+k", "ctrl+u"]]
-  [["ctrl+p"], ["ctrl+shift+p"]]
+  Tools > KeyBindingReport > All KeyBindingReport Commands
 
-and for each keypress/key-sequence in the list, it will do a search
-the same way Sublime Text does when you hit keys, and the report will
-include:
+takes you to the Command Palette with that prefix already entered,
+filtering the list to just those Commands.
 
-- details about the specific key binding was selected for each
-  keypress/key-sequence given the current scope in the current View;
+Also, most pre-built reports are available via menu:
 
-- which Package contained each key binding;
+  Tools > KeyBindingReport > <format> > <pkg filter> > ...
 
+  or
 
-Output Formats
-==============
-
-All output formats are in the form of an ASCII table.  The current
-formats supported are:
-
-- Bare
-- Outlined (box around report with lines between columns)
-- reStructuredText
+  Tools > KeyBindingReport > Other Reports > ...
 
 
 Quick Start
-===========
+-----------
 
 Review the README to learn how to use it (Usage and Settings sections)
 and enjoy!
@@ -75,8 +107,3 @@ can be improved to make your work easier, please log an issue with
 the KeyBindingReport issue tracker:
 
     https://github.com/vwheeler63/KeyBindingReport/issues
-
-
-
-
-

@@ -1,8 +1,17 @@
+"""************************************************************************
+Keys-Used Report
+****************
+
+See docstring under ``KeyBindingReportKeysUsedCommand.run()`` method.
+"""
+
 import sublime_plugin
 import sublime
-from ...lib.debug import DebugBits, is_debugging
+from ...lib.debug import IntFlag, DebugBits, is_debugging
 from ...lib import ascii_table
 from ...lib import output_view
+from .. import platform
+from .. import key_binding
 from .. import data
 from .. import output
 
@@ -13,7 +22,7 @@ from .. import output
 # *************************************************************************
 
 _report_title = 'Keys Used in All Keymaps (Current Platform)'
-_report_short_title = 'Keys Used (Current Platform)'
+_report_short_title = 'Keys Used'
 
 
 # *************************************************************************
@@ -29,17 +38,27 @@ _report_short_title = 'Keys Used (Current Platform)'
 class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
     """ Report Keys-Used-In-All-Keymaps Report. """
 
-    def run(self):
+    def run(self, platform_code: str | None = None):
         """
         Generate Key-Binding Keys-Used Report.
 
         Modifier Keys Used with how many times each.
         Main Keys Used with how many times each.
+
+        :param platform_code:
+                            Platform to simulate, or None to use current platform.
+                              Constraint:  one of the strings returned by
+                              ``sublime.platform()``: "windows", "linux" or "osx".
         """
         debugging = is_debugging(DebugBits.KEYS_USED_REPORT)
         if debugging:
-            print('>\n>\n>\n>')
             print('In KeyBindingReportKeysUsedCommand.run()...')
+
+        if platform_code:
+            if platform_code in platform.platform_names_by_code:
+                platform.simulate_platform(platform_code)
+            else:
+                raise AssertionError(f'`platform_code` must be one of {platform.platform_codes!r}.')
 
         main_key_counts = {}
         main_key_reported = {}
@@ -64,8 +83,8 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
                 keypress_tuple = tuple(decoded_binding['keys'])
 
                 for keypress_str in keypress_tuple:
-                    main_key_name, binding_lists_by_mod_code = \
-                            data.main_key_and_bindings_by_mod_code(keypress_str)
+                    keypr = key_binding.Keypress(keypress_str)
+                    main_key_name = keypr.main_key_name
 
                     if main_key_name in main_key_counts:
                         main_key_counts[main_key_name] += 1
@@ -73,7 +92,7 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
                         main_key_counts[main_key_name] = 1
                         main_key_reported[main_key_name] = False
 
-                    for mod_key in binding_lists_by_mod_code:
+                    for mod_key in keypr.modifier_key_list:
                         if mod_key in mod_key_counts:
                             mod_key_counts[mod_key] += 1
                         else:
@@ -82,8 +101,9 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
         # -----------------------------------------------------------------
         # Modifier Keys
         # -----------------------------------------------------------------
-        rows = [('Key', 'Found')]      # Column headings
-        rows.append(('', ''))          # Empty row
+        rows = []
+        rows.append(['Key', 'Found'])  # Column headings
+        rows.append(['', ''])          # Empty row
 
         for key_name in sorted(mod_key_counts.keys()):
             if key_name == '"':
@@ -91,7 +111,7 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
             else:
                 key_str = f'"{key_name}"'
 
-            rows.append((key_str, str(mod_key_counts[key_name])))
+            rows.append( [ key_str, str(mod_key_counts[key_name]) ] )
 
         mod_key_table = ascii_table.AsciiTable(rows)
         #mod_key_table.set_tight_columns([True, False])
@@ -107,8 +127,9 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
         # is kept so that we can do a final loop at the end to report
         # all the keypresses encountered that did not get reported here.
         # -----------------------------------------------------------------
-        rows = [('Key', 'Found')]      # Column headings
-        rows.append(('', ''))          # Empty row
+        rows = []
+        rows.append(['Key', 'Found'])  # Column headings
+        rows.append(['', ''])          # Empty row
 
         for key_name_group in data.key_name_groups:
             for key_name in key_name_group:
@@ -130,8 +151,9 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
         # -----------------------------------------------------------------
         # Other Keys
         # -----------------------------------------------------------------
-        rows = [('Key', 'Found')]      # Column headings
-        rows.append(('', ''))          # Empty row
+        rows = []
+        rows.append(['Key', 'Found'])  # Column headings
+        rows.append(['', ''])          # Empty row
 
         for key_name in sorted(main_key_reported.keys()):
             if not main_key_reported[key_name]:
@@ -150,13 +172,13 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
         content_parts = [output.report_heading(_report_title)]
         content_parts.append('')
         content_parts.append('Modifier Keys:')
-        content_parts.append( mod_key_table.as_string(ascii_table.Format.OUTLINED) )
+        content_parts.append( mod_key_table.to_string(ascii_table.Format.OUTLINED) )
         content_parts.append('')
         content_parts.append('Documented Keys:')
-        content_parts.append( documented_key_table.as_string(ascii_table.Format.OUTLINED) )
+        content_parts.append( documented_key_table.to_string(ascii_table.Format.OUTLINED) )
         content_parts.append('')
         content_parts.append('Other Keys:')
-        content_parts.append( other_key_table.as_string(ascii_table.Format.OUTLINED) )
+        content_parts.append( other_key_table.to_string(ascii_table.Format.OUTLINED) )
         content_parts.append('')
         content = '\n'.join(content_parts)
 
@@ -168,3 +190,7 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
                 content,
                 current_view=active_view
                 )
+
+        if platform_code:
+            platform.set_current_platform()
+

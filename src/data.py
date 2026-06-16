@@ -1,40 +1,443 @@
-"""
+r"""***********************************************************************
 Key-Binding Data
-================
+****************
 
-This module does all the data fetching of selected key bindings.
+This module does the gathering of data for selected key bindings
+for the ``report``, ``which_binding``, ``full_overrides`` and
+``context_overrides`` modules.
 
-Usage:
-
-    key_groups       = [KeyGroup.NUMBERS]
-    key_names        = ["q", "w", "a", "s"]
-    keypress_list    = [["ctrl+p"], ["ctrl+shift+p"], ["ctrl+k", "ctrl+u"]]
-    packages         = ["Default"]
-    limit_to_context = False
-
-    if limit_to_context:
-        view = current_view
-    else:
-        view = None
-
-    key_data = KeyBindingData()
-    key_data.generate(key_groups, key_names, keypress_list, packages, view)
-
-    # From this point forward, ``key_data`` carries all the data needed
-    # to generate any type variety of reports and tests on key-bindings.
-
-Each time ``key_data.generate()`` is called produces a new data set.
+Each time ``key_data.gather()`` is called produces a new data set.
 No memory of the previous call remains.
+
+
+
+Definitions
+***********
+
+keypress
+    a single keystroke with possible key modifiers.
+
+    Each keypress has a "main" key, which is in the ``data.key_name_groups``
+    list.
+
+    Examples:  "ctrl+p", "ctrl+shift+p", "f5", "alt+f5", "command+f5", "primary+f5".
+
+key-modifier code
+    integer value defining the possible combination of the modifier
+    keys [⊞]/[Command], [Ctrl], [Alt] and [Shift] that were part of a
+    keypress.  The ``ModifierKeyBits`` class provides bits which are
+    bitwise-OR-ed together to form an integer value in the range [0x0-0xF].
+    See "Design Factor" below for the reason this is needed.
+
+keypress sequence
+    A keypress sequence is when a Command is bound to a sequence of more than one
+    keypress.  Example:
+
+    - ["ctrl+k", "ctrl+b"] (show/hide Side Bar),
+    - ["ctrl+k", "ctrl+u"] (upper-case selected text or word if no text is selected),
+    - ["ctrl+k", "ctrl+l"] (lower-case selected text or word if no text is selected).
+
+keys (plural)
+    List[str]:  corresponds with the ``.sublime-keymap`` entries called
+    "keys", each of which has a value which is a lists of 1 or more
+    keypresses.  They must contain at least 1 string.  Examples:
+
+    - ["ctrl+shift+p"]
+    - ["ctrl+k", "ctrl+u"]
+    - ["up"]
+    - ["enter"]
+
+keypress_list
+    List[List[str]]:  a list of "keys" as defined above.  They can
+    contain 0 or more "keys", and may even contain duplicate keypresses/
+    keypress sequences since they may be supplied by a user calling
+    ``view.run_command("key_binding_report", custom_args)``.  Examples:
+
+    - []
+    - [["ctrl+shift+p"]]
+    - [["ctrl+k", "ctrl+u"]]
+    - [["up"], ["f5"], ["shift+f5"], ["ctrl+shift+f5"], ["ctrl+k", "ctrl+u"]]
+    - [["enter"], ["ctrl+k", "ctrl+u"], ["ctrl+k", "ctrl+u"]]
+                                        ^^^^^^^^^^^^^^^^^^^^
+                                        Note this is a duplicate.
+                                        Duplicates are removed by report logic.
+
+key ID
+    Index into the ``data.all_key_names`` list identifying a particular keyboard key.
+    This list is programmatically generated from ``data.key_name_groups`` when the
+    ``data`` module is loaded.
+
+encoded keypress
+    an integer whose bits are the bitwise-OR-ed combination of the key ID
+    and the key-modifier value:
+
+        encoded_keypress = (key_id << 4) | key_modifier_code
+
+JSON key-binding object
+    a Python dictionary representation of a key-binding object from any of
+    the ``.sublime-keymap`` files.
+
+    Example of JSON key-binding object:
+
+    .. code-block:: json
+
+        {
+            "keys": ["alt+up"],
+            "command": "box_drawing_draw_one_character",
+            "args": {
+                "line_count": 1,
+                "direction": 0,
+            },
+            "context": [
+                { "key": "box_drawing.ok_to_draw", "match_all": true },
+            ]
+        },
+
+ReportKeyBinding object
+    an instance of the ``ReportKeyBinding`` class, containing a representation of
+    the JSON key-binding object from a ``.sublime-keymap`` file (defining the binding
+    of an individual keypress/keypress sequence), plus some additional data:  its
+    source (the file it came from), e.g. "User/Default (OSX).sublime-keymap", and
+    some behaviors germane to the reporting needs of this Package (e.g. formatting
+    output for reStructuredText format).
+
+
+
+Design Factor
+*************
+
+In the ``Default`` Package and in most other places where official ``.sublime-keymap``
+files can be found, the "keys" entry (e.g. ``"keys": ["alt+shift+up"]``) in each
+JSON key-binding object has a specific order of modifier-key strings among the '+'
+characters, and in the Windows and Linux default keymaps, it is always in
+this sequence:
+
+- command
+- ctrl
+- alt
+- shift
+
+However, Sublime |nbsp| Text allows users to include key overrides in
+``.sublime-keymap`` files that do not follow this pattern (e.g. "shift+alt+8"
+instead of "alt+shift+8"), so when we read in JSON key-binding objects from
+``.sublime-keymap`` files, we cannot rely on this sequence since some of
+them are user override files.  Therefore, we use the ``ModifierKeyBits``
+class to generate a numeric value in the range [0x0-0xF], which gives a
+consistent unique integer value which can be used in different ways as
+needed.  Such values are created something like this:
+
+.. code-block:: py
+
+    modifier_code = 0
+
+    if keypress_str.endswith('++'):
+        # Necessitated by the "ctrl++" entry for the Spanish keyboard.
+        main_key_name     = '+'
+        mod_key_name_list = keypress_str[:-2].split('+')
+    else:
+        key_list          = keypress_str.split('+')
+        main_key_name     = key_list.pop()
+        mod_key_name_list = key_list
+
+    for mod_key in mod_key_name_list:
+        if mod_key == 'shift':
+            modifier_code |= ModifierKeyBits.SHIFT
+        elif mod_key in ['ctrl', 'control']:
+            modifier_code |= ModifierKeyBits.CTRL
+        elif mod_key in ['alt', 'option']:
+            modifier_code |= ModifierKeyBits.ALT
+        elif mod_key in ['super', 'command']:
+            # Command key on OSX, Windows key on Windows and Linux.
+            # Either way we record this as "COMMAND" bit.
+            modifier_code |= ModifierKeyBits.COMMAND
+        elif mod_key == 'primary':
+            if platform.is_osx():
+                modifier_code |= ModifierKeyBits.COMMAND
+            else:
+                modifier_code |= ModifierKeyBits.CTRL
+        else:
+            raise AssertionError(f'{__package__}.Keypress.__init__(): modifier key unrecognized: [{mod_key_name}].')
+
+
+
+Key-Binding Data Structures
+***************************
+
+To generate the Key-Binding Report, the data-gathering to do that involves
+building 2 data structures from the contents of the installed
+``.sublime-keymap`` files.  One of these structures is similar to what
+Sublime Text probably uses internally to select the appropriate key binding
+based on the caret's current scope.
+
+This data structure is NOT identical to what Sublime Text uses internally,
+because this report is not processing individual keypresses (which brings
+additional requirements to the data structure).  Instead, the reporting
+process processes a finished list of keypresses.  So the structures built
+are no doubt slightly simpler.
+
+In this design we are NOT building a "big master database" from which
+lookups can be done, but instead are using input arguments from the
+caller to limit what data is gathered.  Then the report is generated
+from ALL the data thus gathered.
+
+Since each report can be different, the data is gathered afresh for
+each report.
+
+Here are the data structures used.
+
+
+By Main-Key Dictionary
+======================
+
+This dictionary is for key bindings that involve only one keypress.
+
+KEYS:
+
+Its keys are the key names of the main key in each keypress.
+See key names below.  Example:  "up".
+
+VALUES:
+
+Each entry's VALUE is a list of either 8 or 16 possible key modifiers, where
+the ``ModifierKeyBits`` class combinations of modifier keys forms the index
+of which list item, as described above under "Design Factor".  (Only 8 are
+generated when the Windows key is not included as part of the report.
+Reason:  Windows and Linux platforms largely survive without use of the
+Windows key.  It is called the Command key on OSX and for that platform
+it is *always* included.)
+
+Key:
+    W = ⊞ Windows  (or ⌘ Command on OSX platform)
+    A = Alt
+    C = Ctrl
+    S = Shift
+    i = Index
+
++----------+-+-+-+-+-----+
+| Key Name |W|A|C|S|  i  |
++==========+=+=+=+=+=====+
+| up       | | | | | 0x0 |
+| up       | | | |x| 0x1 |
+| up       | | |x| | 0x2 |
+| up       | | |x|x| 0x3 |
+| up       | |x| | | 0x4 |
+| up       | |x| |x| 0x5 |
+| up       | |x|x| | 0x6 |
+| up       | |x|x|x| 0x7 |
+| up       |x| | | | 0x8 |
+| up       |x| | |x| 0x9 |
+| up       |x| |x| | 0xA |
+| up       |x| |x|x| 0xB |
+| up       |x|x| | | 0xC |
+| up       |x|x| |x| 0xD |
+| up       |x|x|x| | 0xE |
+| up       |x|x|x|x| 0xF |
++----------+-+-+-+-+-----+
+
+Note:  this modifier-key order is for the report.  This differs from the
+conventional modifier-key order of strings found in ``.sublime-keymap``
+files, which is typically "ctrl", "alt", then "shift", in that order, as
+explained above in the "Design Factor" section.
+
+Note that this is a *convention*, not a requirement of Sublime Text, which
+permits users to provide keymap overrides that use a different order (so
+long as the main key is last).  The `ModifierKeyBits` class helps compute
+this index.
+
+Each such list item then contains ``None`` or a list of ``ReportKeyBinding``
+objects for that particular keypress.  The order of that list is in
+``.sublime-keymap`` file-loading order, and thus is similar to what
+Sublime Text uses internally to select key bindings by doing a
+reverse-sequence search on that list, until it finds a context that
+matches the current scope (and other factors that may be specified
+in the context conditions).
+
+This also makes it possible to, to provide a "Which Binding?" report that
+looks up keypresses in the same way Sublime Text does, and reports which
+key bindings were selected from a list of input keypresses or keypress
+sequences, including the source ``.sublime-keymap`` it came from.
+
+.. code-block:: text
+
+
+    by_main_key_dict
+        "a": [  <-- binding_lists_by_mod_code                          Mod Code
+                None,   # binding list for unmodified 'a' key           0x0
+                None,   # binding list for [Shift-a]                    0x1
+        _____/  [...],  # binding list for [Ctrl-a]                     0x2
+       |     \  [...],  # binding list for [Ctrl-Shift-a]               0x3
+       |        None,   # binding list for [Alt-a]                      0x4
+       |        None,   # binding list for [Alt-Shift-a]                0x5
+     binding    None,   # binding list for [Alt-Ctrl-a]                 0x6
+     lists      None,   # binding list for [Alt-Ctrl-Shift-a]           0x7
+       |        None,   # binding list for [Command-a]                  0x8
+       |        None,   # binding list for [Command-Shift-a]            0x9
+       |_____/  [...],  # binding list for [Command-Ctrl-a]             0xA
+             \  [...],  # binding list for [Command-Ctrl-Shift-a]       0xB
+                None,   # binding list for [Command-Alt-a]              0xC
+                None,   # binding list for [Command-Alt-Shift-a]        0xD
+                None,   # binding list for [Command-Alt-Ctrl-a]         0xE
+                None,   # binding list for [Command-Alt-Ctrl-Shift-a]   0xF
+            ]
+
+
+By-Keypress-Sequence Dictionary
+===============================
+
+This dictionary is for key bindings that involve more than one keypress.
+This dictionary is used in combination with ``by_main_key_dict`` so that
+when a keypress is mapped in both places (as is the case with [Ctrl-T]
+when the ``sublime-rst-completion`` Package is installed), if the context
+is such that the keypress in THIS dictionary may also apply, the keypress
+has to be repeated in order to select the Key-Binding from plain
+``by_main_key_dict``, whereas if the additional keypresses are found in
+sequence in this dictionary, that Key-Binding is chosen instead.  If a
+keypress is encountered not contained in a known key sequence in this
+dictionary, then the whole key sequence is abandoned, the key sequence
+state machine is reset, and no Key Binding is selected.
+
+This capability is needed in order to report what key binding was
+selected for those type of keypress sequences.  Also, the user can
+request a report that includes keypress sequences, so this is the
+source dictionary for those reports.
+
+KEYS:
+
+The key for each entry is the tuple of keypresses that make it up.
+(Lists cannot be dictionary keys because they are mutable.)
+Example:  ``("ctrl+k", "ctrl+up")``.
+
+VALUES:
+
+Each entry's VALUE is a list of ``ReportKeyBinding`` objects (defined above)
+associated with the keypress sequence in the key.  The order of that list
+is in ``.sublime-keymap`` file-loading order, and thus is similar to what
+Sublime Text uses internally to map keystrokes by doing a reverse-sequence
+search on that list, until it finds a context that matches the current
+context.
+
+This also makes it possible to, to provide a "Which Binding?" report that
+looks up keypress sequences in the same way Sublime Text does, and reports
+which key bindings were selected from a list of input keypress sequences,
+including the source ``.sublime-keymap`` it came from.
+
+.. code-block:: text
+
+    by_key_seq_dict
+        ("ctrl+k", "ctrl+up"):
+            [ <-- binding_list
+                ReportKeyBinding object,
+                ReportKeyBinding object,
+                ReportKeyBinding object,
+                ...
+            ]
+
+
+
+Main Key Names
+**************
+
+When modifier keys are used in keypresses, these (unshifted) main key names
+must be used with them:
+
+.. code-block:: text
+
+                                                        Alternate      Specialty
+                    Regular Key Names                   Symbol Names   Keyboards
+    --------------------------------------------------  -------------  -----------------
+    0   a   n   f1   ,   keypad0          up            backquote      close
+    1   b   o   f2   .   keypad1          down          equals         copy
+    2   c   p   f3   \   keypad2          left          forward_slash  cut
+    3   d   q   f4   /   keypad3          right         minus          find
+    4   e   r   f5   ;   keypad4          insert        plus           open
+    5   f   s   f6   '   keypad5          delete                       paste
+    6   g   t   f7   `   keypad6          home                         redo
+    7   h   u   f8   -   keypad7          end                          save
+    8   i   v   f9   =   keypad8          pageup                       sysreq
+    9   j   w   f10  [   keypad9          pagedown                     undo
+        k   x   f11  ]   keypad_period    backspace
+        l   y   f12      keypad_divide    tab                          browser_back
+        m   z   f13      keypad_multiply  enter                        browser_favorites
+                f14      keypad_minus     pause                        browser_forward
+                f15      keypad_plus      break                        browser_home
+                f16      keypad_enter     space                        browser_refresh
+                f17      clear            escape                       browser_search
+                f18                       context_menu                 browser_stop
+                f19
+                f20                                                    + (Spanish keyboard)
+    ^   \___/    ^   ^     ^              \______________________________________________/
+    |     |      |   |     |                                |
+    |     |      |   |     |                                +-- NAMED_KEYS
+    |     |      |   |     +-- KEYPAD_KEYS
+    |     |      |   +-- SYMBOL_KEYS
+    |     |      +-- F_KEYS
+    |     +-- LETTER_KEYS
+    +-- NUMBER_KEYS
+
+The above key-group names in ALL CAPS are from the ``KeyGroup`` class.
+Note that they identify lists of key names that are mutually exclusive,
+as well as provide indexes into ``key_name_groups`` list for values in
+range KeyGroup.FIRST <= x <= KeyGroup.LAST.
+
+Shifted key names can also be used, but *may not be used with modifier keys*.
+Attempting to do so generates no errors, but does not work.
+
+.. code-block:: text
+
+    "  (  )  {  }                  # <-- These can be found in Default keymap
+                                   #     with contexts.
+
+    `  ~  !  @  #  $  %  ^  &      # <-- These are also bind-able (and should
+    *  _  +  |  :  "  <  >  ?      #     have contexts if used).
+
+    " "                            # <-- Works as an unmodified key,
+                                   #     but is redundant with `space`.
+
+
+<character>
+===========
+
+The ["<character>"] keypress is a specialty application, such as if your
+Plugin needs to temporarily either suppress or capture all keystrokes with
+a custom key context.  This key name (with angle brackets) captures all
+printable keypresses.  Example:
+
+.. code-block:: json
+
+    {
+        "keys": ["<character>"],
+        "command": "noop",
+        "context": [{"key": "setting.lsp_suppress_input"}]
+    },
+
+
+
+Ways to Limit Output
+********************
+
+See ``KeyBindingReportCommand`` docstring for details.
+
+
 """
 import re
 import pprint
-from typing import Set, Iterable, Sequence
+from typing import Set, Sequence, List, Tuple
 from enum import IntEnum, IntFlag
 import sublime
-from ..lib.debug import DebugBits, is_debugging
+from ..lib.debug import IntFlag, DebugBits, is_debugging
+from ..lib import ascii_table
+from . import platform
 from . import core
 from . import key_binding
 from . import smart_context
+
+
+# *************************************************************************
+# Configuration
+# *************************************************************************
+
+_flags_format_spec_bin = '018_b'
+_flags_format_spec_hex = '04X'
 
 
 
@@ -42,19 +445,30 @@ from . import smart_context
 # Constants (can be assigned/generated once on Package load)
 # *************************************************************************
 
-class ModifierKeyBits(IntFlag):
-    SHIFT         = 0b0001
-    CTRL          = 0b0010
-    ALT           = 0b0100
-    COMMAND       = 0b1000
+class FlagBits(IntFlag):
+    # Output Flags
+    INCLUDE_UNBOUND_KEYPRESSES        = 0x0001  #     1
+    INCLUDE_UNBOUND_KEYPRESSES_ONLY   = 0x0002  #     2
+    INCLUDE_UNTRANSLATED_CONTEXTS     = 0x0004  #     4
+    INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0x0008  #     8
+    ADD_SOURCE_COLUMN                 = 0x0010  #    16
+    ADD_COMMENTS_COLUMN               = 0x0020  #    32
+    TABLE_KEY_AFTER_TABLE             = 0x0040  #    64
+    INCLUDE_WINDOWS_KEY               = 0x0080  #   128
+    ALL_IN_ONE_TABLE                  = 0x0100  #   256
+    OUTPUT_TO_FILES                   = 0x0200  #   512
+    ALL_PLATFORMS                     = 0x0400  #  1024
 
-    NONE          = 0b0000
-    ALL           = 0b1111
-    ANY           = 0b1111
+    # Utility Bits
+    ANY_UNBOUND_KEYPRESSES            = 0x0001 | 0x0002  #     3
+    ANY_CONTEXT_REQUESTED             = 0x0004 | 0x0008  #    12
+    NONE                              = 0x0000           #     0
+    ALL                               = 0xFFFF           # 65535
+    ANY                               = 0xFFFF           # 65535
 
 
 class KeyGroup(IntEnum):
-    """ Non-negative values index into ``key_name_groups``. """
+    """ Values in range FIRST-LAST index into ``key_name_groups``. """
     NUMBER_KEYS    =  0  # \
     LETTER_KEYS    =  1  #  \
     F_KEYS         =  2  #   \__ These index into ``key_name_groups``.
@@ -62,14 +476,12 @@ class KeyGroup(IntEnum):
     NAMED_KEYS     =  4  #  /
     KEYPAD_KEYS    =  5  # /
 
-    LAST           =  5
-    ALL            =  6  # Equivalent to specifying all groups [0-LAST].
-    KEY_SEQUENCES  =  7  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
+    FIRST          =  0  # Used in range checks, e.g. FIRST <= x <= LAST.
+    LAST           =  5  # Used in range checks, e.g. FIRST <= x <= LAST.
 
+    KEY_SEQUENCES  =  6  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
+    ALL            =  7  # Equivalent to specifying all groups [FIRST-LAST] + KEY_SEQUENCES.
 
-windows_platform_code = 'windows'
-linux_platform_code   = 'linux'
-osx_platform_code     = 'osx'
 
 # Regex to extract package name from resource path.
 # Example of input:  'Packages/ScopeView/Default (Windows).sublime-keymap'
@@ -77,199 +489,20 @@ pkg_name_from_resource_path_re = re.compile(r'^Packages/([^/]+)/(.*)$')
 platform_name_from_file_name_re = re.compile(r'^Default \((.*)\)\.sublime-keymap$')
 
 # Key Name Groups, indexed by class ``KeyGroup``.
-key_name_groups = [
-    # NUMBER_KEYS == 0
-    ['1','2','3','4','5','6','7','8','9','0'],
-    # LETTER_KEYS == 1
-    ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'],
-    # F_KEYS      == 2
-    ['f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12','f13','f14','f15','f16','f17','f18','f19','f20'],
-    # SYMBOL_KEYS == 3
-    ["'",',','-','.','/',';','=','[','\\',']','`',  # OK with or w/o key modifiers. (Unshifted)
-            '!','"','#','$','%','&','(',            # Only w/o key modifiers.       (Shifted)
-            ')','*','+',':','<','>','?',            # Only w/o key modifiers.       (Shifted)
-            '@','^','_','{','|','}','~',            # Only w/o key modifiers.       (Shifted)
-            ],
-            # The last 3 rows are added because these "bare" keypresses (i.e. having
-            # no ctrl/alt/shift key modifiers) are 100% bind-able in Sublime Text
-            # build 4200, and the first 7 of them can be found in the Default keymap.
-            # These need to be here for KeyBindingReport to find and report on them
-            # in the various keymaps where they occur.
-    # NAMED_KEYS  == 4
-    ['up','down','left','right','insert','delete','home','end','pageup','pagedown',
-        'backspace','tab','enter','pause','break','space','escape','context_menu',
-        'backquote','equals','forward_slash','minus','plus','close','copy','cut',
-        'find','open','paste','redo','save','sysreq','undo','browser_back',
-        'browser_favorites','browser_forward','browser_home','browser_refresh',
-        'browser_search','browser_stop', '<character>'],
-    # KEYPAD_KEYS == 5 == LAST
-    ['keypad0','keypad1','keypad2','keypad3','keypad4','keypad5','keypad6','keypad7','keypad8','keypad9','keypad_period','keypad_divide','keypad_multiply','keypad_minus','keypad_plus','keypad_enter','clear'],
-]
+key_name_groups = key_binding.key_name_groups
+all_key_names   = key_binding.all_key_names
 
 # Indexed by class ``KeyGroup``.
-key_group_names = [
-    "Number Keys",
-    "Letter Keys",
-    "Function Keys",
-    "Symbol Keys",
-    "Named Keys",
-    "Keypad Keys",
-    "Single-Keypress Bindings",
-    "Multi-Keypress Bindings",
-]
+key_group_names = key_binding.key_group_names
 
 # Indexed by class ``KeyGroup``.
-key_group_file_names = [
-    "number_keys.txt",
-    "letter_keys.txt",
-    "function_keys.txt",
-    "symbol_keys.txt",
-    "named_keys.txt",
-    "keypad_keys.txt",
-    "single-keypress.txt",
-    "multi-keypress_{$leading_keypress}.txt",
-]
-
-
-# Generate ``all_key_names`` from ``key_name_groups``.
-count = 0
-grp = None      # Make LSP-pyright happy.
-key_name = None # Make LSP-pyright happy.
-
-for grp in key_name_groups:
-    count += len(grp)
-
-# Pre-allocate array instead of 103 ``append()`` calls (inefficient).
-all_key_names: list = [None] * count
-i = 0
-
-for grp in key_name_groups:
-    for key_name in grp:
-        all_key_names[i] = key_name
-        i += 1
-
-# Generate ``key_index_by_key_name_dict`` from ``all_key_names``.
-# This dictionary's values index into ``all_key_names``, while also giving
-# each key name an integer value.  This enables us to produce a unique
-# integer value for each possible key with all 8 modifier possibilities
-# with something like this:
-#
-#     encoded_keypress = (i << 4) | modifier_value
-#
-# where ``modifier_value`` is comprised of OR-ed bits from ModifierKeyBits.
-key_index_by_key_name_dict = {}
-
-for i, key_name in enumerate(all_key_names):
-    key_index_by_key_name_dict[key_name] = i
-
-# Clean up.
-del i, count, grp, key_name
+key_group_file_names = key_binding.key_group_file_names
 
 
 
 # *************************************************************************
 # Data
 # *************************************************************************
-
-# -------------------------------------------------------------------------
-# Platform-Related
-# -------------------------------------------------------------------------
-platform               = sublime.platform()
-platform_name          = ''
-platform_name_w_parens = ''
-cmd_col_hdg            = 'W'
-cmd_key_name           = '⊞ Windows'
-alt_col_hdg            = 'A'
-alt_key_name           = 'Alt'
-ctrl_col_hdg           = 'C'
-ctrl_key_name          = 'Ctrl'
-shift_col_hdg          = 'S'
-shift_key_name         = 'Shift'
-modifier_key_names_by_modifier_code_bit = {}
-
-
-def set_platform(platform_code: str):
-    """ Set data` module attributes in which platform plays a role. """
-    if platform_code not in (windows_platform_code, linux_platform_code, osx_platform_code):
-        raise AssertionError(f'`platform_code` not recognozed: [{platform_code}].')
-
-    global platform
-    global platform_name
-    global platform_name_w_parens
-    global cmd_col_hdg
-    global cmd_key_name
-    global alt_col_hdg
-    global alt_key_name
-    global ctrl_col_hdg
-    global ctrl_key_name
-    global shift_col_hdg
-    global shift_key_name
-    global modifier_key_names_by_modifier_code_bit
-
-    debugging = is_debugging(DebugBits.PLATFORM)
-
-    platform = platform_code
-
-    platform_name = {
-        windows_platform_code: 'Windows',
-        linux_platform_code  : 'Linux',
-        osx_platform_code    : 'OSX',
-    }[platform]
-
-    platform_name_w_parens = '(' + platform_name + ')'
-
-    # Column headings rely on platform_name.
-    if platform == osx_platform_code:
-        cmd_col_hdg    = 'C'
-        cmd_key_name   = '⌘ Command'
-        alt_col_hdg    = 'O'
-        alt_key_name   = '⌥ Option'
-        ctrl_col_hdg   = '^'
-        ctrl_key_name  = 'Ctrl'
-        shift_col_hdg  = 'S'
-        shift_key_name = 'Shift'
-
-        modifier_key_names_by_modifier_code_bit = {
-            ModifierKeyBits.SHIFT:   'Shift',
-            ModifierKeyBits.CTRL:    'Ctrl',
-            ModifierKeyBits.ALT:     'Option',
-            ModifierKeyBits.COMMAND: 'Command',
-        }
-    else:
-        cmd_col_hdg    = 'W'
-        cmd_key_name   = '⊞ Windows'
-        alt_col_hdg    = 'A'
-        alt_key_name   = 'Alt'
-        ctrl_col_hdg   = 'C'
-        ctrl_key_name  = 'Ctrl'
-        shift_col_hdg  = 'S'
-        shift_key_name = 'Shift'
-
-        modifier_key_names_by_modifier_code_bit = {
-            ModifierKeyBits.SHIFT:   'Shift',
-            ModifierKeyBits.CTRL:    'Ctrl',
-            ModifierKeyBits.ALT:     'Alt',
-            ModifierKeyBits.COMMAND: '⌘',
-        }
-
-
-def simulate_windows_platform():
-    set_platform(windows_platform_code)
-
-
-def simulate_linux_platform():
-    set_platform(linux_platform_code)
-
-
-def simulate_osx_platform():
-    set_platform(osx_platform_code)
-
-
-def set_current_platform():
-    set_platform(sublime.platform())
-
-
-set_current_platform()
 
 
 
@@ -288,7 +521,7 @@ class ScoredKeySequence:
     """
     __slots__ = ['keypress_tuple', 'second_main_key_name', 'mod_code', 'seq_no', '_score']
 
-    def __init__(self, keypress_tuple: tuple[str, str], seq_no: int):
+    def __init__(self, keypress_tuple: Tuple[str, str], seq_no: int):
         if keypress_tuple is None or len(keypress_tuple) < 2:
             raise AssertionError('`keypress_tuple` must have at least 2 elements.')
 
@@ -297,7 +530,9 @@ class ScoredKeySequence:
             print('In ScoredKeySequence.__init__()...')
             print(f'  {keypress_tuple=}')
         self.keypress_tuple = keypress_tuple
-        main_key_name, mod_code = main_key_and_modifier_code(keypress_tuple[1])
+        keypr = key_binding.Keypress(keypress_tuple[1])
+        main_key_name = keypr.main_key_name
+        mod_code = keypr.modifier_code
         self.second_main_key_name = main_key_name
         self.mod_code = mod_code
         self.seq_no = seq_no
@@ -329,8 +564,8 @@ class ScoredKeySequence:
 
 
 def sort_keypress_tuple_list_by_secondary_key(
-        keypress_tuple_list: list[tuple[str, str]]
-        ) -> list[ScoredKeySequence]:
+        keypress_tuple_list: List[Tuple[str, str]]
+        ) -> List[ScoredKeySequence]:
     """
     [
         ("ctrl+k", "ctrl+t"),
@@ -367,270 +602,10 @@ def sort_keypress_tuple_list_by_secondary_key(
     return sorted_list
 
 
-def main_key_and_modifier_code(keypress_str: str) -> tuple[str, int]:
-    """
-    Key-modifier code from `keypress_str` (e.g. "ctrl+alt+shift+p").
-
-    :param keypress_str:  Keypress definition string compatible with
-                            Sublime Text `.sublime-keymap` "keys" entries
-
-    See "key-modifier code" and "encoded keypress" in definitions in
-    module docstring for details.
-
-    IMPORTANT!  ``keypress_str.split('+')`` is not adequate logic by itself
-    because we have valid ``keypress_str`` values that look like
-    this: "ctrl++".
-
-                                    OSX       Win/Linux
-    | #   shift   # |
-    | #   ctrl    # | <------------------------------+
-    | #    alt    # | <-------------+                |
-    | #  command  # | <-------------|--+--------+    |
-    |    option     | Mac's 'alt' --+  |      [Win]  |
-    |     super     | -----------------+--------+    |
-    |    primary    | -----------------+-------------+
-    """
-    modifier_code = 0
-
-    if keypress_str.endswith('++'):
-        main_key_name             = '+'
-        binding_lists_by_mod_code = keypress_str[:-2].split('+')
-    else:
-        key_list                  = keypress_str.split('+')
-        main_key_name             = key_list.pop()
-        binding_lists_by_mod_code = key_list
-
-    for mod_key in binding_lists_by_mod_code:
-        if mod_key == 'shift':
-            modifier_code |= ModifierKeyBits.SHIFT
-        elif mod_key in ['ctrl', 'control']:
-            modifier_code |= ModifierKeyBits.CTRL
-        elif mod_key in ['alt', 'option']:
-            modifier_code |= ModifierKeyBits.ALT
-        elif mod_key in ['super', 'command']:
-            # Command key on OSX, Windows key on Windows and Linux.
-            # Either way we record this as "COMMAND" bit.
-            modifier_code |= ModifierKeyBits.COMMAND
-        elif mod_key == 'primary':
-            if platform == osx_platform_code:
-                modifier_code |= ModifierKeyBits.COMMAND
-            else:
-                modifier_code |= ModifierKeyBits.CTRL
-        else:
-            raise AssertionError(f'data.main_key_and_modifier_code(): modifier key unrecognized: [{mod_key}].')
-
-    return main_key_name, modifier_code
-
-
-def main_key_and_bindings_by_mod_code(keypress_str: str) -> tuple[str, list[str]]:
-    """
-    Main key and modifier-key list
-
-    :param keypress_str:  Keypress definition string compatible with
-                            Sublime Text `.sublime-keymap` "keys" entries.
-                            Example:  "ctrl+shift+p"
-    """
-    if keypress_str.endswith('++'):
-        main_key_name             = '+'
-        binding_lists_by_mod_code = keypress_str[:-2].split('+')
-    else:
-        key_list                  = keypress_str.split('+')
-        main_key_name             = key_list.pop()
-        binding_lists_by_mod_code = key_list
-
-    return main_key_name, binding_lists_by_mod_code
-
-
-def modifier_repr(modifier_code: int) -> str:
-    modifiers = []
-    if modifier_code & ModifierKeyBits.CTRL:
-        modifiers.append('ctrl')
-    if modifier_code & ModifierKeyBits.ALT:
-        modifiers.append('alt')
-    if modifier_code & ModifierKeyBits.SHIFT:
-        modifiers.append('shift')
-    return '+'.join(modifiers)
-
-
-def keypress_repr(main_key_name: str, modifier_code: int) -> str:
-    """ This is the reverse of ``main_key_and_modifier_code(str)``. """
-    if modifier_code:
-        mod_repr = modifier_repr(modifier_code)
-        keypr_repr = f'{mod_repr}+{main_key_name}'
-    else:
-        keypr_repr = f'{main_key_name}'
-
-    result = f'[{keypr_repr}]'
-    return result
-
-
-def encoded_keypress_from_components(main_key_name: str, modifier_code: int) -> int:
-    """
-    Encoded keypress from `main_key_name` and `modifier_code`.
-
-    :param main_key_name:       Official name of key, found in `all_key_names`.
-                                  (See Key Names in module docstring for the list.)
-    :param modifier_code:   Integer representation of Ctrl+Alt+Shift key
-                                  modifiers accommodating keypress.
-                                  (See "key-modifier code" and "encoded keypress"
-                                  in definitions in module docstring for details.)
-    """
-    result = -1
-
-    if main_key_name in key_index_by_key_name_dict:
-        i = key_index_by_key_name_dict[main_key_name]
-        result = (i << 4) | modifier_code
-
-    return result
-
-
-def encoded_keypress(keypress_str: str) -> int:
-    """
-    Encoded keypress from `keypress_str` (e.g. "ctrl+alt+shift+p").
-
-    :param keypress_str:  Keypress definition string compatible with
-                            Sublime Text `.sublime-keymap` "keys" entries
-
-    See "key-modifier code" and "encoded keypress" in definitions in
-    module docstring for details.
-    """
-    kn, mod_code = main_key_and_modifier_code(keypress_str)
-    return encoded_keypress_from_components(kn, mod_code)
-
-
-def modifier_characters(modifier_code: int, mod_applies_char: str) -> tuple[str, str, str, str]:
-    """
-    Tuple of ``mod_applies_char`` or space characters based on ``ModifierKeyBits``
-    set in ``modifier_code``.  Example:
-
-    - ' ', ' ', ' ', ' ' <= no modifiers
-    - ' ', ' ', ' ', 'x' <=                    Shift modifier
-    - ' ', ' ', 'x', ' ' <=             Ctrl         modifier
-    - ' ', ' ', 'x', 'x' <=             Ctrl + Shift modifier
-    - ' ', 'x', ' ', ' ' <=       Alt                modifier
-    - ' ', 'x', ' ', 'x' <=       Alt +        Shift modifier
-    - ' ', 'x', 'x', ' ' <=       Alt + Ctrl         modifier
-    - ' ', 'x', 'x', 'x' <=       Alt + Ctrl + Shift modifier
-    - 'x', ' ', ' ', ' ' <= Cmd                      modifier
-    - 'x', ' ', ' ', 'x' <= Cmd +              Shift modifier
-    - 'x', ' ', 'x', ' ' <= Cmd +       Ctrl         modifier
-    - 'x', ' ', 'x', 'x' <= Cmd +       Ctrl + Shift modifier
-    - 'x', 'x', ' ', ' ' <= Cmd + Alt                modifier
-    - 'x', 'x', ' ', 'x' <= Cmd + Alt +        Shift modifier
-    - 'x', 'x', 'x', ' ' <= Cmd + Alt + Ctrl         modifier
-    - 'x', 'x', 'x', 'x' <= Cmd + Alt + Ctrl + Shift modifier
-
-    It is by design that this *not* be the same sequence as the modifier
-    keys appear in `.sublime-keymap` files.
-    """
-    space = ' '
-
-    if modifier_code & ModifierKeyBits.SHIFT:
-        S = mod_applies_char
-    else:
-        S = space
-
-    if modifier_code & ModifierKeyBits.CTRL:
-        C = mod_applies_char
-    else:
-        C = space
-
-    if modifier_code & ModifierKeyBits.ALT:
-        A = mod_applies_char
-    else:
-        A = space
-
-    if modifier_code & ModifierKeyBits.COMMAND:
-        M = mod_applies_char
-    else:
-        M = space
-
-    return M, A, C, S
-
-
 
 # *************************************************************************
 # Classes
 # *************************************************************************
-
-class ReportKeyBinding(key_binding.KeyBinding):
-    """
-    Representation of a KeyBinding plus some additional data needed for reporting:
-
-    - main_key_names
-    - modifier_codes
-    """
-    # __slots__ = ['_smart_context', '_source', '_main_key_names', '_modifier_codes']
-
-    def __init__(self, decoded_key_binding: dict, source: str, source_entry_no: int):
-        # Incorporate contents of `decoded_key_binding` into `self`.
-        super().__init__(decoded_key_binding, source, source_entry_no)
-
-        self._main_key_names = []
-        self._modifier_codes = []
-
-        for keypress_str in self.keypress_list():
-            main_key_name, mod_code = main_key_and_modifier_code(keypress_str)
-            self._main_key_names.append(main_key_name)
-            self._modifier_codes.append(mod_code)
-
-    def __repr__(self):
-        """
-        JSON Key Binding from Default Package:
-        --------------------------------------
-        { "keys": ["\""], "command": "move", "args": {"by": "characters", "forward": true}, "context":
-            [
-                { "key": "setting.auto_match_enabled", "operator": "equal", "operand": true },
-                { "key": "selection_empty", "operator": "equal", "operand": true, "match_all": true },
-                { "key": "following_text", "operator": "regex_contains", "operand": "^\"", "match_all": true },
-                { "key": "selector", "operator": "not_equal", "operand": "punctuation.definition.string.begin", "match_all": true },
-                { "key": "eol_selector", "operator": "not_equal", "operand": "string.quoted.double - punctuation.definition.string.end", "match_all": true },
-            ]
-        },
-
-        Produces:
-        ---------
-        ReportKeyBinding(source=Default/Default (Windows).sublime-keymap
-          { ['"'], move(({'by': 'characters', 'forward': true}))
-            "context": [
-              { "key": "setting.auto_match_enabled", "operator": "equal"         , "operand": true }
-              { "key": "selection_empty"           , "operator": "equal"         , "operand": true, "match_all": true }
-              { "key": "following_text"            , "operator": "regex_contains", "operand": '^"', "match_all": true }
-              { "key": "selector"                  , "operator": "not_equal"     , "operand": 'punctuation.definition.string.begin', "match_all": true }
-              { "key": "eol_selector"              , "operator": "not_equal"     , "operand": 'string.quoted.double - punctuation.definition.string.end', "match_all": true }
-            ]
-          })
-
-        or if there is no "context" entry:
-
-        ReportKeyBinding pkg=Default { ['right'], move({'by': 'characters', 'forward': true}) }>
-
-        """
-        binding_str = self.formatted(1)
-        return f'{self.__class__.__name__}( source: {self._source}\n{binding_str})'
-
-    def main_key_names(self) -> list[str]:
-        return self._main_key_names
-
-    def leading_key_name(self) -> str:
-        if self._main_key_names:
-            result = self._main_key_names[0]
-        else:
-            result = '?'
-
-        return result
-
-    def modifier_codes(self) -> list[int]:
-        return self._modifier_codes
-
-    def leading_modifier_code(self) -> int:
-        if self._modifier_codes:
-            result = self._modifier_codes[0]
-        else:
-            result = 0
-
-        return result
-
 
 class KeyBindingData:
     """
@@ -650,10 +625,19 @@ class KeyBindingData:
         '_debugging_filtering_stage_i',
         '_debugging_filtering_stage_ii',
         '_debugging_building_main_key_dict',
-        '_debugging_building_key_seq_dict'
+        '_debugging_building_key_seq_dict',
+        'key_groups',
+        'key_names',
+        'keypress_list',
+        'limit_to_packages',
+        'limit_to_context',
+        'fmt',
+        'flags',
     ]
 
-    def __init__(self):
+    def __init__(self, fmt: int = 0, flags: int = 0):
+        self.fmt = fmt
+        self.flags = flags
         self.mdictByMainKey = {}
         self.mdictByKeySquence = {}
         self.mdictByKeySquenceLeadingKeys = {}
@@ -665,6 +649,49 @@ class KeyBindingData:
 
     def __repr__(self) -> str:
         return self.main_key_repr()
+
+    def specification(self, indent_level: int = 0) -> str:
+        indent = '  ' * indent_level
+        parts = []
+        parts.append(f'{indent}Specification:')
+
+        if self.key_groups:
+            key_grp_list = []
+            for kg_i in self.key_groups:
+                key_grp_list.append(KeyGroup(kg_i))
+            parts.append(f'{indent}    key_groups        = {key_grp_list}')
+        if self.key_names:
+            parts.append(f'{indent}    key_names         = {self.key_names}')
+        if self.keypress_list:
+            parts.append(f'{indent}    keypress_list     = {self.keypress_list}')
+        if self.limit_to_packages:
+            parts.append(f'{indent}    limit_to_packages = {self.limit_to_packages}')
+
+        parts.append(f'{indent}    limit_to_context  = {self.limit_to_context}')
+        parts.append(f'{indent}    format            = {ascii_table.Format(self.fmt)!r}')
+        parts.append(f'{indent}    flags             = 0x{self.flags:{_flags_format_spec_hex}} ({self.flags})')
+
+        # Compute length of longest FlagBits enumeration name.
+        longest_name_len = 0
+        for enum_bit_val in FlagBits:
+            if enum_bit_val != FlagBits.ALL and enum_bit_val != FlagBits.ANY:
+                if self.flags & enum_bit_val._value_:
+                    name = enum_bit_val._name_
+                    if name:
+                        name_len = len(name)
+                        if name_len > longest_name_len:
+                            longest_name_len = name_len
+
+        # Report.
+        for enum_bit_val in FlagBits:
+            if enum_bit_val != FlagBits.ALL and enum_bit_val != FlagBits.ANY:
+                if self.flags & enum_bit_val._value_:
+                    parts.append(
+                            f'{indent}      - {enum_bit_val._name_:{longest_name_len}}:  '
+                            f'0x{enum_bit_val._value_:{_flags_format_spec_hex}}'
+                            )
+
+        return '\n'.join(parts)
 
     def main_key_repr(self) -> str:
         components = []
@@ -710,7 +737,7 @@ class KeyBindingData:
         """
         by_key_seq_dict
             ("ctrl+k", "ctrl+up"):
-                [
+                [ <-- binding_list
                     ReportKeyBinding object,
                     ReportKeyBinding object,
                     ReportKeyBinding object,
@@ -777,9 +804,9 @@ class KeyBindingData:
             f.write(self.key_seq_repr())
 
     def _extracted_overrides(self,
-            binding_list: list[ReportKeyBinding],
+            binding_list: List[key_binding.ReportKeyBinding],
             debugging   : int
-            ) -> list[list[ReportKeyBinding]] | None:
+            ) -> List[List[key_binding.ReportKeyBinding]] | None:
         """
         List of overrides present in ``binding_list``.
 
@@ -811,7 +838,7 @@ class KeyBindingData:
         if binding_list is None or len(binding_list) < 2:
             raise AssertionError('binding_list must exist and contain multiple bindings.')
 
-        result: list[list[ReportKeyBinding]] | None = []
+        result: List[List[key_binding.ReportKeyBinding]] | None = []
 
         # First make a shallow copy of ``binding_list`` so we're not
         # deleting elements in the the input data.
@@ -875,7 +902,7 @@ class KeyBindingData:
 
                     # If ``indices_of_bindings_involved`` is not empty:
                     # - start a result binding list with [];
-                    bindings_involved: list[ReportKeyBinding] = []
+                    bindings_involved: List[key_binding.ReportKeyBinding] = []
                     for k in reversed(indices_of_bindings_involved):
                         # - Pop binding from list so indices are not invalidated
                         #   (in reverse order).
@@ -911,7 +938,7 @@ class KeyBindingData:
 
     def binding_overrides(self,
             view: sublime.View | None = None
-            ) -> list[list[ReportKeyBinding]]:
+            ) -> List[List[key_binding.ReportKeyBinding]]:
         """
         Locate key binding overrides defined as:
 
@@ -933,7 +960,7 @@ class KeyBindingData:
                                 to report all Key Bindings that fit the
                                 definition above.
 
-        :return:  list[list[ReportKeyBinding]]; each inner list is 2 or more
+        :return:  List[List[ReportKeyBinding]]; each inner list is 2 or more
                   key bindings wherein the binding lowest in the list overrides
                   the binding(s) above it.
 
@@ -953,13 +980,13 @@ class KeyBindingData:
         # =================================================================
         if view:
             # Pass None for all args except `view`,
-            self.generate(key_groups=[KeyGroup.ALL], view=view)
+            self.gather(key_groups=[KeyGroup.ALL], view=view)
         else:
             # Pass None for all args, gathering FULL set of binding data.
-            self.generate(key_groups=[KeyGroup.ALL])
+            self.gather(key_groups=[KeyGroup.ALL])
 
         # =================================================================
-        # From the input data, generate list[list[ReportKeyBinding]] where
+        # From the input data, generate List[List[ReportKeyBinding]] where
         # each inner list shows bindings that:
         #
         # - use the same keypresses, and
@@ -967,23 +994,23 @@ class KeyBindingData:
         # =================================================================
         # -----------------------------------------------------------------
         # by_main_key_dict
-        #     "a": [  <-- binding_lists_by_mod_code
-        #             None,   # binding list for unmodified 'a' key
-        #             None,   # binding list for [Shift-a]
-        #             [...],  # binding list for [Ctrl-a]       <-- binding_list
-        #             [...],  # binding list for [Ctrl-Shift-a] <-- binding_list
-        #             None,   # binding list for [Alt-a]
-        #             None,   # binding list for [Alt-Shift-a]
-        #             None,   # binding list for [Alt-Ctrl-a]
-        #             None,   # binding list for [Alt-Ctrl-Shift-a]
-        #             None,   # binding list for [Command-a]
-        #             None,   # binding list for [Command-Shift-a]
-        #             [...],  # binding list for [Command-Ctrl-a]       <-- binding_list
-        #             [...],  # binding list for [Command-Ctrl-Shift-a] <-- binding_list
-        #             None,   # binding list for [Command-Alt-a]
-        #             None,   # binding list for [Command-Alt-Shift-a]
-        #             None,   # binding list for [Command-Alt-Ctrl-a]
-        #             None,   # binding list for [Command-Alt-Ctrl-Shift-a]
+        #     "a": [  <-- binding_lists_by_mod_code                          Mod Code
+        #             None,   # binding list for unmodified 'a' key           0x0
+        #             None,   # binding list for [Shift-a]                    0x1
+        #     _____/  [...],  # binding list for [Ctrl-a]                     0x2
+        #    |     \  [...],  # binding list for [Ctrl-Shift-a]               0x3
+        #    |        None,   # binding list for [Alt-a]                      0x4
+        #    |        None,   # binding list for [Alt-Shift-a]                0x5
+        #  binding    None,   # binding list for [Alt-Ctrl-a]                 0x6
+        #  lists      None,   # binding list for [Alt-Ctrl-Shift-a]           0x7
+        #    |        None,   # binding list for [Command-a]                  0x8
+        #    |        None,   # binding list for [Command-Shift-a]            0x9
+        #    |_____/  [...],  # binding list for [Command-Ctrl-a]             0xA
+        #          \  [...],  # binding list for [Command-Ctrl-Shift-a]       0xB
+        #             None,   # binding list for [Command-Alt-a]              0xC
+        #             None,   # binding list for [Command-Alt-Shift-a]        0xD
+        #             None,   # binding list for [Command-Alt-Ctrl-a]         0xE
+        #             None,   # binding list for [Command-Alt-Ctrl-Shift-a]   0xF
         #         ]
         #
         # Sorted doesn't do well for `self.mdictByMainKey` because it mixes
@@ -994,7 +1021,7 @@ class KeyBindingData:
         # all the keypresses encountered that did not get reported here.
         # -----------------------------------------------------------------
         main_key_reported = {}
-        result: list[list[ReportKeyBinding]] = []
+        result: List[List[key_binding.ReportKeyBinding]] = []
 
         if debugging:
             print('  Entering 1st loop...', flush=True)
@@ -1032,7 +1059,7 @@ class KeyBindingData:
         # -----------------------------------------------------------------
         # by_key_seq_dict
         #     ("ctrl+k", "ctrl+up"):
-        #         [
+        #         [ <-- binding_list
         #             ReportKeyBinding object,
         #             ReportKeyBinding object,
         #             ReportKeyBinding object,
@@ -1054,8 +1081,8 @@ class KeyBindingData:
 
     def which_binding(self,
                 keypress_list: Sequence[str],
-                view: sublime.View
-                ) -> ReportKeyBinding | None:
+                view         : sublime.View
+                ) -> key_binding.ReportKeyBinding | None:
         """
         Locate the key binding this ``keypress_list`` would hit (if any),
         based on data already gathered.
@@ -1079,7 +1106,7 @@ class KeyBindingData:
         if len(keypress_list) > 1:
             # by_key_seq_dict
             #     ("ctrl+k", "ctrl+up"):
-            #         [
+            #         [ <-- binding_list
             #             ReportKeyBinding object,
             #             ReportKeyBinding object,
             #             ReportKeyBinding object,
@@ -1088,7 +1115,7 @@ class KeyBindingData:
             key_groups        = None
             key_names         = None
             limit_to_packages = None
-            self.generate(key_groups, key_names, [keypress_list], limit_to_packages, view)
+            self.gather(key_groups, key_names, [keypress_list], limit_to_packages, view)
 
             keypress_tuple = tuple(keypress_list)
             if keypress_tuple in self.mdictByKeySquence:
@@ -1106,33 +1133,36 @@ class KeyBindingData:
                             break
         else:
             # by_main_key_dict
-            #     "a": [  <-- binding_lists_by_mod_code
-            #             None,   # binding list for unmodified 'a' key
-            #             None,   # binding list for [Shift-a]
-            #             [...],  # binding list for [Ctrl-a]       <-- binding_list
-            #             [...],  # binding list for [Ctrl-Shift-a] <-- binding_list
-            #             None,   # binding list for [Alt-a]
-            #             None,   # binding list for [Alt-Shift-a]
-            #             None,   # binding list for [Alt-Ctrl-a]
-            #             None,   # binding list for [Alt-Ctrl-Shift-a]
-            #             None,   # binding list for [Command-a]
-            #             None,   # binding list for [Command-Shift-a]
-            #             [...],  # binding list for [Command-Ctrl-a]       <-- binding_list
-            #             [...],  # binding list for [Command-Ctrl-Shift-a] <-- binding_list
-            #             None,   # binding list for [Command-Alt-a]
-            #             None,   # binding list for [Command-Alt-Shift-a]
-            #             None,   # binding list for [Command-Alt-Ctrl-a]
-            #             None,   # binding list for [Command-Alt-Ctrl-Shift-a]
+            #     "a": [  <-- binding_lists_by_mod_code                          Mod Code
+            #             None,   # binding list for unmodified 'a' key           0x0
+            #             None,   # binding list for [Shift-a]                    0x1
+            #     _____/  [...],  # binding list for [Ctrl-a]                     0x2
+            #    |     \  [...],  # binding list for [Ctrl-Shift-a]               0x3
+            #    |        None,   # binding list for [Alt-a]                      0x4
+            #    |        None,   # binding list for [Alt-Shift-a]                0x5
+            #  binding    None,   # binding list for [Alt-Ctrl-a]                 0x6
+            #  lists      None,   # binding list for [Alt-Ctrl-Shift-a]           0x7
+            #    |        None,   # binding list for [Command-a]                  0x8
+            #    |        None,   # binding list for [Command-Shift-a]            0x9
+            #    |_____/  [...],  # binding list for [Command-Ctrl-a]             0xA
+            #          \  [...],  # binding list for [Command-Ctrl-Shift-a]       0xB
+            #             None,   # binding list for [Command-Alt-a]              0xC
+            #             None,   # binding list for [Command-Alt-Shift-a]        0xD
+            #             None,   # binding list for [Command-Alt-Ctrl-a]         0xE
+            #             None,   # binding list for [Command-Alt-Ctrl-Shift-a]   0xF
             #         ]
             key_groups        = [KeyGroup.KEY_SEQUENCES]
             key_names         = None
             limit_to_packages = None
-            self.generate(key_groups, key_names, [keypress_list], limit_to_packages, view)
+            self.gather(key_groups, key_names, [keypress_list], limit_to_packages, view)
 
-            main_key_name, mod_code = main_key_and_modifier_code(keypress_list[0])
+            keypr = key_binding.Keypress(keypress_list[0])
+            main_key_name = keypr.main_key_name
+
             if main_key_name in self.mdictByMainKey:
                 binding_lists_by_mod_code = self.mdictByMainKey[main_key_name]
-                binding_list = binding_lists_by_mod_code[mod_code]
+                binding_list = binding_lists_by_mod_code[keypr.modifier_code]
+
                 if binding_list:
                     for binding in reversed(binding_list):
                         smart_context = binding.smart_context()
@@ -1173,11 +1203,11 @@ class KeyBindingData:
 
         return result
 
-    def generate(self,
-            key_groups       : Iterable[KeyGroup] | None = None,
-            key_names        : Iterable[str] | None = None,
-            keypress_list    : Iterable[Iterable[str]] | None = None,
-            limit_to_packages: Iterable[str] | None = None,
+    def gather(self,
+            key_groups       : Sequence[KeyGroup] | None = None,
+            key_names        : Sequence[str] | None = None,
+            keypress_list    : Sequence[Sequence[str]] | None = None,
+            limit_to_packages: Sequence[str] | None = None,
             view             : sublime.View | None = None
             ):
         r"""
@@ -1193,9 +1223,9 @@ class KeyBindingData:
         :param self:        Instance of ``KeyBindingData``; all data is
                             connected to this instance.
 
-        :param key_groups:  List of ``KeyGroup`` integers, adding keys from these
-                            groups to the data gathered.  ``KeyGroup.ALL`` is
-                            equivalent to specifying all the other key groups.
+        :param key_groups:  List of ``KeyGroup`` enumeration values, adding keys
+                            from these groups to the data gathered.  ``KeyGroup.ALL``
+                            is equivalent to specifying all the other key groups.
                             ``None`` or ``[]`` when the only keys that should
                             be included are in ``key_names`` and ``keypress_list``.
 
@@ -1203,7 +1233,7 @@ class KeyBindingData:
                             specifies including all possible key-modifier
                             combinations with this key.  Each key only has
                             an impact on data gathered if it is found in
-                            ``all_key_names``.
+                            ``all_key_names`` (generated from ``key_name_groups``).
                             ``None`` or ``[]`` when not applicable.
 
         :param keypress_list:
@@ -1220,7 +1250,7 @@ class KeyBindingData:
                             List of package names data should be limited to;
                             ``None`` or ``[]`` when packages are not limited.
 
-        :param view:        Passing a view means "do not include key bindings
+        :param view:        Passing a View means "do not include key bindings
                             that do not match the current context in that View.
                             ``None`` means report content is not limited to
                             current context.
@@ -1239,71 +1269,75 @@ class KeyBindingData:
         Usage:
         ------
 
-        key_groups       = [KeyGroup.NUMBERS]
-        key_names        = ["q", "w", "a", "s"]
-        keypress_list    = [["ctrl+p"], ["ctrl+shift+p"], ["ctrl+k", "ctrl+u"]]
-        limit_to_packages         = ["Default"]
-        limit_to_context = True
+        key_groups        = [KeyGroup.NUMBERS]
+        key_names         = ["q", "w", "a", "s"]
+        keypress_list     = [["ctrl+p"], ["ctrl+shift+p"], ["ctrl+k", "ctrl+u"]]
+        limit_to_packages = ["Default"]
+        view              = view
 
         if limit_to_context:
             view = current_view
         else:
             view = None
 
-        key_data = KeyBindingData()
-        key_data.generate(key_groups, key_names, keypress_list, packages, view)
+        key_data = KeyBindingData(fmt, flags)
+        key_data.gather(key_groups, key_names, keypress_list, packages, view)
 
         class KeyGroup(IntEnum):
-            # Non-negative values index into ``key_name_groups``.
-            ALL            = -2  # Equivalent to specifying all groups >= 0.
-            KEY_SEQUENCES  = -1  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
+            // Values in range FIRST-LAST index into ``key_name_groups``.
+            FIRST          =  0  # Used in range checks, e.g. FIRST <= x <= LAST.
 
-            LETTER_KEYS    =  0  # \
-            NUMBER_KEYS    =  1  #  \
+            NUMBER_KEYS    =  0  # \
+            LETTER_KEYS    =  1  #  \
             F_KEYS         =  2  #   \__ These index into ``key_name_groups``.
             SYMBOL_KEYS    =  3  #   /
             NAMED_KEYS     =  4  #  /
             KEYPAD_KEYS    =  5  # /
 
+            LAST           =  5  # Used in range checks, e.g. FIRST <= x <= LAST.
+
+            KEY_SEQUENCES  =  6  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
+            ALL            =  7  # Equivalent to specifying all groups [0-LAST].
+
         class FlagBits(IntFlag):
             # Output Flags
-            INCLUDE_UNBOUND_KEY_COMBINATIONS  = 0b0000_0001  #   1
-            INCLUDE_UNTRANSLATED_CONTEXTS     = 0b0000_0010  #   2
-            INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0b0000_0100  #   4
-            ADD_SOURCE_COLUMN                 = 0b0000_1000  #   8
-            ADD_COMMENTS_COLUMN               = 0b0001_0000  #  16
-
-            # Utility Bits
-            ANY_CONTEXT_REQUESTED             = 0b0000_0010 | 0b0000_0100
-            NONE                              = 0b0000_0000  #   0
-            ALL                               = 0b1111_1111  # 255
-            ANY                               = 0b1111_1111  # 255
+            INCLUDE_UNBOUND_KEYPRESSES        = 0x0001  #     1
+            INCLUDE_UNBOUND_KEYPRESSES_ONLY   = 0x0002  #     2
+            INCLUDE_UNTRANSLATED_CONTEXTS     = 0x0004  #     4
+            INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0x0008  #     8
+            ADD_SOURCE_COLUMN                 = 0x0010  #    16
+            ADD_COMMENTS_COLUMN               = 0x0020  #    32
+            TABLE_KEY_AFTER_TABLE             = 0x0040  #    64
+            INCLUDE_WINDOWS_KEY               = 0x0080  #   128
+            ALL_IN_ONE_TABLE                  = 0x0100  #   256
+            OUTPUT_TO_FILES                   = 0x0200  #   512
+            ALL_PLATFORMS                     = 0x0400  #  1024
 
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
         | Description                   |packages   |key_groups   |key_names | keypress_list                          |
         +===============================+===========+=============+==========+========================================+
-        | By Package:  output all key   |['pkgname']| None or []  |None or []| None or []                             |
+        | By Package:  output all key   |["pkgname"]|    None     |   None   |    None                                |
         | bindings contained in Package |           |             |          |                                        |
         | (e.g. Default or a 3rd-party  |           |             |          |                                        |
         | Package)                      |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified key limited      |['pkgname']| None or []  |['a', ...]| None or []                             |
+        | By specified key limited      |["pkgname"]|    None     |["a", ...]|    None                                |
         | to a Package:  output all     |           |             |          |                                        |
         | of key's binding(s)           |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified key:  output     |None or [] | None or []  |['a', ...]| None or []                             |
+        | By specified key:  output     |   None    |    None     |["a", ...]|    None                                |
         | that key's bindings in all    |           |             |          |                                        |
         | Packages that contain         |           |             |          |                                        |
-        | binding(s) for that key       |           |             |          |                                        |
+        | bindings for that key         |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified ``KeyGroup``     |None or [] |[F_KEYS, ...]|None or []| None or []                             |
+        | By specified ``KeyGroup``     |   None    |[F_KEYS, ...]|   None   |    None                                |
         | using bindings from all       |           |             |          |                                        |
         | Packages.                     |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified ``KeyGroup``     |['pkgname']|[F_KEYS, ...]|None or []| None or []                             |
+        | By specified ``KeyGroup``     |["pkgname"]|[F_KEYS, ...]|   None   |    None                                |
         | limited to a Package.         |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified ``keypress_list``|None or [] | None or []  |None or []|[["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]]|
+        | By specified ``keypress_list``|   None    |    None     |   None   |[["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]]|
         | for all Packages.             |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
 
@@ -1377,27 +1411,37 @@ class KeyBindingData:
         See ``self._build_report_data()`` docstring for details.
         """
 
+        # -----------------------------------------------------------------
+        # Remember args for things in the future, such as generating a
+        # report specification or making decisions downstream.
+        # -----------------------------------------------------------------
+        self.key_groups        = key_groups
+        self.key_names         = key_names
+        self.keypress_list     = keypress_list
+        self.limit_to_packages = limit_to_packages
+        self.limit_to_context  = (( view is not None ))
+
         # ---------------------------------------------------------------------
         # Enforce precondition.
         # ---------------------------------------------------------------------
         req_type = 'list, tuple or set'
         after_msg = '  Aborting.'
         if key_groups:
-            if not self._is_list_tuple_or_set(key_groups):
+            if not isinstance(key_groups, (list, tuple, set)):
                 msg = core.arg_type_error_message(key_groups, 'key_groups', req_type, after_msg)
                 raise TypeError(msg)
         if keypress_list:
-            if not self._is_list_tuple_or_set(keypress_list):
+            if not isinstance(keypress_list, (list, tuple, set)):
                 msg = core.arg_type_error_message(keypress_list, 'keypress_list', req_type, after_msg)
                 raise TypeError(msg)
             # If execution arrives here, then we need to also test its members.
             for keypresses in keypress_list:
-                if not self._is_list_tuple_or_set(keypresses):
+                if not isinstance(keypresses, (list, tuple, set)):
                     msg = f'  Each of the keypresses in `keypress_list` arg must be a {req_type}.' \
                           f'  At least 1 was type {type(keypresses)}.{after_msg}'
                     raise TypeError(msg)
         if limit_to_packages:
-            if not self._is_list_tuple_or_set(limit_to_packages):
+            if not isinstance(limit_to_packages, (list, tuple, set)):
                 msg = core.arg_type_error_message(limit_to_packages, 'limit_to_packages', req_type, after_msg)
                 raise TypeError(msg)
 
@@ -1412,6 +1456,14 @@ class KeyBindingData:
         #     keys in dictionaries.
         # ---------------------------------------------------------------------
         debugging = self._debugging_removing_arg_overlap
+        if debugging:
+            print('In data.gather()....')
+            print(f'  {key_groups        = }')
+            print(f'  {key_names         = }')
+            print(f'  {keypress_list     = }')
+            print(f'  {limit_to_packages = }')
+            print(f'  {view              = }')
+
 
         if key_groups is None or type(key_groups) is set:
             key_groups_set = key_groups
@@ -1445,23 +1497,24 @@ class KeyBindingData:
         # All of limit_to_packages, key_groups_set, key_names_set, keypress_tuple_set are now set objects.
 
         if debugging:
-            print('After removing duplicates:')
-            print(f'  {key_groups_set=}')
-            print(f'  {key_names_set=}')
-            print(f'  {keypress_tuple_set=}')
-            print(f'  {limit_to_packages_set=}')
+            print( '  After removing duplicates:')
+            print(f'    {key_groups_set=}')
+            print(f'    {key_names_set=}')
+            print(f'    {keypress_tuple_set=}')
+            print(f'    {limit_to_packages_set=}')
 
         # ---------------------------------------------------------------------
         # Prepare ``include_key_name_set`` while removing overlap from
-        # ``key_groups_set`` and ``keypress_tuple_set` if both are present, pursuant to:
+        # ``key_groups_set`` and ``keypress_tuple_set` if both are present,
+        # pursuant to:
         #
-        # 2.  If both ``key_names_set`` and ``key_groups_set`` are provided and are
-        #     not empty, the result is additive in a logical way:
+        # 2.  If both ``key_groups_set`` and ``key_names_set`` are provided
+        #     and are not empty, the result is additive in a logical way:
         #     ``key_names_set`` only has an effect for the keys specified that
         #     fall *outside* any of the other key groups specified.  This is
-        #     accomplished by removing from ``key_names_set`` any "keys" items
-        #     whose main key also appears in any of the specified key
-        #     groups.
+        #     accomplished by removing from ``key_names_set`` any "keys"
+        #     items whose main key also appears in any of the specified
+        #     key groups.
         #
         #     From these two, if either of them were specified, a list of
         #     accepted keys is built, or left as ``None`` if there are no
@@ -1478,7 +1531,7 @@ class KeyBindingData:
                     include_key_name_set.update(all_key_names)
                 else:
                     for key_grp_idx in key_groups_set:
-                        if key_grp_idx >= 0:
+                        if 0 <= key_grp_idx <= KeyGroup.LAST:
                             key_grp_list = key_name_groups[key_grp_idx]
                             include_key_name_set.update(key_grp_list)
 
@@ -1525,8 +1578,10 @@ class KeyBindingData:
 
             for keypress_tuple in keys_tuples_set_copy:
                 if len(keypress_tuple) == 1:
-                    keypress = keypress_tuple[0]
-                    main_key_name, _ = main_key_and_modifier_code(keypress)
+                    keypress_str  = keypress_tuple[0]
+                    keypr         = key_binding.Keypress(keypress_str)
+                    main_key_name = keypr.main_key_name
+
                     if main_key_name in include_key_name_set:
                         # Overlap
                         if debugging:
@@ -1593,24 +1648,19 @@ class KeyBindingData:
         # Build report data.
         # ---------------------------------------------------------------------
         self._build_report_data(
-                limit_to_packages_set,
                 include_key_name_set,
                 keypress_tuple_set,
+                limit_to_packages_set,
                 incl_all_multi_key_seqs,
                 view
                 )
 
-    def _is_list_tuple_or_set(self, obj) -> bool:
-        """ Is passed class a list, set or tuple? """
-        T = type(obj)
-        return (( T is list or T is tuple or T is set ))
-
     def _build_report_data(self,
-            limit_to_packages      : Set[str] | None,
             include_key_name_set   : Set[str] | None,
-            keypress_tuple_set     : Set[tuple[str]] | None,
+            keypress_tuple_set     : Set[Tuple[str]] | None,
+            limit_to_packages      : Set[str] | None,
             incl_all_multi_key_seqs: bool,
-            view                   : sublime.View
+            view                   : sublime.View | None
             ):
         """
         Build report data required by the report dictated by the 3 arguments.
@@ -1625,10 +1675,6 @@ class KeyBindingData:
         what is left in the INPUT data is exactly what the user requested.
 
 
-        :param limit_to_packages:
-                            Optional:  Set of packages to limit data to;
-                            ``None`` == no limits on packages.
-
         :param include_key_name_set:
                             Optional:  Set against which to compare key names when
                             keypress count == 1, to accept or reject key bindings
@@ -1642,6 +1688,15 @@ class KeyBindingData:
                             contains TUPLES since tuples can use operators like
                             `==`, `!=` and `in`!  ``None`` == no specific
                             keypress/keypress sequences are added.
+
+        :param limit_to_packages:
+                            Optional:  Set of packages to limit data to;
+                            ``None`` == no limits on packages.
+
+        :param incl_all_multi_key_seqs:
+                            Whether to accept all keypress sequences (i.e. JSON
+                            key-binding "keys" list values that have more than
+                            one keypress string in them).
 
         :param view:        ``None`` means NOT to limit report to only those
                             bindings that match the current context (i.e.
@@ -1658,11 +1713,6 @@ class KeyBindingData:
                             When a View is supplied in this parameter, the
                             report excludes key bindings that do not match
                             the context of this View.  (Takes longer.)
-
-        :param incl_all_multi_key_seqs:
-                            Whether to accept all keypress sequences (i.e. JSON
-                            key-binding "keys" list values that have more than
-                            one keypress string in them).
 
         :return:  None
 
@@ -1682,17 +1732,18 @@ class KeyBindingData:
             - Default (Windows).sublime-keymap
 
             only the keymap applicable to the current platform is used as input.
+            (Caller can simulate being on a different platform.)
 
 
         """
         debugging = self._debugging_filtering_stage_i
         if debugging:
             print('In _build_report_data()')
-            print(f'  {limit_to_packages=}')
             print(f'  {include_key_name_set=}')
             print(f'  {keypress_tuple_set=}')
-            print(f'  {view=}')
+            print(f'  {limit_to_packages=}')
             print(f'  {incl_all_multi_key_seqs=}')
+            print(f'  {view=}')
 
         if view is not None:
             # Conditionally update any ViewEventListeners so they are using
@@ -1704,7 +1755,7 @@ class KeyBindingData:
             smart_context.update_view_event_listeners(view)
 
         # Start fresh.
-        self._build_empty_main_key_dict()
+        self._build_empty_main_key_dict(include_key_name_set, keypress_tuple_set)
         self._build_empty_key_seq_dict()
 
         # Loop through list of .sublime-keymap files in keymap-load order.
@@ -1743,12 +1794,12 @@ class KeyBindingData:
             # -----------------------------------------------------------------
             if 'Default (' in file_name:
                 # Is a platform-specific key binding.
-                if platform_name_w_parens not in file_name:
+                if platform.platform_name_w_parens not in file_name:
                     if debugging:
                         match = platform_name_from_file_name_re.search(file_name)
                         if match:
                             lsPlatformName = match[1]
-                            print(f'  Not a platform match:  {lsPlatformName} != {platform_name}.')
+                            print(f'  Not a platform match:  {lsPlatformName} != {platform.platform_name}.')
                         else:
                             print(f'  Not a platform match:  {file_name}.')
                     continue
@@ -1769,79 +1820,20 @@ class KeyBindingData:
                     view
                     )
 
-    def _build_empty_main_key_dict(self):
-        """
-        ``by_main_key_dict`` has a structure that will only ever be partially
-        populated, but must be fully represented with its empty parts.
-
-        by_main_key_dict
-            "a": [  <-- binding_lists_by_mod_code
-                    None,   # binding list for unmodified 'a' key
-                    None,   # binding list for [Shift-a]
-                    [...],  # binding list for [Ctrl-a]       <-- binding_list
-                    [...],  # binding list for [Ctrl-Shift-a] <-- binding_list
-                    None,   # binding list for [Alt-a]
-                    None,   # binding list for [Alt-Shift-a]
-                    None,   # binding list for [Alt-Ctrl-a]
-                    None,   # binding list for [Alt-Ctrl-Shift-a]
-                    None,   # binding list for [Command-a]
-                    None,   # binding list for [Command-Shift-a]
-                    [...],  # binding list for [Command-Ctrl-a]       <-- binding_list
-                    [...],  # binding list for [Command-Ctrl-Shift-a] <-- binding_list
-                    None,   # binding list for [Command-Alt-a]
-                    None,   # binding list for [Command-Alt-Shift-a]
-                    None,   # binding list for [Command-Alt-Ctrl-a]
-                    None,   # binding list for [Command-Alt-Ctrl-Shift-a]
-                ]
-        """
-        debugging = self._debugging_building_main_key_dict
-        if debugging:
-            print('In _build_empty_main_key_dict()')
-
-        self.mdictByMainKey = {}
-
-        for key_name in all_key_names:
-            empty_list = [None] * 16
-            self.mdictByMainKey[key_name] = empty_list
-
-        # if debugging:
-        #     print('  Empty by-main-key dict:')
-        #     print(repr(self.mdictByMainKey))
-
-    def _build_empty_key_seq_dict(self):
-        """
-        ``by_key_seq_dict`` is valid just being an empty dictionary as it
-        is populated when the keypress sequences are encountered.
-
-        by_key_seq_dict
-            ("ctrl+k", "ctrl+up"):
-                [
-                    ReportKeyBinding object,
-                    ReportKeyBinding object,
-                    ReportKeyBinding object,
-                    ...
-                ]
-        """
-        debugging = self._debugging_building_key_seq_dict
-        if debugging:
-            print('In _build_empty_key_seq_dict()')
-
-        self.mdictByKeySquence = {}
-
     def _conditionally_add_bindings_from_keymap(self,
             path                   : str,
             pkg_name               : str,
             file_name              : str,
             include_key_name_set   : Set[str] | None,
-            keypress_tuple_set        : Set[tuple[str]] | None,
+            keypress_tuple_set     : Set[Tuple[str]] | None,
             incl_all_multi_key_seqs: bool,
-            view                   : sublime.View
+            view                   : sublime.View | None
             ):
         """
         Add key bindings from ``path``, which key bindings are included in these args:
 
         - include_key_name_set   : Optional[Set[str]],
-        - keypress_tuple_set        : Optional[Set[tuple[str]]],
+        - keypress_tuple_set        : Optional[Set[Tuple[str]]],
         - incl_all_multi_key_seqs: bool,
         - view                   : sublime.View
 
@@ -1926,8 +1918,10 @@ class KeyBindingData:
                 # VITAL:  it's vital that `keypress_tuple_set` contains TUPLES
                 # since tuples can use operators like `==`, `!=` and `in`!
                 # ---------------------------------------------------------
-                keypress_str = keypress_tuple_bep[0]
-                main_key_name, mod_code = main_key_and_modifier_code(keypress_str)
+                keypress_str  = keypress_tuple_bep[0]
+                keypr         = key_binding.Keypress(keypress_str)
+                main_key_name = keypr.main_key_name
+                mod_code      = keypr.modifier_code
 
                 is_in_keys_tuples_set = ((
                             (keypress_tuple_set is not None)
@@ -1959,7 +1953,8 @@ class KeyBindingData:
                 # ---------------------------------------------------------
                 # 2+ keypresses
                 #
-                # Exclude if not incl_all_multi_key_seqs and not in ``keypress_tuple_set``.
+                # Exclude if not ``incl_all_multi_key_seqs`` and not in
+                # ``keypress_tuple_set``.
                 # ---------------------------------------------------------
                 if not incl_all_multi_key_seqs:
                     if keypress_tuple_set:
@@ -1995,7 +1990,7 @@ class KeyBindingData:
             # apparatus in case it is needed below.
             # -------------------------------------------------------------
             src = pkg_name + '/' + file_name
-            binding = ReportKeyBinding(decoded_binding, src, i)
+            binding = key_binding.ReportKeyBinding(decoded_binding, src, i)
 
             # -------------------------------------------------------------
             # If caller requested limiting bindings to only those that match
@@ -2017,11 +2012,116 @@ class KeyBindingData:
             else:
                 self._add_binding_to_main_key_dict(binding, main_key_name, mod_code)
 
-    def _add_binding_to_key_seq_dict(self, rpt_binding: ReportKeyBinding):
+    def _build_empty_main_key_dict(self,
+            include_key_name_set: Set[str] | None,
+            keypress_tuple_set  : Set[Tuple[str]] | None,
+            ):
+        r"""
+        ``by_main_key_dict`` has a structure that will only ever be partially
+        populated.  Each element of ``include_key_name_set`` and each main key
+        of ``keypress_tuple_set`` gets added with a full set of empty (None)
+        binding lists.
+
+        by_main_key_dict
+            "a": [  <-- binding_lists_by_mod_code                          Mod Code
+                    None,   # binding list for unmodified 'a' key           0x0
+                    None,   # binding list for [Shift-a]                    0x1
+            _____/  [...],  # binding list for [Ctrl-a]                     0x2
+           |     \  [...],  # binding list for [Ctrl-Shift-a]               0x3
+           |        None,   # binding list for [Alt-a]                      0x4
+           |        None,   # binding list for [Alt-Shift-a]                0x5
+         binding    None,   # binding list for [Alt-Ctrl-a]                 0x6
+         lists      None,   # binding list for [Alt-Ctrl-Shift-a]           0x7
+           |        None,   # binding list for [Command-a]                  0x8
+           |        None,   # binding list for [Command-Shift-a]            0x9
+           |_____/  [...],  # binding list for [Command-Ctrl-a]             0xA
+                 \  [...],  # binding list for [Command-Ctrl-Shift-a]       0xB
+                    None,   # binding list for [Command-Alt-a]              0xC
+                    None,   # binding list for [Command-Alt-Shift-a]        0xD
+                    None,   # binding list for [Command-Alt-Ctrl-a]         0xE
+                    None,   # binding list for [Command-Alt-Ctrl-Shift-a]   0xF
+                ]
+        """
+        debugging = self._debugging_building_main_key_dict
+        if debugging:
+            print('In _build_empty_main_key_dict()')
+            print(f'  {include_key_name_set=}')
+            print(f'  {keypress_tuple_set=}')
+
+        self.mdictByMainKey = {}
+
+        if include_key_name_set:
+            # Insert structures for all key names in `include_key_name_set`,
+            # but insert them in the order of ``all_key_names``.
+            for key_name in all_key_names:
+                if key_name in include_key_name_set:
+                    empty_list = [None] * 16
+                    self.mdictByMainKey[key_name] = empty_list
+
+        if keypress_tuple_set:
+            # Insert structures for all main-key names in ``keypress_tuple_set``,
+            # but insert them in the order of ``all_key_names``.
+            #
+            # 1.  We DO NOT know there is only one keypress per ``keypress_tuple``.
+            #     Some ``keypress_tuple``s may have 2 or more keypresses in them.
+            # 2.  Duplicates have been filtered out, so these main keys were
+            #     *not* included in include_key_name_set.
+            #
+            # To make this fast, we need to first build a list of main keys.
+            main_keys = []
+            for keypress_tuple in keypress_tuple_set:
+                if len(keypress_tuple) == 1:
+                    for keypress_str in keypress_tuple:
+                        keypress = key_binding.Keypress(keypress_str)
+                        main_key_name = keypress.main_key_name
+                        main_keys.append(main_key_name)
+
+            # Now add them in the order of ``all_key_names``.
+            for key_name in all_key_names:
+                if key_name in main_keys:
+                    # Verify assumption that previous de-duplicating resulted
+                    # in no duplicates.  ``key_name`` should *not* be in
+                    # dictionary already.
+                    if key_name in self.mdictByMainKey:
+                        raise AssertionError(
+                            f'Main key {key_name} in one of the keypresses in `keypress_tuple_set`\n'
+                            f'{keypress_tuple_set}\n'
+                            'was found in dictionary `self.mdictByMainKey` but should not have been.\n'
+                            'Reason:  duplicates should have already been removed from it.'
+                            )
+                    else:
+                        empty_list = [None] * 16
+                        self.mdictByMainKey[main_key_name] = empty_list
+
+        # if debugging:
+        #     print('  Empty by-main-key dict:')
+        #     print(repr(self.mdictByMainKey))
+
+    def _build_empty_key_seq_dict(self):
+        """
+        ``by_key_seq_dict`` is valid just being an empty dictionary as it
+        is populated when the keypress sequences are encountered.
+
+        by_key_seq_dict
+            ("ctrl+k", "ctrl+up"):
+                [ <-- binding_list
+                    ReportKeyBinding object,
+                    ReportKeyBinding object,
+                    ReportKeyBinding object,
+                    ...
+                ]
+        """
+        debugging = self._debugging_building_key_seq_dict
+        if debugging:
+            print('In _build_empty_key_seq_dict()')
+
+        self.mdictByKeySquence = {}
+
+    def _add_binding_to_key_seq_dict(self, rpt_binding: key_binding.ReportKeyBinding):
         """
         by_key_seq_dict
             ("ctrl+k", "ctrl+up"):
-                [
+                [ <-- binding_list
                     ReportKeyBinding object,
                     ReportKeyBinding object,
                     ReportKeyBinding object,
@@ -2059,32 +2159,30 @@ class KeyBindingData:
         else:
             self.mdictByKeySquenceLeadingKeys[leading_keypress] = 1
 
-    def _add_binding_to_main_key_dict(self, rpt_binding: ReportKeyBinding, main_key_name: str, key_mod_code: int):
-        """
+    def _add_binding_to_main_key_dict(self, rpt_binding: key_binding.ReportKeyBinding, main_key_name: str, key_mod_code: int):
+        r"""
         by_main_key_dict
-            "a": [  <-- binding_lists_by_mod_code
-                    None,   # binding list for unmodified 'a' key
-                    None,   # binding list for [Shift-a]
-                    [...],  # binding list for [Ctrl-a]       <-- binding_list
-                    [...],  # binding list for [Ctrl-Shift-a] <-- binding_list
-                    None,   # binding list for [Alt-a]
-                    None,   # binding list for [Alt-Shift-a]
-                    None,   # binding list for [Alt-Ctrl-a]
-                    None,   # binding list for [Alt-Ctrl-Shift-a]
-                    None,   # binding list for [Command-a]
-                    None,   # binding list for [Command-Shift-a]
-                    [...],  # binding list for [Command-Ctrl-a]       <-- binding_list
-                    [...],  # binding list for [Command-Ctrl-Shift-a] <-- binding_list
-                    None,   # binding list for [Command-Alt-a]
-                    None,   # binding list for [Command-Alt-Shift-a]
-                    None,   # binding list for [Command-Alt-Ctrl-a]
-                    None,   # binding list for [Command-Alt-Ctrl-Shift-a]
+            "a": [  <-- binding_lists_by_mod_code                          Mod Code
+                    None,   # binding list for unmodified 'a' key           0x0
+                    None,   # binding list for [Shift-a]                    0x1
+            _____/  [...],  # binding list for [Ctrl-a]                     0x2
+           |     \  [...],  # binding list for [Ctrl-Shift-a]               0x3
+           |        None,   # binding list for [Alt-a]                      0x4
+           |        None,   # binding list for [Alt-Shift-a]                0x5
+         binding    None,   # binding list for [Alt-Ctrl-a]                 0x6
+         lists      None,   # binding list for [Alt-Ctrl-Shift-a]           0x7
+           |        None,   # binding list for [Command-a]                  0x8
+           |        None,   # binding list for [Command-Shift-a]            0x9
+           |_____/  [...],  # binding list for [Command-Ctrl-a]             0xA
+                 \  [...],  # binding list for [Command-Ctrl-Shift-a]       0xB
+                    None,   # binding list for [Command-Alt-a]              0xC
+                    None,   # binding list for [Command-Alt-Shift-a]        0xD
+                    None,   # binding list for [Command-Alt-Ctrl-a]         0xE
+                    None,   # binding list for [Command-Alt-Ctrl-Shift-a]   0xF
                 ]
         """
         if rpt_binding.keypress_count() != 1:
             raise AssertionError(f'Number of elements in `keys` expected 1, got {rpt_binding.keypress_count()}!')
-        if main_key_name not in self.mdictByMainKey:
-            raise AssertionError(f'  ERROR!  Found key name [{main_key_name}] not in mdictByMainKey.')
 
         debugging = self._debugging_building_main_key_dict
         if debugging:
@@ -2092,6 +2190,9 @@ class KeyBindingData:
             print(f'  {main_key_name=}')
             print(f'  {key_mod_code=}')
             print(f'  rpt_binding={rpt_binding.formatted(1)}')
+
+        if main_key_name not in self.mdictByMainKey:
+            raise AssertionError(f'  ERROR!  Found key name [{main_key_name}] not in mdictByMainKey.')
 
         # -----------------------------------------------------------------
         # Add `rpt_binding` to `self.mdictByMainKey`.

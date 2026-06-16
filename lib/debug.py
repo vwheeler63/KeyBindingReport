@@ -108,8 +108,9 @@ Public API
         #
         #            If ``True``, at least one of the bits was found.
 *************************************************************************** """
-import re
+from typing import Union
 from enum import IntFlag
+import re
 
 
 class DebugBits(IntFlag):
@@ -176,7 +177,7 @@ class DebugBits(IntFlag):
         # - below    :  _debugging: DebugBits = DebugBits.IMPORTING;
         # - settings :  add DebugBits.IMPORTING to debugging setting string.
         # ---------------------------------------------------------------------
-        IMPORTING              = 0x00008000
+        IMPORTING              = 0x80000000
 
         # ---------------------------------------------------------------------
         # Utility Bits
@@ -201,17 +202,19 @@ class DebugBits(IntFlag):
     KEY_BINDING_REPORT       = 0x00000008
     WHICH_BINDING_REPORT     = 0x00000010
     KEYS_USED_REPORT         = 0x00000020
-    FULL_OVERRIDES_REPORT    = 0x00000040
-    CONTEXT_OVERRIDES_REPORT = 0x00000080
-    REMOVING_ARG_OVERLAP     = 0x00001000
-    FILTERING_STAGE_I        = 0x00002000
-    FILTERING_STAGE_II       = 0x00004000
-    FILTERING_ON_CONTEXT     = 0x00008000
-    CONTEXT_CONDITION        = 0x00010000
-    BUILDING_MAIN_KEY_DICT   = 0x00020000
-    BUILDING_KEY_SEQ_DICT    = 0x00040000
-    OUTPUT                   = 0x00080000
-    PLATFORM                 = 0x00100000
+    KEYS_AVAILABLE_REPORT    = 0x00000040
+    FULL_OVERRIDES_REPORT    = 0x00000080
+    CONTEXT_OVERRIDES_REPORT = 0x00000100
+    REMOVING_ARG_OVERLAP     = 0x00000200
+    FILTERING_STAGE_I        = 0x00000400
+    FILTERING_STAGE_II       = 0x00000800
+    FILTERING_ON_CONTEXT     = 0x00001000
+    CONTEXT_CONDITION        = 0x00002000
+    BUILDING_MAIN_KEY_DICT   = 0x00004000
+    BUILDING_KEY_SEQ_DICT    = 0x00008000
+    OUTPUT                   = 0x00010000
+    PLATFORM                 = 0x00020000
+    ENGLISH_TRANSLATION      = 0x00040000
 
     # ---------------------------------------------------------------------
     # Load/Reload/Import-Time Bits
@@ -264,28 +267,6 @@ _cfg_debugging_print_format = '08X'
 # Module Definitions
 # *************************************************************************
 
-def debug_show_regions(
-        view    : View,
-        regions : List[Region],
-        key     : str,
-        comment : str,
-        pkg_name: str = ''
-        ):
-    """ Temporarily show `regions` on screen. """
-    view.add_regions(
-        key,
-        regions,
-        "region.orangish",
-        "bookmark",
-        flags=RegionFlags.DRAW_EMPTY | RegionFlags.DRAW_NO_FILL
-    )
-
-    # Delay so user can look at regions highlighted in View before they are erased.
-    msg = f'{pkg_name}:\n\n{comment}'
-    sublime.message_dialog(msg)
-    view.erase_regions(key)
-
-
 def _debugging_string_validator_regex():
     r"""
     Only valid string expressions look like this:
@@ -316,8 +297,8 @@ def _debugging_string_validator_regex():
 
 
 def _securely_computed_bits_from_setting_input(
-		selection_bits: int | str | bool | DebugBits
-		) -> DebugBits:
+        selection_bits: Union[int,str,bool,DebugBits]
+        ) -> DebugBits:
     """
     Accept any of int | str | bool | DebugBits, and securely compute the
     applicable Debug Module bits in an int:  ``result``.
@@ -397,37 +378,37 @@ def _report_debugging_setting():
                             )
 
 
-def _set_debugging_bits(selection_bits: int):
+def _set_debugging_bits(selection_bits: DebugBits):
     global _debugging
     _debugging = selection_bits
     _report_debugging_setting()
 
 
-def _add_debugging_bits(selection_bits: int):
+def _add_debugging_bits(selection_bits: DebugBits):
     global _debugging
     _debugging |= selection_bits
     _report_debugging_setting()
 
 
-def _subtract_debugging_bits(selection_bits: int):
+def _subtract_debugging_bits(selection_bits: DebugBits):
     global _debugging
     _debugging &= ~(selection_bits)
     _report_debugging_setting()
 
 
-def set_debugging_bits(setting_value: int | str | bool | DebugBits):
+def set_debugging_bits(setting_value: Union[int,str,bool,DebugBits]):
     """ Set Debug Module setting to ``selection_bits``. """
     bits = _securely_computed_bits_from_setting_input(setting_value)
     _set_debugging_bits(bits)
 
 
-def add_debugging_bits(setting_value: int | str | bool | DebugBits):
+def add_debugging_bits(setting_value: Union[int,str,bool,DebugBits]):
     """ Add '1' bits in ``selection_bits`` to Debug Module setting.  """
     bits = _securely_computed_bits_from_setting_input(setting_value)
     _add_debugging_bits(bits)
 
 
-def subtract_debugging_bits(setting_value: int | str | bool | DebugBits):
+def subtract_debugging_bits(setting_value: Union[int,str,bool,DebugBits]):
     """ Subtract '1' bits in ``selection_bits`` from Debug Module setting.  """
     bits = _securely_computed_bits_from_setting_input(setting_value)
     _subtract_debugging_bits(bits)

@@ -1,3 +1,4 @@
+from typing import List, Sequence
 from enum import IntEnum
 
 
@@ -7,6 +8,9 @@ class Format(IntEnum):
     OUTLINED         = 1
     OUTLINED_COLUMNS = 2
     RESTRUCTUREDTEXT = 3
+
+    FIRST            = 0
+    LAST             = 3
 
 
 class AsciiTable():
@@ -24,7 +28,7 @@ class AsciiTable():
             'debugging'
             ]
 
-    def __init__(self, table: list[list[str]]):
+    def __init__(self, table: List[Sequence[str]]):
         if table is None:
             msg = '`table` must be a list of iterables elements.  Got `None` instead.'
             raise AssertionError(msg)
@@ -58,7 +62,7 @@ class AsciiTable():
         self.column_alignments = [''] * self.column_count
         self.tight_columns = [False] * self.column_count
 
-    def set_column_alignments(self, alignment_list: list[str]):
+    def set_column_alignments(self, alignment_list: Sequence[str]):
         """
         Align Specifiers
         ----------------
@@ -78,7 +82,7 @@ class AsciiTable():
             raise AssertionError(msg)
         self.column_alignments = alignment_list
 
-    def set_tight_columns(self, tight_col_list: list[bool]):
+    def set_tight_columns(self, tight_col_list: Sequence[bool]):
         """
         Set whether each column is considered "tight".
 
@@ -89,10 +93,9 @@ class AsciiTable():
             raise AssertionError(msg)
         self.tight_columns = tight_col_list
 
-    def as_string(self, fmt: Format, indent: str = ''):
-        self.debugging = False
+    def to_string(self, fmt: Format, indent: str = ''):
         if self.debugging:
-            print(f'In {self.__class__.__name__}.as_string()....')
+            print(f'In {self.__class__.__name__}.to_string()....')
             print(f'  {fmt                    = }')
             print(f'  {self.row_count         = }')
             print(f'  {self.column_count      = }')
@@ -211,15 +214,17 @@ class AsciiTable():
         lines.append(row_sep)
 
         if with_col_seps:
-            tight_col_suffix = '|'
-            col_prefix = ' '
-            col_suffix = ' |'
-            last_col_suffix = col_suffix
+            col_prefix            = ' '
+            col_suffix            = ' |'
+            last_col_suffix       = ' |'
+            tight_col_suffix      = '|'
+            tight_last_col_suffix = '|'
         else:
-            tight_col_suffix = ' '
-            col_prefix = ' '
-            col_suffix = '  '
-            last_col_suffix = ' |'
+            col_prefix            = ' '
+            col_suffix            = '  '
+            last_col_suffix       = ' |'
+            tight_col_suffix      = ' '
+            tight_last_col_suffix = '|'
 
         for row in self.table:
             line_parts.clear()
@@ -234,7 +239,10 @@ class AsciiTable():
                 col_repr = f'{col:{self.column_alignments[i]}{self.max_column_widths[i]}}'
                 if self.tight_columns[i]:
                     line_parts.append(col_repr)
-                    line_parts.append(tight_col_suffix)
+                    if i == last_i:
+                        line_parts.append(tight_last_col_suffix)
+                    else:
+                        line_parts.append(tight_col_suffix)
                 else:
                     line_parts.append(col_prefix)
                     line_parts.append(col_repr)
@@ -322,11 +330,11 @@ if __name__ == '__main__':
         rows.append(fields)
 
     # ---------------------------------------------------------------------
-    # ``rows`` is now a list[list[str]] needed by ``AsciiTable``.
+    # ``rows`` is now a List[Iterable[str]] needed by ``AsciiTable``.
     # ---------------------------------------------------------------------
     table = AsciiTable(rows)
     # table.set_column_alignments(['', '^', '^', '^'])
     print(repr(table))
-    print(table.as_string(Format.BARE))
-    print(table.as_string(Format.OUTLINED))
-    print(table.as_string(Format.RESTRUCTUREDTEXT))
+    print(table.to_string(Format.BARE))
+    print(table.to_string(Format.OUTLINED))
+    print(table.to_string(Format.RESTRUCTUREDTEXT))

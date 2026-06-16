@@ -1,19 +1,22 @@
-"""
+"""************************************************************************
 Which Binding Report
-====================
-
-This logic is launched via the ``KeyBindingReportWhichBindingCommand``
-command at the end of this file.  The details of the algorithm are in
-the docstring for that command.
+********************
 """
+import os
+import json
+from typing import List, Tuple
 from datetime import datetime
 import sublime_plugin
 import sublime
-from ...lib.debug import DebugBits, is_debugging
+from sublime_types import Event, Value
+from ...lib.debug import IntFlag, DebugBits, is_debugging
 from ...lib import output_view
+from .. import platform
 from .. import core
 from .. import data
 from .. import output
+from .. import key_binding
+
 
 
 # *************************************************************************
@@ -25,8 +28,214 @@ _report_title = 'Which Binding?'
 
 
 # *************************************************************************
+# Data
+# *************************************************************************
+
+debugging: bool = False
+
+
+
+# *************************************************************************
+# Utilities
+# *************************************************************************
+
+def _decoded_user_keypress_list(user_keypress_list: str) -> List[str]:
+        result = []
+
+        if ',' in user_keypress_list:
+            temp_list = user_keypress_list.split(',')
+            result = []
+            for item in temp_list:
+                result.append(item.strip())
+        else:
+            result = [user_keypress_list.strip()]
+
+        return result
+
+
+
+# *************************************************************************
 # Classes
 # *************************************************************************
+
+class KeypressListInputHandler(sublime_plugin.TextInputHandler):
+    def placeholder(self) -> str:
+        """
+        Placeholder text is shown in the text entry box before the user has
+        entered anything. Empty by default.
+        """
+        return f'Enter a comma-separated list of keypresses (e.g. {self.initial_text()})'
+
+    def initial_text(self):
+        """
+        Initial text shown in the text entry box. Empty by default.
+        """
+        return 'ctrl+k, ctrl+u'
+
+    def initial_selection(self) -> List[Tuple[int, int]]:
+        """
+        A list of 2-element ``Region`` tuples, defining the initially
+        selected parts of the initial text.
+
+        .. since:: 4081
+        """
+        return [ (0, len(self.initial_text())) ]
+
+    def preview(self, text):
+        """
+        Called whenever the user changes the text in the entry box. The returned
+        value (either plain text or HTML) will be shown in the preview area of
+        the *Command Palette*.
+        """
+        kp_list = _decoded_user_keypress_list(text)
+        kp_list_json = json.dumps(kp_list)
+        return sublime.Html(f'<strong>Keypress List:</strong> {kp_list_json}')
+
+    def validate(self, text: str, event: Event | None = None) -> bool:
+        """
+        Called when user hits [Enter] to submit input.  If this method returns
+        `False`, nothing happens.  If it returns `True`, the input sequence proceeds.
+        Default implementation returns `True`.
+
+        :param event:  Gets passed when `want_event` returns `True`.  User hitting
+                       plain [enter] results in `event` containing
+                         `{'modifier_keys': {}}`.
+                       [ctrl+enter] results in `event` containing
+                         `{'modifier_keys': {'ctrl': True, 'primary': True}}`.
+                       [shift+ctrl+alt+enter] results in `event` containing
+                         `{'modifier_keys': {'alt': True, 'ctrl': True, 'primary': True, 'shift': True}}`
+                       [super+shift+ctrl+alt+enter] results in `event` containing
+                         `{'modifier_keys': {'alt': True, 'ctrl': True, 'primary': True, 'shift': True, 'super': True}}``
+        """
+        if debugging:
+            print(f'KeypressListInputHandler.validate():  {text=} {event=}')
+
+        result = True
+        keypress_list = _decoded_user_keypress_list(text)
+        error_list = []
+        for keypress_str in keypress_list:
+            keypress = key_binding.Keypress(keypress_str)
+
+            if keypress.modifier_key_error_message:
+                error_list.append(keypress.modifier_key_error_message)
+
+            if keypress.main_key_error_message:
+                error_list.append(keypress.main_key_error_message)
+
+        if error_list:
+            msg = '\n'.join(error_list)
+            dlg_result = sublime.yes_no_cancel_dialog(msg, 'Yes', 'No', 'Proceed?')
+
+            if dlg_result != sublime.DialogResult.YES:
+                result = False
+
+        return result
+
+    def cancel(self):
+        """
+        Called as an "event hook" if/when user cancels input sequence with [Esc]
+        or [Backspace] to go back.
+        """
+        print('User cancelled at KeypressListInputHandler.')
+
+    def confirm(self, text: str, event: Event | None = None):
+        """
+        Called when the input is accepted, after the user has pressed enter and
+        the text has been validated.
+
+        :param event:  Gets passed when `want_event` returns `True`.  User hitting
+                       plain [enter] results in `event` containing
+                         `{'modifier_keys': {}}`.
+                       [ctrl+enter] results in `event` containing
+                         `{'modifier_keys': {'ctrl': True, 'primary': True}}`.
+                       [shift+ctrl+alt+enter] results in `event` containing
+                         `{'modifier_keys': {'alt': True, 'ctrl': True, 'primary': True, 'shift': True}}`
+                       [super+shift+ctrl+alt+enter] results in `event` containing
+                         `{'modifier_keys': {'alt': True, 'ctrl': True, 'primary': True, 'shift': True, 'super': True}}``
+        """
+        if debugging:
+            print(f'KeypressListInputHandler.confirm():  {text=} {event=}')
+
+    def want_event(self) -> bool:
+        """
+        Whether the `validate()` and `confirm()` methods should received a
+        second `Event`-type parameter.  Returns `False` by default.
+        """
+        return True
+
+    def next_input(self, args):
+        if 'platform_code' not in args:
+            return PlatformCodeInputHandler()
+
+class PlatformCodeInputHandler(sublime_plugin.ListInputHandler):
+    def list_items(self) -> Tuple[List[Tuple[str, Value]], int]:
+        """
+        This method should return the items to show in the list.
+
+        The returned value may be a ``list`` items or a 2-element ``tuple`` containing a
+        list of items and an ``int`` index of the item to pre-select.
+
+        The each list item may be one of:
+
+        - a string used for both the row text and the value passed to the command;
+        - a 2-element tuple containing a string for the row text, and a ``Value``
+        to pass to the command; or
+        - a ``sublime.ListInputItem`` object.
+        """
+        choice_list = [
+            ('Windows', 'windows'),
+            ('Linux', 'linux'),
+            ('OSX', 'osx')
+        ]
+        code_list = [
+            'windows',
+            'linux',
+            'osx'
+        ]
+        default_idx = code_list.index(platform.execution_platform)
+        return (choice_list, default_idx)
+
+    def description(self, value, text: str) -> str:
+        """
+        The text to show in the *Command Palette* when this input handler is not
+        at the top of the input handler stack. Defaults to the text of the list
+        item the user selected.
+        """
+        return f'Platform = [{text}] code = [{value}]'
+
+    def preview(self, text):
+        """
+        Called whenever the user changes the text in the entry box. The returned
+        value (either plain text or HTML) will be shown in the preview area of
+        the *Command Palette*.
+        """
+        return sublime.Html(f'<strong>platform_code:</strong> <em>{text}</em>')
+
+    def cancel(self):
+        """
+        Called as an "event hook" if/when user cancels input sequence with [Esc]
+        or [Backspace] to go back.
+        """
+        print('User cancelled at PlatformCodeInputHandler.')
+
+    def confirm(self, text: str, event: Event | None = None):
+        """
+        Called when the input is accepted, after the user has pressed enter and
+        the text has been validated.
+
+        :param event:  Gets passed when `want_event` returns `True`.  User hitting
+                       plain [enter] results in `event` containing
+                         `{'modifier_keys': {}}`.
+                       [ctrl+enter] results in `event` containing
+                         `{'modifier_keys': {'ctrl': True, 'primary': True}}`.
+                       [shift+ctrl+alt] results in `event` containing
+                         `{'modifier_keys': {'alt': True, 'ctrl': True, 'primary': True, 'shift': True}}`
+                       [super+shift+ctrl+alt] results in `event` containing
+                         `{'modifier_keys': {'alt': True, 'ctrl': True, 'primary': True, 'shift': True, 'super': True}}``
+        """
+        if debugging:
+            print(f'PlatformCodeInputHandler.confirm():  {text=} {event=}')
+
 
 class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
     """
@@ -38,11 +247,23 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
     instead be part of the UI (e.g. Find textbox).  This is needed
     to feed into the context-query engine.
     """
+    def input(self, args):
+        """
+        If this returns something other than ``None``, user will be
+        prompted for specified input before the Command is run.
+        """
+        if 'keypress_list' not in args:
+            return KeypressListInputHandler()
+        elif 'platform_code' not in args:
+            return PlatformCodeInputHandler()
 
-    def run(
-            self         : sublime_plugin.TextCommand,
+    def input_description(self):
+        return 'Which Binding?'
+
+    def run(self,
             edit         : sublime.Edit,
-            keypress_list: list[str] = ["ctrl+k", "ctrl+u"]
+            keypress_list: List[str] | str,
+            platform_code: str | None
             ):
         """
         By specified key based on current scope Report binding selected the
@@ -50,47 +271,129 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
         binding where current scope matches key context.  Generate output
         in format `fmt`.
 
-        :param self:            KeyBindingReportCommand object connected to current View
-        :param edit:            sublime.Edit connected to current View, needed to edit Buffer
-        :param keypress_list:   "keys" list ("keys" element from JSON key binding).
-        :param fmt:             Which output format
+        :param self:           KeyBindingReportCommand object connected to current View
+        :param edit:           sublime.Edit connected to current View, needed to edit Buffer
+        :param keypress_list:  "keys" list ("keys" element from JSON key binding).
+        :param platform_code:  Platform to simulate, or None to use current platform.
+                                 Constraint:  one of the strings returned by
+                                 ``sublime.platform()``: "windows", "linux" or "osx".
         :return:  None
         """
+        global debugging
         debugging = is_debugging(DebugBits.WHICH_BINDING_REPORT)
         if debugging:
-            print('>\n>\n>\n>')
             print('In KeyBindingReportWhichBindingCommand.run()...')
             print(f'  {keypress_list=}')
+            print(f'  {platform_code=}')
 
         t0 = datetime.now()
+
+        if platform_code and platform_code not in platform.platform_names_by_code:
+            raise AssertionError(f'`platform_code` must be one of {platform.platform_codes!r}.')
+
+        # =================================================================
+        # Adjust ``keypress_list`` if needed.  It can come from a user
+        # prompt from ``KeypressListInputHandler`` in which case it will
+        # be a string.
+        # =================================================================
+        if isinstance(keypress_list, str):
+            keypress_list = _decoded_user_keypress_list(keypress_list)
+
+        keypress_list_json = json.dumps(keypress_list)
+
+        # =================================================================
+        # Gather data about current editing context.
+        # =================================================================
+        view          = self.view
+        live_sel_list = view.sel()
+        first_sel     = live_sel_list[0]
+        caret_pt      = first_sel.begin()
+        row, col      = view.rowcol(caret_pt)
+        element       = view.element()
+        window        = view.window()
+        file          = view.file_name()
+        scope         = view.scope_name(caret_pt).strip()
+        line_info     = f'Line : {row + 1}, Col: {col + 1}, Point: {caret_pt}'
+        scope_info    = f'Scope: "{scope}"'
+        view_repr     = f'View({view.id()})'
+        if debugging:
+            print(f'  {first_sel=}')
+            print(f'  {caret_pt=}')
+            print(f'  {row=}')
+            print(f'  {col=}')
+            print(f'  {element=}')
+            print(f'  {window=}')
+            print(f'  {file=}')
+            print(f'  {scope=}')
+
+        # =================================================================
+        # Discover which binding applies, if any.
+        # =================================================================
         key_data = data.KeyBindingData()
-        binding = key_data.which_binding(keypress_list, self.view)
+
+        if platform_code:
+            platform.simulate_platform(platform_code)
+
+        binding = key_data.which_binding(keypress_list, view)
+
         t1 = datetime.now()
 
-        # TODO: rmv after testing.
-        # Write verification/validation files.
-        main_key_path = r'r:\by_main_key.txt'
-        key_seq_path  = r'r:\by_key_seq.txt'
-        key_data.dump_to_files(main_key_path, key_seq_path)
-        key_data.dump_leading_keys_data(r'r:\leading_keys.txt')
+        if debugging:
+            # Write verification/validation files.
+            temp_dir = sublime.cache_path()
+            main_key_path = os.path.join(temp_dir, 'by_main_key.txt')
+            key_seq_path = os.path.join(temp_dir, 'by_key_seq.txt')
+            leading_keys_path = os.path.join(temp_dir, 'leading_keys.txt')
+            key_data.dump_to_files(main_key_path, key_seq_path)
+            key_data.dump_leading_keys_data(leading_keys_path)
+
         t2 = datetime.now()
 
         # =================================================================
         # Generate report.
         # =================================================================
+        # Title
         title = f'{core.package_name}:  Which Key Binding?'
-        note = f'Binding Selected for {keypress_list} in Current Context:'
 
+        # Note
+        note_parts = [f'Binding Selected for {keypress_list_json} in Current Context']
+        note_parts.append('')
+        note_parts.append('Current Context:')
+
+        if element:
+            note_parts.append(f'    {view_repr} is part of the user interface:  {element}.')
+            note_parts.append(f'    {line_info}')
+            note_parts.append(f'    {scope_info}')
+        elif window:
+            if view.is_scratch():
+                note_parts.append(f'    {view_repr} is a scratch view, not editing a file.')
+                note_parts.append(f'    {line_info}')
+                note_parts.append(f'    {scope_info}')
+            elif file:
+                note_parts.append(f'    {view_repr} is editing file:')
+                note_parts.append(f'      {file}')
+                note_parts.append(f'    {line_info}')
+                note_parts.append(f'    {scope_info}')
+            else:
+                note_parts.append(f"    {view_repr}'s is in window {window}.")
+        else:
+            note_parts.append(f"    {view_repr}'s exact nature is not recognized.")
+
+        note = '\n'.join(note_parts)
+
+        # Content
         content_parts = []
         content_parts.append(output.report_heading(title, note))
         content_parts.append('')
+        content_parts.append('-' * 76)
+        content_parts.append('')
 
         if binding:
-            binding_repr = binding.formatted(0, include_source=True)
+            binding_repr = binding.formatted(0, include_source=True, natural_language=True)
             content_parts.append(binding_repr)
 
             leading_key_count = key_data.leading_key_count_in_key_sequences(keypress_list)
-            if leading_key_count:
+            if leading_key_count > 1:
                 plural_suffix = 's' if leading_key_count > 1 else ''
                 content_parts.append('')
                 content_parts.append(f'Notable:  Keypress "{keypress_list[0]}" is also the leading')
@@ -98,23 +401,29 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
         else:
             content_parts.append('No binding found.')
 
-        # -----------------------------------------------------------------
-        # Finally, assemble parts into 1 string, and push to report View.
-        # -----------------------------------------------------------------
         content_parts.append('')
         content = '\n'.join(content_parts)
 
+        # Push to report View.
         rpt_view = output_view.output_to_view(
                 None,
                 _report_title,
                 content,
-                current_view=self.view
+                current_view=view
                 )
 
-        rpt_view.window().bring_to_front()
+        # Bring report view to front.
+        win = rpt_view.window()
+        if win:
+            win.bring_to_front()
+
         t3 = datetime.now()
 
-        print('Time to generate data structures: ', str(t1 - t0))
-        print('Time to write files             : ', str(t2 - t1))
-        print('Time to generate report         : ', str(t3 - t2))
-        print('Total                           : ', str(t3 - t0))
+        if platform_code:
+            platform.set_current_platform()
+
+        if debugging:
+            print('Time to generate data structures: ', str(t1 - t0))
+            print('Time to write files             : ', str(t2 - t1))
+            print('Time to generate report         : ', str(t3 - t2))
+            print('Total                           : ', str(t3 - t0))

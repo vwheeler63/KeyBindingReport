@@ -1,11 +1,20 @@
+"""************************************************************************
+Key-Binding Report
+******************
+
+This logic is launched via the ``KeyBindingReportCommand`` command at the
+end of this file.  The details of the algorithm are in the docstring for
+that command.
+"""
 import os
-from typing import Iterable
+from typing import Sequence, Tuple
 from datetime import datetime
 import sublime_plugin
 import sublime
-from ...lib.debug import DebugBits, is_debugging
+from ...lib.debug import IntFlag, DebugBits, is_debugging
 from ...lib import ascii_table
 from ...lib import output_view
+from .. import platform
 from .. import core
 from .. import data
 from .. import output
@@ -15,16 +24,16 @@ from .. import output
 # Constants
 # *************************************************************************
 
-_report_title       = f'{core.package_name}:  Specified Key-Bindings ({{$platform}})'
-_report_short_title = 'Key-Binding Report ({$platform})'
+_report_title          = f'{core.package_name}:  Specified Key-Bindings ({{$platform}})'
+_report_short_title    = 'Key-Binding Report ({$platform})'
 
 
 
 # *************************************************************************
-# Classes
+# Function Definitions
 # *************************************************************************
 
-def _table_key(fmt: ascii_table.Format, include_win_key: bool = False) -> str:
+def _table_key_repr(fmt: ascii_table.Format, include_win_key: bool = False) -> str:
     parts = []
 
     if fmt == ascii_table.Format.RESTRUCTUREDTEXT:
@@ -46,40 +55,41 @@ def _table_key(fmt: ascii_table.Format, include_win_key: bool = False) -> str:
         parts.append('')
         parts.append(f'{indent2}**Key:**')
         if include_win_key:
-            parts.append(f'{indent2}     {data.cmd_col_hdg} = {data.cmd_key_name}')
-        parts.append(    f'{indent2}     {data.alt_col_hdg} = {data.alt_key_name}')
-        parts.append(    f'{indent2}     {data.ctrl_col_hdg} = {data.ctrl_key_name}')
-        parts.append(    f'{indent2}     {data.shift_col_hdg} = {data.shift_key_name}')
+            parts.append(f'{indent2}     {platform.cmd_col_heading} = {platform.cmd_key_name}')
+        parts.append(    f'{indent2}     {platform.alt_col_heading} = {platform.alt_key_name}')
+        parts.append(    f'{indent2}     {platform.ctrl_col_heading} = {platform.ctrl_key_name}')
+        parts.append(    f'{indent2}     {platform.shift_col_heading} = {platform.shift_key_name}')
         parts.append(    f'{indent2}  Ctxt = Context')
     else:
         parts.append('Key:')
         if include_win_key:
-            parts.append(f'     {data.cmd_col_hdg} = {data.cmd_key_name}')
-        parts.append(    f'     {data.alt_col_hdg} = {data.alt_key_name}')
-        parts.append(    f'     {data.ctrl_col_hdg} = {data.ctrl_key_name}')
-        parts.append(    f'     {data.shift_col_hdg} = {data.shift_key_name}')
+            parts.append(f'     {platform.cmd_col_heading} = {platform.cmd_key_name}')
+        parts.append(    f'     {platform.alt_col_heading} = {platform.alt_key_name}')
+        parts.append(    f'     {platform.ctrl_col_heading} = {platform.ctrl_key_name}')
+        parts.append(    f'     {platform.shift_col_heading} = {platform.shift_key_name}')
         parts.append(     '  Ctxt = Context')
 
     return '\n'.join(parts)
 
 
-def _key_table_and_footnotes(
+def _key_table_and_footnotes_repr(
         key_group_idx: int,
-        table        : list[list[str]],
-        footnotes    : list[output.Footnote],
-        fmt          : ascii_table.Format,
-        flags        : output.FlagBits,
+        tbl_pkg      : output.TablePackage,
         debugging    : int,
         lead_keypr   : str | None = None,
         ) -> str:
     # if debugging:
-    #     print('In _key_table_and_footnotes()....')
+    #     print('In _key_table_and_footnotes_repr()....')
     #     print(f'  {fmt=}')
     #     print(f'  {flags=}')
     #     print(f'  {fmt=}')
     #     print(f'  {fmt=}')
 
-    incl_win_key = output.include_windows_key(flags)
+    table            = tbl_pkg.table
+    fmt              = tbl_pkg.fmt
+    flags            = tbl_pkg.flags
+    footnotes        = tbl_pkg.footnotes
+    incl_win_key     = output.include_windows_key(flags)
     restructuredtext = (( fmt == ascii_table.Format.RESTRUCTUREDTEXT ))
 
     # ---------------------------------------------------------------------
@@ -97,17 +107,17 @@ def _key_table_and_footnotes(
         col_alignment_specs.append('')
         tight_col_specs.append(True)
 
-    # A, C, S, Cmd, Args, Context
-    col_alignment_specs.extend(['', '', '', '', '', '^'])
+    # A, C, S, Context, Cmd, Args
+    col_alignment_specs.extend(['', '', '', '^', '', ''])
     tight_col_specs.extend([True, True, True, True, True, True])
 
     # Source
-    if flags & output.FlagBits.ADD_SOURCE_COLUMN:
+    if flags & data.FlagBits.ADD_SOURCE_COLUMN:
         col_alignment_specs.append('')
         tight_col_specs.append(False)
 
     # Comments
-    if flags & output.FlagBits.ADD_COMMENTS_COLUMN:
+    if flags & data.FlagBits.ADD_COMMENTS_COLUMN:
         col_alignment_specs.append('')
         tight_col_specs.append(False)
 
@@ -116,23 +126,23 @@ def _key_table_and_footnotes(
         asc_tbl.set_tight_columns(tight_col_specs)
 
     # ---------------------------------------------------------------------
-    # Build table key, table and footnotes => ``content``.
+    # Build table key and table => ``content``.
     # ---------------------------------------------------------------------
-    table_key = _table_key(fmt, incl_win_key)
+    table_key = _table_key_repr(fmt, incl_win_key)
     parts = []
 
-    if core.setting__rst_container_class and restructuredtext:
-        container_directive = '.. container:: ' + core.setting__rst_container_class
+    if core.setting__rst_table_container_class and restructuredtext:
+        container_directive = '.. container:: ' + core.setting__rst_table_container_class
         indent = '    '
     else:
         container_directive = None
         indent = ''
 
-    if flags & output.FlagBits.TABLE_KEY_AFTER_TABLE:
+    if flags & data.FlagBits.TABLE_KEY_AFTER_TABLE:
         if container_directive:
             parts.append(container_directive)
             parts.append('')
-        parts.append( asc_tbl.as_string(fmt, indent) )
+        parts.append( asc_tbl.to_string(fmt, indent) )
         parts.append('')
         parts.append(table_key)
     else:
@@ -141,13 +151,15 @@ def _key_table_and_footnotes(
         if container_directive:
             parts.append(container_directive)
             parts.append('')
-        parts.append( asc_tbl.as_string(fmt, indent) )
+        parts.append( asc_tbl.to_string(fmt, indent) )
 
-    # Insert footnotes.
-    for footnote in footnotes:
-        if restructuredtext:
+    # ---------------------------------------------------------------------
+    # Insert footnotes => ``content``.
+    # ---------------------------------------------------------------------
+    if footnotes:
+        for footnote in footnotes:
             parts.append('')
-        parts.append(footnote.formatted())
+            parts.append(footnote.formatted())
 
     content = '\n'.join(parts)
 
@@ -155,14 +167,14 @@ def _key_table_and_footnotes(
     # Output to file(s) if requested.
     # ---------------------------------------------------------------------
     output_dir = ''
-    if data.platform == data.windows_platform_code:
-        output_dir = core.setting__output_directory_windows
-    if data.platform == data.linux_platform_code:
-        output_dir = core.setting__output_directory_linux
-    if data.platform == data.osx_platform_code:
-        output_dir = core.setting__output_directory_osx
+    if platform.is_windows():
+        output_dir = core.setting__output_directory_for_windows
+    if platform.is_linux():
+        output_dir = core.setting__output_directory_for_linux
+    if platform.is_osx():
+        output_dir = core.setting__output_directory_for_osx
 
-    if output_dir and (flags & output.FlagBits.OUTPUT_TO_FILES):
+    if output_dir and (flags & data.FlagBits.OUTPUT_TO_FILES):
         key_group_file_name = data.key_group_file_names[key_group_idx]
         var_str = '{$leading_keypress}'
         if lead_keypr and var_str in key_group_file_name:
@@ -189,37 +201,41 @@ def _key_sequence_table_title(keypress_str: str) -> str:
 
 def _generate_report(
         self,
-        edit             : sublime.Edit,
-        key_groups       : Iterable[data.KeyGroup] | None,
-        key_names        : Iterable[str]           | None,
-        keypress_list    : Iterable[Iterable[str]] | None,
-        limit_to_packages: Iterable[str]           | None,
+        key_groups       : Sequence[data.KeyGroup] | None,
+        key_names        : Sequence[str]           | None,
+        keypress_list    : Sequence[Sequence[str]] | None,
+        limit_to_packages: Sequence[str]           | None,
         limit_to_context : bool,
         fmt              : ascii_table.Format,
-        flags            : output.FlagBits,
+        flags            : data.FlagBits,
         debugging        : int
-        ) -> tuple[datetime, datetime, datetime, datetime]:
+        ) -> Tuple[datetime, datetime, datetime, datetime]:
     """
     Do work for KeyBindingReportCommand, so that the command itself can
     iterate calling this repeatedly to fulfil the new ALL_PLATFORMS flag.
     """
     t0 = datetime.now()
     view = self.view
-    key_data = data.KeyBindingData()
 
     if limit_to_context:
-        rpt_gen_view = self.view
+        rpt_gen_view = view
     else:
         rpt_gen_view = None
 
-    key_data.generate(key_groups, key_names, keypress_list, limit_to_packages, rpt_gen_view)
+    key_data = data.KeyBindingData(fmt, flags)
+    key_data.gather(key_groups, key_names, keypress_list, limit_to_packages, rpt_gen_view)
+    if debugging:
+        print(key_data.specification(indent_level = 1))
+
     t1 = datetime.now()
 
-    # TODO: rmv after testing.
-    # Write verification/validation files.
-    main_key_path = r'r:\by_main_key.txt'
-    key_seq_path  = r'r:\by_key_seq.txt'
-    key_data.dump_to_files(main_key_path, key_seq_path)
+    if debugging:
+        # Write verification/validation files.
+        temp_dir = sublime.cache_path()
+        main_key_path = os.path.join(temp_dir, 'by_main_key.txt')
+        key_seq_path = os.path.join(temp_dir, 'by_key_seq.txt')
+        key_data.dump_to_files(main_key_path, key_seq_path)
+
     t2 = datetime.now()
 
     # =================================================================
@@ -227,7 +243,7 @@ def _generate_report(
     # =================================================================
     last_footnote_num = 0
 
-    if flags & output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS:
+    if flags & data.FlagBits.INCLUDE_UNBOUND_KEYPRESSES:
         note = 'Keypresses with empty Commands are not bound.'
     else:
         note = ''
@@ -235,31 +251,35 @@ def _generate_report(
     # -----------------------------------------------------------------
     # Heading
     # -----------------------------------------------------------------
-    rpt_title = _report_title.replace('{$platform}', data.platform_name)
+    rpt_title = _report_title.replace('{$platform}', platform.platform_name)
     content_parts = []
     content_parts.append(output.report_heading(rpt_title, note))
     content_parts.append('')
-    content_parts.append(
-            output.report_specification(
-                    key_groups,
-                    key_names,
-                    keypress_list,
-                    limit_to_packages,
-                    limit_to_context,
-                    fmt,
-                    flags
-                    )
-            )
+    content_parts.append(key_data.specification())
 
     # -----------------------------------------------------------------
     # Add Main-Key table parts.
     # -----------------------------------------------------------------
-    out = output.KeyBindingOutput(key_data)
-    out.set_comments_column_width(60)
+    if flags & data.FlagBits.ALL_IN_ONE_TABLE:
+        tbl_pkg = output.main_key_table(key_data, flags, fmt, last_footnote_num)
 
-    if flags & output.FlagBits.SEPARATE_TABLES_BY_KEY_GROUPS:
-        table_pkg_list = out.main_key_tables(flags, fmt, last_footnote_num)
-        #     list[tuple] (table_pkg) each tuple containing:
+        if tbl_pkg.table:
+            heading = 'Single-Keypress Table'
+            content_parts.append(output.section_heading(heading, '*'))
+            content_parts.append('')
+
+            tbl_and_footnotes = _key_table_and_footnotes_repr(
+                    data.KeyGroup.ALL,  # All in 1 table
+                    tbl_pkg,
+                    debugging,
+                    None                # lead_keypr
+                    )
+
+            content_parts.append(tbl_and_footnotes)
+
+    else:
+        table_pkg_list = output.main_key_tables(key_data, flags, fmt, last_footnote_num)
+        #     List[tuple] (table_pkg) each tuple containing:
         #         (key_group_idx, table, footnotes, last_footnote_num)
 
         if table_pkg_list:
@@ -267,50 +287,26 @@ def _generate_report(
             heading = f'Single-Keypress Table{plural_suffix}'
             content_parts.append(output.section_heading(heading, '*'))
 
-            for key_group_idx, table, footnotes, last_footnote_num in table_pkg_list:
-                if table:
+            for key_group_idx, tbl_pkg in table_pkg_list:
+                if tbl_pkg.table:
                     heading = data.key_group_names[key_group_idx]
                     content_parts.append(output.section_heading(heading, '='))
                     content_parts.append('')
 
-                    tbl_and_footnotes = _key_table_and_footnotes(
+                    tbl_and_footnotes = _key_table_and_footnotes_repr(
                             key_group_idx,
-                            table,
-                            footnotes,
-                            fmt,
-                            flags,
+                            tbl_pkg,
                             debugging,
                             None   # lead_keypr
                             )
 
                     content_parts.append(tbl_and_footnotes)
 
-    else:
-        table, footnotes, last_footnote_num = \
-                out.main_key_table(flags, fmt, last_footnote_num)
-
-        if table:
-            heading = 'Single-Keypress Table'
-            content_parts.append(output.section_heading(heading, '*'))
-            content_parts.append('')
-
-            tbl_and_footnotes = _key_table_and_footnotes(
-                    data.KeyGroup.ALL,  # All in 1 table
-                    table,
-                    footnotes,
-                    fmt,
-                    flags,
-                    debugging,
-                    None                # lead_keypr
-                    )
-
-            content_parts.append(tbl_and_footnotes)
-
     # -----------------------------------------------------------------
     # Add Key-Sequence table(s) parts.
     # -----------------------------------------------------------------
-    table_pkg_list = out.key_seq_tables(flags, fmt, last_footnote_num)
-    #     list[tuple] (table_pkg) each tuple containing:
+    table_pkg_list = output.key_seq_tables(key_data, fmt, flags, last_footnote_num)
+    #     List[tuple] (table_pkg) each tuple containing:
     #         (lead_keypr_str, table, footnotes, last_footnote_num)
 
     if table_pkg_list:
@@ -318,24 +314,20 @@ def _generate_report(
         heading = f'Multi-Keypress Table{plural_suffix}'
         content_parts.append(output.section_heading(heading, '*'))
 
-        for lead_keypr_str, table, footnotes, last_footnote_num in table_pkg_list:
-            if table:
+        for lead_keypr_str, tbl_pkg in table_pkg_list:
+            if tbl_pkg.table:
                 heading = _key_sequence_table_title(lead_keypr_str)
                 content_parts.append(output.section_heading(heading, '='))
                 content_parts.append('')
 
-                tbl_and_footnotes = _key_table_and_footnotes(
+                tbl_and_footnotes = _key_table_and_footnotes_repr(
                         data.KeyGroup.KEY_SEQUENCES,
-                        table,
-                        footnotes,
-                        fmt,
-                        flags,
+                        tbl_pkg,
                         debugging,
                         lead_keypr_str
                         )
 
                 content_parts.append(tbl_and_footnotes)
-
 
     # This leaves `last_footnote_num` containing the last-used footnote
     # number in case we should need to add more content below.
@@ -343,9 +335,10 @@ def _generate_report(
     # -----------------------------------------------------------------
     # Finally, assemble parts into 1 string, and push to report View.
     # -----------------------------------------------------------------
+    content_parts.append('')
     content = '\n'.join(content_parts)
 
-    view_tab_heading = _report_short_title.replace('{$platform}', data.platform_name)
+    view_tab_heading = _report_short_title.replace('{$platform}', platform.platform_name)
 
     rpt_view = output_view.output_to_view(
             None,
@@ -354,11 +347,18 @@ def _generate_report(
             current_view=view
             )
 
-    rpt_view.window().bring_to_front()
+    win = rpt_view.window()
+    if win:
+        win.bring_to_front()
     t3 = datetime.now()
 
     return t0, t1, t2, t3
 
+
+
+# *************************************************************************
+# Classes
+# *************************************************************************
 
 class KeyBindingReportCommand(sublime_plugin.TextCommand):
     """
@@ -375,195 +375,235 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
     def run(
             self,
             edit             : sublime.Edit,
-            key_groups       : Iterable[data.KeyGroup] | None = None,
-            key_names        : Iterable[str]           | None = None,
-            keypress_list    : Iterable[Iterable[str]] | None = None,
-            limit_to_packages: Iterable[str]           | None = None,
+            key_groups       : Sequence[data.KeyGroup] | None = None,
+            key_names        : Sequence[str]           | None = None,
+            keypress_list    : Sequence[Sequence[str]] | None = None,
+            limit_to_packages: Sequence[str]           | None = None,
             limit_to_context : bool = False,
             fmt              : ascii_table.Format = ascii_table.Format.OUTLINED,
-            flags            : output.FlagBits = output.FlagBits.INCLUDE_UNBOUND_KEY_COMBINATIONS
+            flags            : data.FlagBits = data.FlagBits.INCLUDE_UNBOUND_KEYPRESSES,
+            platform_code    : str | None = None
             ):
         r"""
         Generate Key-Binding Report.
 
-        Precondition:   `key_groups``, ``key_names``, ``keypress_list`` and ``limit_to_packages``
-                        must each be a list, set, tuple or ``None``.
+        Precondition #1:  The data type of `key_groups``, ``key_names``,
+                          ``keypress_list`` and ``limit_to_packages`` must
+                          each be a ``list``, ``set``, ``tuple`` or ``None``.
 
-        These arguments are interpreted "additively":
-        ---------------------------------------------
+        Precondition #2:  If specified, ``platform_code`` must be one of
+                          "windows", "linux" or "osx" (in lower case).
+
+        These arguments ADD to the report content:
+        -----------------------------------------------------------------
         - key_groups      e.g. [KeyGroup.NUMBER_KEYS],
         - key_names       e.g. ['f1', 'f2'], and
         - keypress_list   e.g. [['ctrl+k', 'ctrl+u'], ['alt+break'], ...]
 
-        These arguments serve to LIMIT the output of the report:
-        --------------------------------------------------------
+        These arguments LIMIT the report content:
+        -----------------------------------------------------------------
         - limit_to_packages  e.g. ['Default', 'User']
         - limit_to_context   e.g. True
 
+
         Parameters:
-        -----------
-        :param self:        Command object connected to Application
+        ===========
+        :param self:
+            Command object connected to Application
 
-        :param key_groups:  List of ``KeyGroup`` integers, adding keys from these
-                            groups to the data gathered.  ``KeyGroup.ALL`` is
-                            equivalent to specifying all the other key groups.
-                            ``None`` or ``[]`` when the only keys that should
-                            be included are in ``key_names`` and ``keypress_list``.
+        :param key_groups:
+            Optional:  possibly empty list of integers from the ``KeyGroup``
+            enumeration.  Keys from the specified groups will be added to the
+            data gathered.  ``[KeyGroup.ALL]`` is equivalent to specifying all
+            the other key groups. ``None`` or ``[]`` when not applicable.
+            Default:  ``None``.
 
-        :param key_names:   List of individual key names.  Each key in this list
-                            specifies including all possible key-modifier
-                            combinations with this key.  Each key only has
-                            an impact on data gathered if it is found in
-                            ``data.all_key_names``.
-                            ``None`` or ``[]`` when not applicable.
+        :param key_names:
+            Optional:  list of individual key names.  Each key in this list
+            will be included in the data gathered, including all possible
+            key-modifier combinations with this key.  Each key only has an
+            impact on data gathered if it is found in
+            ``data.all_key_names``. ``None`` or ``[]`` when not applicable.
+            Default:  ``None``.
 
         :param keypress_list:
-                            List of "keys" (same format as "keys" elements
-                            from JSON key bindings) e.g.
+            Optional:  list of lists of "keypresses".  The inner lists have
+            the same format as "keys" entries from JSON key bindings, with
+            specific modifier keys.  Example:
 
-                                [["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]].
+                [["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]].
 
-                            Meaning:  include key bindings with these specific
-                            keypresses/keypress sequences.
-                            ``None`` or ``[]`` when not applicable.
+            Meaning:  include specific keypress/keypress sequences in report.
+            ``None`` or ``[]`` when not applicable.  Default:  ``None``.
 
         :param limit_to_packages:
-                            List of package names data should be limited to;
-                            ``None`` or ``[]`` when packages are not limited.
+            Optional:  case-sensitive list of package names that the gathered
+            key-binding data should be limited to.  ``None`` or ``[]`` means
+            to gather data from all installed packages.  Default:
+            ``None``.
 
         :param limit_to_context:
-                            Do not include key bindings that do not match the
-                            current context in the active View.
+            True means:  exclude from data gathered:  key bindings whose
+            "context" entries do not match the current circumstances
+            (editing context) in the active View.  Default:  ``False``
 
-        :param fmt:         Which output format (ascii_table.Format)
+        :param fmt:
+            Output format:  integer from ``ascii_table.Format`` enumeration.
+            If not a valid value from that enumeration, the default value is used.
+            Default:  ``ascii_table.Format.OUTLINED``
 
-        :param flags:       Bitwise-OR-ed combination of ``FlagBits`` enumerators.
+        :param flags:
+            Bitwise-OR-ed combination of ``data.FlagBits`` flag bits.
+            Default:  ``data.FlagBits.INCLUDE_UNBOUND_KEYPRESSES``
+
+        :param platform_code:
+            Optional:  Platform to simulate, or None to use current platform.
+            Constraint:  ``None`` (means use current platform) or one of these
+            strings:  "windows", "linux" or "osx".  Default:  ``None``
 
         :return:  None
 
 
         Usage:
-        ------
+        ======
 
-        Example Binding to a Key:
+        1.  Run one of the commands that start with "KeyBindingReport:"" in the
+            Command Palette.
 
-        {
-            "keys": ["ctrl+alt+shift+f4"],
-            "command": "key_binding_report",
-            "args": {
-                // class KeyGroup(IntEnum):
-                //     # Non-negative values index into ``key_name_groups``.
-                //     ALL            = -2  # Equivalent to specifying all groups >= 0.
-                //     KEY_SEQUENCES  = -1  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
+        2.  Example running the command from a Plugin:
 
-                //     NUMBER_KEYS    =  0  # \
-                //     LETTER_KEYS    =  1  #  \
-                //     F_KEYS         =  2  #   \__ These index into ``key_name_groups``.
-                //     SYMBOL_KEYS    =  3  #   /
-                //     NAMED_KEYS     =  4  #  /
-                //     KEYPAD_KEYS    =  5  # /
-                "key_groups"   : [1],
-                "key_names"    : ["q", "w", "e", "s"],
-                "keypress_list": [["ctrl+p"], ["ctrl+shift+p"], ["ctrl+k", "ctrl+u"]],
-                "limit_to_packages"     : ["Default"],
+                args = {"key_groups": [1], "key_names": ["q", "w", "e", "s"]}
+                view.run_command("key_binding_report", args)
 
-                // class Format(IntEnum):
-                //     # Formats supported by Generator
-                //     BARE             = 0
-                //     OUTLINED         = 1
-                //     OUTLINED_COLUMNS = 2
-                //     RESTRUCTUREDTEXT = 3
-                "fmt": 1,
+        3.  Example Binding to a Key:
 
-                // class FlagBits(IntFlag):
-                //     # Output Flags
-                //     INCLUDE_UNBOUND_KEY_COMBINATIONS  = 0x0001  #     1
-                //     INCLUDE_UNTRANSLATED_CONTEXTS     = 0x0002  #     2
-                //     INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0x0004  #     4
-                //     ADD_SOURCE_COLUMN                 = 0x0008  #     8
-                //     ADD_COMMENTS_COLUMN               = 0x0010  #    16
-                //     TABLE_KEY_AFTER_TABLE             = 0x0020  #    32
-                //     INCLUDE_WINDOWS_KEY               = 0x0040  #    64
-                //     SEPARATE_TABLES_BY_KEY_GROUPS     = 0x0080  #   128
-                //     OUTPUT_TO_FILES                   = 0x0100  #   256
-                //     ALL_PLATFORMS                     = 0x0200  #   512
-                //
-                //     # Utility Bits
-                //     ANY_CONTEXT_REQUESTED             = 0x0002 | 0x0004  # 6
-                //     NONE                              = 0x0000  #     0
-                //     ALL                               = 0xFFFF  # 65535
-                //     ANY                               = 0xFFFF  # 65535
-                "flags": 255,
+            {
+                "keys": ["f4"],
+                "command": "key_binding_report",
+                "args": {
+                    // class KeyGroup(IntEnum):
+                    //     NUMBER_KEYS    =  0  # \
+                    //     LETTER_KEYS    =  1  #  \
+                    //     F_KEYS         =  2  #   \__ These index into ``key_name_groups``.
+                    //     SYMBOL_KEYS    =  3  #   /
+                    //     NAMED_KEYS     =  4  #  /
+                    //     KEYPAD_KEYS    =  5  # /
+                    //
+                    //     FIRST          =  0  # Used in range checks, e.g. FIRST <= x <= LAST.
+                    //     LAST           =  5  # Used in range checks, e.g. FIRST <= x <= LAST.
+                    //
+                    //     KEY_SEQUENCES  =  6  # Multiple-keypress sequences, e.g. ["ctrl+k", "ctrl+u"]
+                    //     ALL            =  7  # Equivalent to specifying all groups [FIRST-LAST] + KEY_SEQUENCES.
+                    "key_groups"   : [1],
+                    "key_names"    : ["q", "w", "e", "s"],
+                    "keypress_list": [["ctrl+p"], ["ctrl+shift+p"], ["ctrl+k", "ctrl+u"]],
+                    "limit_to_packages"     : ["Default"],
+
+                    // class Format(IntEnum):
+                    //     # Formats supported by Generator
+                    //     BARE             = 0
+                    //     OUTLINED         = 1
+                    //     OUTLINED_COLUMNS = 2
+                    //     RESTRUCTUREDTEXT = 3
+                    "fmt": 1,
+
+                    // class FlagBits(IntFlag):
+                    //     # Output Flags
+                    //     INCLUDE_UNBOUND_KEYPRESSES        = 0x0001  #     1
+                    //     INCLUDE_UNBOUND_KEYPRESSES_ONLY   = 0x0002  #     2
+                    //     INCLUDE_UNTRANSLATED_CONTEXTS     = 0x0004  #     4
+                    //     INCLUDE_NATURAL_LANGUAGE_CONTEXTS = 0x0008  #     8
+                    //     ADD_SOURCE_COLUMN                 = 0x0010  #    16
+                    //     ADD_COMMENTS_COLUMN               = 0x0020  #    32
+                    //     TABLE_KEY_AFTER_TABLE             = 0x0040  #    64
+                    //     INCLUDE_WINDOWS_KEY               = 0x0080  #   128
+                    //     ALL_IN_ONE_TABLE                  = 0x0100  #   256
+                    //     OUTPUT_TO_FILES                   = 0x0200  #   512
+                    //     ALL_PLATFORMS                     = 0x0400  #  1024
+                    //
+                    //     # Utility Bits
+                    //     ANY_UNBOUND_KEYPRESSES            = 0x0001 | 0x0002  #     3
+                    //     ANY_CONTEXT_REQUESTED             = 0x0004 | 0x0008  #    12
+                    //     NONE                              = 0x0000           #     0
+                    //     ALL                               = 0xFFFF           # 65535
+                    //     ANY                               = 0xFFFF           # 65535
+                    //
+                    "flags":  21,      // unbound,     , contexts,         , src,    ,          ,    ,           ,      ,
+                    // "flags": 156,   // unbound,     , contexts, nat_lang, src,    ,          , win,           ,      ,
+                    // "flags": 277,   // unbound,     , contexts,         , src,    ,          ,    , sep_tables,      ,
+                    // "flags": 533,   // unbound,     , contexts,         , src,    ,          ,    ,           , files,
+                    // "flags": 789,   // unbound,     , contexts,         , src,    ,          ,    , sep_tables, files,
+                    // "flags": 773,   // unbound,     , contexts,         ,    ,    ,          ,    , sep_tables, files,
+                    // "flags": 1797,  // unbound,     , contexts,         ,    ,    ,          ,    , sep_tables, files, all_plat
+                    // "flags": 1925,  // unbound,     , contexts,         ,    ,    ,          , win, sep_tables, files, all_plat
+                    // "flags": 1805,  // unbound,     , contexts, nat_lang,    ,    ,          ,    , sep_tables, files, all_plat
+
+                    // "platform_code": "osx",
+                },
             },
-        },
+
+        See also:  ``KeyBindingReport.sublime-commands`` for more examples.
+
+
+        Ways to Use This Report
+        =======================
 
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
         | Description                   |packages   |key_groups   |key_names | keypress_list                          |
         +===============================+===========+=============+==========+========================================+
-        | By Package:  output all key   |['pkgname']| None or []  |None or []| None or []                             |
+        | By Package:  output all key   |["pkgname"]|    None     |   None   |    None                                |
         | bindings contained in Package |           |             |          |                                        |
         | (e.g. Default or a 3rd-party  |           |             |          |                                        |
         | Package)                      |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified key limited      |['pkgname']| None or []  |['a', ...]| None or []                             |
+        | By specified key limited      |["pkgname"]|    None     |["a", ...]|    None                                |
         | to a Package:  output all     |           |             |          |                                        |
         | of key's binding(s)           |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified key:  output     |None or [] | None or []  |['a', ...]| None or []                             |
+        | By specified key:  output     |   None    |    None     |["a", ...]|    None                                |
         | that key's bindings in all    |           |             |          |                                        |
         | Packages that contain         |           |             |          |                                        |
-        | binding(s) for that key       |           |             |          |                                        |
+        | bindings for that key         |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified ``KeyGroup``     |None or [] |[F_KEYS, ...]|None or []| None or []                             |
+        | By specified ``KeyGroup``     |   None    |[F_KEYS, ...]|   None   |    None                                |
         | using bindings from all       |           |             |          |                                        |
         | Packages.                     |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified ``KeyGroup``     |['pkgname']|[F_KEYS, ...]|None or []| None or []                             |
+        | By specified ``KeyGroup``     |["pkgname"]|[F_KEYS, ...]|   None   |    None                                |
         | limited to a Package.         |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
-        | By specified ``keypress_list``|None or [] | None or []  |None or []|[["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]]|
+        | By specified ``keypress_list``|   None    |    None     |   None   |[["ctrl+k", "ctrl+u"], ["ctrl+shift+p"]]|
         | for all Packages.             |           |             |          |                                        |
         +-------------------------------+-----------+-------------+----------+----------------------------------------+
         """
         debugging = is_debugging(DebugBits.KEY_BINDING_REPORT)
         if debugging:
             print('In KeyBindingReportCommand.run()....')
-            print( output.report_specification(
-                    key_groups,
-                    key_names,
-                    keypress_list,
-                    limit_to_packages,
-                    limit_to_context,
-                    fmt,
-                    flags,
-                    indent_level = 1
-                    )
-                 )
-            # print(f'  {key_groups=}')
-            # print(f'  {key_names=}')
-            # print(f'  {keypress_list=}')
-            # print(f'  {limit_to_packages=}')
-            # print(f'  {limit_to_context=}')
-            # print(f'  {fmt=}')
-            # print(f'  flags=0x{flags:{output.flags_format_spec_hex}}')
 
-        if flags & output.FlagBits.ALL_PLATFORMS:
+        if platform_code and platform_code not in platform.platform_names_by_code:
+            raise AssertionError(f'`platform_code` must be one of {platform.platform_codes!r}.')
+
+        if not (ascii_table.Format.FIRST <= fmt <= ascii_table.Format.LAST):
+            fmt = ascii_table.Format.OUTLINED
+
+        if flags & data.FlagBits.ALL_PLATFORMS:
             # Run once for each platform.
             platform_code_tuple = (
-                    data.windows_platform_code,
-                    data.linux_platform_code,
-                    data.osx_platform_code
+                    platform.windows_platform_code,
+                    platform.linux_platform_code,
+                    platform.osx_platform_code
                     )
 
+            t0 = datetime.now()
+
             for platform_code in platform_code_tuple:
-                data.set_platform(platform_code)
+                platform.simulate_platform(platform_code)
 
                 if debugging:
-                    print(f'  Running for platform [{data.platform_name}]....')
+                    print(f'  Running for platform [{platform.platform_name}]....')
 
                 t0, t1, t2, t3 = _generate_report(
                         self,
-                        edit,
                         key_groups,
                         key_names,
                         keypress_list,
@@ -581,13 +621,19 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                     print('    Total                           : ', str(t3 - t0))
 
             # Finally, set back to normal platform again.
-            data.set_current_platform()
+            platform.set_current_platform()
+
+            if debugging:
+                t4 = datetime.now()
+                print('    Time to report on all platforms : ', str(t4 - t0))
 
         else:
+            if platform_code:
+                platform.simulate_platform(platform_code)
+
             # Just run once.
             t0, t1, t2, t3 = _generate_report(
                     self,
-                    edit,
                     key_groups,
                     key_names,
                     keypress_list,
@@ -597,6 +643,9 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
                     flags,
                     debugging
                     )
+
+            if platform_code:
+                platform.set_current_platform()
 
             if debugging:
                 print('  Time to generate data structures: ', str(t1 - t0))

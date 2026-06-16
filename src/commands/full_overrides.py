@@ -1,13 +1,17 @@
-"""
-Report Key Bindings that fully override other key bindings.
-***********************************************************
+"""************************************************************************
+Report Key Bindings that fully override other key bindings
+**********************************************************
 
 See ``context_overrides.py`` docstring for detailed description.
 """
+
+import os
 from datetime import datetime
+import sublime
 import sublime_plugin
-from ...lib.debug import DebugBits, is_debugging
+from ...lib.debug import IntFlag, DebugBits, is_debugging
 from ...lib import output_view
+from .. import platform
 from .. import core
 from .. import data
 from .. import output
@@ -33,14 +37,19 @@ _report_title = 'Key-Binding Overrides'
 
 class KeyBindingReportOverridesCommand(sublime_plugin.ApplicationCommand):
     """ Report Key Bindings that override other key bindings. """
-    def run(self):
+    def run(self, platform_code: str | None = None):
         """
         Report Key Bindings that override other key bindings.
         """
         debugging = is_debugging(DebugBits.FULL_OVERRIDES_REPORT)
         if debugging:
-            print('>\n>\n>\n>')
             print(f'In {self.__class__.__name__}.run()...')
+
+        if platform_code and platform_code not in platform.platform_names_by_code:
+            raise AssertionError(f'`platform_code` must be one of {platform.platform_codes!r}.')
+
+        if platform_code:
+            platform.simulate_platform(platform_code)
 
         t0 = datetime.now()
         key_data = data.KeyBindingData()
@@ -49,11 +58,17 @@ class KeyBindingReportOverridesCommand(sublime_plugin.ApplicationCommand):
         override_list = key_data.binding_overrides()
         t1 = datetime.now()
 
-        # TODO: rmv after testing.
+        if debugging:
+            # Write verification/validation files.
+            temp_dir = sublime.cache_path()
+            main_key_path = os.path.join(temp_dir, 'by_main_key.txt')
+            key_seq_path = os.path.join(temp_dir, 'by_key_seq.txt')
+            key_data.dump_to_files(main_key_path, key_seq_path)
+
         # Write verification/validation files.
-        main_key_path = r'r:\by_main_key.txt'
-        key_seq_path  = r'r:\by_key_seq.txt'
-        key_data.dump_to_files(main_key_path, key_seq_path)
+        # main_key_path = r'r:\by_main_key.txt'
+        # key_seq_path  = r'r:\by_key_seq.txt'
+        # key_data.dump_to_files(main_key_path, key_seq_path)
         t2 = datetime.now()
 
         # =================================================================
@@ -96,7 +111,11 @@ class KeyBindingReportOverridesCommand(sublime_plugin.ApplicationCommand):
 
         t3 = datetime.now()
 
-        print('Time to compute overrides: ', str(t1 - t0))
-        print('Time to write files      : ', str(t2 - t1))
-        print('Time to generate report  : ', str(t3 - t2))
-        print('Total                    : ', str(t3 - t0))
+        if platform_code:
+            platform.set_current_platform()
+
+        if debugging:
+            print('Time to compute overrides: ', str(t1 - t0))
+            print('Time to write files      : ', str(t2 - t1))
+            print('Time to generate report  : ', str(t3 - t2))
+            print('Total                    : ', str(t3 - t0))

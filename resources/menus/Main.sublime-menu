@@ -1,21 +1,461 @@
 [
 	{
 		"id": "tools",
-		"children":
-		[
+		"children": [
 			{
-				"caption": "KeyBindingReport",
-				"children":
-				[
+				"caption": "Key Bindings Report",
+				"mnemonic": "K",
+				"children": [
 					{
-						"caption": "Key Bindings Report",
-						"mnemonic": "K",
+						"caption": "All KeyBindingReport Commands",
+						"mnemonic": "A",
 						"command": "show_overlay",
 						"args": {"overlay": "command_palette", "text": "KeyBindingReport: "}
 					},
 					{
-						"caption": "Which Binding Report",
-						"command": "key_binding_report_which_binding",
+						"caption": "Outlined Format",
+						"mnemonic": "O",
+						"children": [
+							{
+								"caption": "Default Package",
+								"mnemonic": "D",
+								"children": [
+									{
+										"caption": "1 All Keypress Combinations",
+										"mnemonic": "1",
+										"command": "key_binding_report",
+										"args": {
+											"limit_to_packages": ["Default"],
+											"key_groups": [7],
+											"fmt": 1,
+											"flags": 29,
+										},
+									},
+									{
+										"caption": "2 All Keypress Combinations (Separate Tables)",
+										"command": "key_binding_report",
+										"mnemonic": "2",
+										"args": {
+											"limit_to_packages": ["Default"],
+											"key_groups": [7],
+											"fmt": 1,
+											"flags": 285
+										},
+									},
+									{
+										"caption": "3 Number Keys",
+										"mnemonic": "3",
+										"command": "key_binding_report",
+										"args": {
+											"limit_to_packages": ["Default"],
+											"key_groups": [0],
+											"fmt": 1,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "4 Letter Keys",
+										"mnemonic": "4",
+										"command": "key_binding_report",
+										"args": {
+											"limit_to_packages": ["Default"],
+											"key_groups": [1],
+											"fmt": 1,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "5 Function Keys",
+										"mnemonic": "5",
+										"command": "key_binding_report",
+										"args": {
+											"limit_to_packages": ["Default"],
+											"key_groups": [2],
+											"fmt": 1,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "6 Symbol Keys",
+										"mnemonic": "6",
+										"command": "key_binding_report",
+										"args": {
+											"limit_to_packages": ["Default"],
+											"key_groups": [3],
+											"fmt": 1,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "7 Named Keys",
+										"mnemonic": "7",
+										"command": "key_binding_report",
+										"args": {
+											"limit_to_packages": ["Default"],
+											"key_groups": [4],
+											"fmt": 1,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "8 Keypad Keys",
+										"mnemonic": "8",
+										"command": "key_binding_report",
+										"args": {
+											"limit_to_packages": ["Default"],
+											"key_groups": [5],
+											"fmt": 1,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "9 Keypress Sequences",
+										"mnemonic": "9",
+										"command": "key_binding_report",
+										"args": {
+											"limit_to_packages": ["Default"],
+											"key_groups": [6],
+											"fmt": 1,
+											"flags": 29
+										},
+									},
+								]
+							},
+							{
+								"caption": "All Installed Packages",
+								"mnemonic": "A",
+								"children": [
+									{
+										"caption": "1 All Keypress Combinations",
+										"mnemonic": "1",
+										"command": "key_binding_report",
+										"args": {
+											"key_groups": [7],
+											"fmt": 1,
+											"flags": 29,
+										},
+									},
+									{
+										"caption": "2 All Keypress Combinations (Separate Tables)",
+										"command": "key_binding_report",
+										"mnemonic": "2",
+										"args": {
+											"key_groups": [7],
+											"fmt": 1,
+											"flags": 285
+										},
+									},
+									{
+										"caption": "3 Number Keys",
+										"mnemonic": "3",
+										"command": "key_binding_report",
+										"args": {
+											"key_groups": [0],
+											"fmt": 1,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "4 Letter Keys",
+										"mnemonic": "4",
+										"command": "key_binding_report",
+										"args": {
+											"key_groups": [1],
+											"fmt": 1,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "5 Function Keys",
+										"mnemonic": "5",
+										"command": "key_binding_report",
+										"args": {
+											"key_groups": [2],
+											"fmt": 1,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "6 Symbol Keys",
+										"mnemonic": "6",
+										"command": "key_binding_report",
+										"args": {
+											"key_groups": [3],
+											"fmt": 1,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "7 Named Keys",
+										"mnemonic": "7",
+										"command": "key_binding_report",
+										"args": {
+											"key_groups": [4],
+											"fmt": 1,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "8 Keypad Keys",
+										"mnemonic": "8",
+										"command": "key_binding_report",
+										"args": {
+											"key_groups": [5],
+											"fmt": 1,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "9 Keypress Sequences",
+										"mnemonic": "9",
+										"command": "key_binding_report",
+										"args": {
+											"key_groups": [6],
+											"fmt": 1,
+											"flags": 29
+										},
+									},
+								]
+							},
+						]
+					},
+					{
+						"caption": "reStructuredText Format",
+						"mnemonic": "r",
+						"children": [
+							{
+								"caption": "Default Package",
+								"mnemonic": "D",
+								"children": [
+									{
+										"caption": "1 All Keypress Combinations",
+										"mnemonic": "1",
+										"command": "key_binding_report",
+										"args": {
+											"limit_to_packages": ["Default"],
+											"key_groups": [7],
+											"fmt": 3,
+											"flags": 29,
+										},
+									},
+									{
+										"caption": "2 All Keypress Combinations (Separate Tables)",
+										"command": "key_binding_report",
+										"mnemonic": "2",
+										"args": {
+											"limit_to_packages": ["Default"],
+											"key_groups": [7],
+											"fmt": 3,
+											"flags": 285
+										},
+									},
+									{
+										"caption": "3 Number Keys",
+										"mnemonic": "3",
+										"command": "key_binding_report",
+										"args": {
+											"limit_to_packages": ["Default"],
+											"key_groups": [0],
+											"fmt": 3,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "4 Letter Keys",
+										"mnemonic": "4",
+										"command": "key_binding_report",
+										"args": {
+											"limit_to_packages": ["Default"],
+											"key_groups": [1],
+											"fmt": 3,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "5 Function Keys",
+										"mnemonic": "5",
+										"command": "key_binding_report",
+										"args": {
+											"limit_to_packages": ["Default"],
+											"key_groups": [2],
+											"fmt": 3,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "6 Symbol Keys",
+										"mnemonic": "6",
+										"command": "key_binding_report",
+										"args": {
+											"limit_to_packages": ["Default"],
+											"key_groups": [3],
+											"fmt": 3,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "7 Named Keys",
+										"mnemonic": "7",
+										"command": "key_binding_report",
+										"args": {
+											"limit_to_packages": ["Default"],
+											"key_groups": [4],
+											"fmt": 3,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "8 Keypad Keys",
+										"mnemonic": "8",
+										"command": "key_binding_report",
+										"args": {
+											"limit_to_packages": ["Default"],
+											"key_groups": [5],
+											"fmt": 3,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "9 Keypress Sequences",
+										"mnemonic": "9",
+										"command": "key_binding_report",
+										"args": {
+											"limit_to_packages": ["Default"],
+											"key_groups": [6],
+											"fmt": 3,
+											"flags": 29
+										},
+									},
+								]
+							},
+							{
+								"caption": "All Installed Packages",
+								"mnemonic": "A",
+								"children": [
+									{
+										"caption": "1 All Keypress Combinations",
+										"mnemonic": "1",
+										"command": "key_binding_report",
+										"args": {
+											"key_groups": [7],
+											"fmt": 3,
+											"flags": 29,
+										},
+									},
+									{
+										"caption": "2 All Keypress Combinations (Separate Tables)",
+										"command": "key_binding_report",
+										"mnemonic": "2",
+										"args": {
+											"key_groups": [7],
+											"fmt": 3,
+											"flags": 285
+										},
+									},
+									{
+										"caption": "3 Number Keys",
+										"mnemonic": "3",
+										"command": "key_binding_report",
+										"args": {
+											"key_groups": [0],
+											"fmt": 3,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "4 Letter Keys",
+										"mnemonic": "4",
+										"command": "key_binding_report",
+										"args": {
+											"key_groups": [1],
+											"fmt": 3,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "5 Function Keys",
+										"mnemonic": "5",
+										"command": "key_binding_report",
+										"args": {
+											"key_groups": [2],
+											"fmt": 3,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "6 Symbol Keys",
+										"mnemonic": "6",
+										"command": "key_binding_report",
+										"args": {
+											"key_groups": [3],
+											"fmt": 3,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "7 Named Keys",
+										"mnemonic": "7",
+										"command": "key_binding_report",
+										"args": {
+											"key_groups": [4],
+											"fmt": 3,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "8 Keypad Keys",
+										"mnemonic": "8",
+										"command": "key_binding_report",
+										"args": {
+											"key_groups": [5],
+											"fmt": 3,
+											"flags": 29
+										},
+									},
+									{
+										"caption": "9 Keypress Sequences",
+										"mnemonic": "9",
+										"command": "key_binding_report",
+										"args": {
+											"key_groups": [6],
+											"fmt": 3,
+											"flags": 29
+										},
+									},
+								]
+							},
+						]
+					},
+					{
+						"caption": "Other Reports",
+						"mnemonic": "R",
+						"children": [
+							{
+								"caption": "Keys Used Report (Current Platform)",
+								"mnemonic": "U",
+								"command": "key_binding_report_keys_used",
+							},
+							{
+								"caption": "Keys Available Report (Current Platform)",
+								"mnemonic": "A",
+								"command": "key_binding_report_keys_available"
+							},
+							{
+								"caption": "Which Binding?",
+								"mnemonic": "W",
+								"command": "key_binding_report_which_binding",
+							},
+							{
+								"caption": "Key-Binding Overrides",
+								"mnemonic": "O",
+								"command": "key_binding_report_overrides",
+							},
+							{
+								"caption": "Key-Binding Overrides (in Current Context)",
+								"mnemonic": "C",
+								"command": "key_binding_report_context_overrides",
+							},
+						]
 					},
 				]
 			},
@@ -32,6 +472,7 @@
 				"children": [
 					{
 						"caption": "KeyBindingReport",
+						"mnemonic": "K",
 						"children": [
 							{
 								"caption": "README",
