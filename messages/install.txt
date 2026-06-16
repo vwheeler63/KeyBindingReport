@@ -1,6 +1,6 @@
 KeyBindingReport is a Sublime Text Package that produces a wide variety
 of reports about the current state of Sublime Text key bindings on the
-system it is running on, with a choice of output formats.
+system it is running on.
 
 
 What You Can Do, and the Reports that Support It
