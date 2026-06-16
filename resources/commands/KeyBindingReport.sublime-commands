@@ -281,7 +281,7 @@
 		},
 	},
 	{
-		"caption": "KeyBindingReport: Key Sequences for All Installed Packages",
+		"caption": "KeyBindingReport: Keypress Sequences for All Installed Packages",
 		"command": "key_binding_report",
 		"args": {
 			"key_groups": [6],
@@ -463,7 +463,7 @@
 		},
 	},
 	{
-		"caption": "KeyBindingReport: Key Sequences for All Installed Packages (reStructuredText)",
+		"caption": "KeyBindingReport: Keypress Sequences for All Installed Packages (reStructuredText)",
 		"command": "key_binding_report",
 		"args": {
 			"key_groups": [6],
@@ -642,7 +642,7 @@
 		},
 	},
 	{
-		"caption": "KeyBindingReport: Key Sequences for All Installed Packages (reStructuredText) (Output to Files)",
+		"caption": "KeyBindingReport: Keypress Sequences for All Installed Packages (reStructuredText) (Output to Files)",
 		"command": "key_binding_report",
 		"args": {
 			"key_groups": [6],

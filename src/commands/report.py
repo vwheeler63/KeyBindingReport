@@ -157,9 +157,8 @@ def _key_table_and_footnotes_repr(
     # Insert footnotes => ``content``.
     # ---------------------------------------------------------------------
     if footnotes:
-        parts.append('')
-
         for footnote in footnotes:
+            parts.append('')
             parts.append(footnote.formatted())
 
     content = '\n'.join(parts)
