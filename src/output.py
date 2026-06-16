@@ -667,42 +667,43 @@ def main_key_tables(
             # We know ``main_key_name in by_main_key_dict`` because
             # ``key_group_list`` was used to build the empty version of
             # it at the beginning of the data gathering.
-            binding_lists_by_mod_code = by_main_key_dict[main_key_name]
-            has_no_key_bindings = not any(binding_lists_by_mod_code)
+            if main_key_name in by_main_key_dict:
+                binding_lists_by_mod_code = by_main_key_dict[main_key_name]
+                has_no_key_bindings = not any(binding_lists_by_mod_code)
 
-            # Do not iterate through empty binding lists when none have bindings,
-            # unless `key_groups` was part of the user request, in which case
-            # the user wants to see the keys with no bindings.
-            if has_no_key_bindings and not key_groups_requested:
-                continue
+                # Do not iterate through empty binding lists when none have bindings,
+                # unless `key_groups` was part of the user request, in which case
+                # the user wants to see the keys with no bindings.
+                if has_no_key_bindings and not key_groups_requested:
+                    continue
 
-            if include_unbound_keypresses:
-                # Include unbound keypresses.
-                num_to_process = 16 if include_win_key else 8
+                if include_unbound_keypresses:
+                    # Include unbound keypresses.
+                    num_to_process = 16 if include_win_key else 8
 
-                for modifier_code in range(num_to_process):
-                    binding_list = binding_lists_by_mod_code[modifier_code]
+                    for modifier_code in range(num_to_process):
+                        binding_list = binding_lists_by_mod_code[modifier_code]
 
-                    if binding_list:
-                        # Now we know there is content.
-                        if include_no_bindings:
-                            pass
-                            # Caller requested INCLUDE_UNBOUND_KEYPRESSES_ONLY, so we
-                            # don't include this set of bindings---only empty slots.
+                        if binding_list:
+                            # Now we know there is content.
+                            if include_no_bindings:
+                                pass
+                                # Caller requested INCLUDE_UNBOUND_KEYPRESSES_ONLY, so we
+                                # don't include this set of bindings---only empty slots.
+                            else:
+                                # Heading not added yet?  Add it now.
+                                tbl_pkg.append_rows_for_one_keypress(main_key_name, binding_list)
                         else:
-                            # Heading not added yet?  Add it now.
-                            tbl_pkg.append_rows_for_one_keypress(main_key_name, binding_list)
-                    else:
-                        tbl_pkg.append_empty_row(main_key_name, modifier_code)
-            else:
-                # Do not include unbound keypresses.
-                for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
-                    if not binding_list:
-                        continue
+                            tbl_pkg.append_empty_row(main_key_name, modifier_code)
+                else:
+                    # Do not include unbound keypresses.
+                    for modifier_code, binding_list in enumerate(binding_lists_by_mod_code):
+                        if not binding_list:
+                            continue
 
-                    # Here we know ``binding_list`` contains bindings.
-                    # Heading not added yet?  Add it now.
-                    tbl_pkg.append_rows_for_one_keypress(main_key_name, binding_list)
+                        # Here we know ``binding_list`` contains bindings.
+                        # Heading not added yet?  Add it now.
+                        tbl_pkg.append_rows_for_one_keypress(main_key_name, binding_list)
 
         # We've reached the end of a key group.
         tbl_pkg_list.append( (key_group_idx, tbl_pkg) )
@@ -785,8 +786,6 @@ def key_seq_tables(
     tbl_pkg_list: List[  Tuple[str, TablePackage]  ] = []
 
     if len(lead_keypr_str_set) > 0:
-        footnote_num = prev_footnote_num
-
         for lead_keypr_str in sorted(lead_keypr_str_set):
             # Generate new table and new footnotes list for each
             # unique leading keypress.
