@@ -1,6 +1,6 @@
 # KeyBindingReport
 
-**KeyBindingReport** is a Sublime Text Package that produces a wide variety of reports about the current state of Sublime Text key bindings on the system it is running on, with a choice of output formats.
+**KeyBindingReport** is a Sublime Text Package that produces a wide variety of reports about the current state of Sublime Text key bindings on the system it is running on.  This Package is highly useful to any Sublime Text user who deals with key bindings, especially for Package authors.
 
 
 
@@ -11,9 +11,9 @@
   Pre-Built reports that do this:
 
   - Key-Binding Overrides
-  - Key-Binding Overrides (in Current Context)
+  - Key-Binding Overrides (in Current Context, eliminates key bindings that do not apply to the current editing context)
 
-- Find out what key combinations are available for your Plugin or other Sublime Text customization(s).
+- Find out what key combinations are available for your Plugin or other customization(s).
 
   Pre-Built reports that do this:
 
@@ -21,21 +21,21 @@
     (There are 7 key groups: numbers, letters, function keys, symbols, named keys, keypad keys, and key sequences [e.g. "ctrl+k", "ctrl+u"].)
   - All Key Combinations for All Installed Packages
   - All Key Combinations for All Installed Packages (Separate Tables)
-    (Tables are separated by key groups.)
+    (generates a separate table for each key group)
 
-- Find out the names of all keys (including modifier keys) that currently having bindings in your Sublime Text installation, including how many times each key was used in a binding.
+- Find out the names of all keys (including modifier keys) that currently take part in key bindings in your Sublime Text installation, including how many times each key was used in a key binding.
 
   Pre-Built reports that do this:
 
   - Keys Used Report (Current Platform)
 
-- Find out all key combinations that have no key bindings.
+- Find out all key combinations that have no key bindings in your Sublime Text installation.
 
   Pre-Built reports that do this:
 
   - Keys Available Report (Current Platform)
 
-- Find out what key binding Sublime Text is choosing for a given key combination in a given editing context.  Editing contexts can also include when the caret is in a Panel (e.g. one of the Find Panels, Console Panel, etc.) or in an Overlay (e.g. Command Palette, Input Overlay, etc.).
+- Find out what key binding Sublime Text is choosing for a given key combination in a given editing context.  Editing contexts can also include when the caret is in a Panel (e.g. one of the Find Panels, Console Panel, etc.) or in an Overlay (e.g. Command Palette, Input Overlay, Switch Project Overlay, etc.).
 
   Pre-Built reports that do this:
 
@@ -43,7 +43,7 @@
 
 - If you're not already an expert at interpreting key binding "context" entries, the natural-language descriptions of key-binding "context" entries can speed your understanding of what they mean.
 
-- Each report is headed by its specification so you can see what arguments generated it.  This is helpful for running your own custom versions of each report to focus on your specific needs.
+- Each report is headed by its specification (set by what arguments the Command received) so you can see what arguments generated it.  This is helpful for running your own custom versions of each report to focus on your specific needs.
 
 - Run custom versions of each report from your own Plugins.  You can:
 
@@ -82,7 +82,7 @@ Also, most pre-built reports are available via menu:
 
 ## Reports Available
 
-As of this writing, there are 59 pre-built reports that this package can generate, plus an unlimited number of reports that can be created using custom calls to the "key_binding_report" Command (or the other commands), which you run from the Command Palette, or:
+Currently there are 59 pre-built reports that this package can generate, plus an unlimited number of reports that can be created using custom calls to the "key_binding_report" Command (or the other commands), which you run from the Command Palette, or:
 
 - bind to any available key combination,
 - calling `view.run_command("key_binding_report", custom_args)` (or any of the other commands) from a Plugin,
@@ -134,33 +134,52 @@ As of this writing, there are 59 pre-built reports that this package can generat
 
 - **KeyBindingReport: Key-Binding Overrides**, reports Key Bindings that, considering their "context" entries, override other key bindings, considering all shipped, installed and custom Packages present on your system.
 
-- **KeyBindingReport: Key-Binding Overrides (in Current Context)**, is the same as the above, with the addition that the current context in the current View is also taken into account.  Bindings are excluded whose "context" entries do not match the current editing context.
+- **KeyBindingReport: Key-Binding Overrides (in Current Context)**, is the same as the above, with the addition that the current context in the current View is also taken into account.  Bindings are excluded whose "context" entries do not match the current editing context.  Example:  if you are currently editing a Python file, any key bindings involved with other languages will not be considered.
 
 - **KeyBindingReport: Which Binding?**, generates a Key-Binding Report for a specified keypress or keypress sequence, based on the context in current View.  This command may be run when keyboard focus is in any View, including input or output Views in any Panel (e.g. one of the Find Panels, Console Panel, etc.) or in an Overlay (e.g. Command Palette, Input Overlay, etc.).
 
-  To catch the context in part of the user interface (i.e. in a Panel or Overlay), you will need to bind the Command to a keypress or mouse action, and pass hard-coded "keypress_list" and "platform_code"—otherwise the user prompt to enter the keypress list will move focus (and thus context) away from the Panel or Overlay that it is in when the Command is initiated.
+  To catch the context in part of the user interface (i.e. in a Panel or Overlay), you will need to bind the Command to a keypress or mouse action, and pass a hard-coded "keypress_list" and "platform_code"—otherwise the user prompt to enter the keypress list will move focus (and thus context) away from the Panel or Overlay that it is in when the Command is initiated.
 
-  Here is an example of doing so while the cursor is in the "Find" View (textbox) of the Find-in-Files Panel:
+  Here is an example of a key binding that runs this report for the :kbd:`Enter` key:
+
+  ```json
+  {
+    "keys": ["super+f1"],
+    "command": "key_binding_report_which_binding",
+    "args": {
+      "keypress_list": ["enter"],
+      "platform_code": "windows",
+    },
+  },
+  ```
+
+  ...and here is the report it generates when the cursor is in the "Find" View (text-entry box) of the Find-in-Files Panel:
 
   ```
   *************************************
   KeyBindingReport:  Which Key Binding?
   *************************************
-  
-  As of   :  13-Jun-2026 17:14
+
+  As of   :  15-Jun-2026 11:29
   Platform:  Windows
-  
+
   Note:
-      Binding Selected for ['enter'] in Current Context:
-      View(38) is part of the user interface:  find_in_files:input:find.
-      Line : "1, Col: 5"
+      Binding Selected for ["enter"] in Current Context
+
+  Current Context:
+      View(10) is part of the user interface:  find_in_files:input:find.
+      Line : 1, Col: 1, Point: 0
       Scope: "text.plain"
-  
+
+  ----------------------------------------------------------------------------
+
   Default/Default (Windows).sublime-keymap  (entry 352)
   { ["enter"], find_all
     "context": [
-      { "key": "panel"          , "operator": "equal", "operand": "find_in_files", "match_all": false },
+      { "key": "panel"          , "operator": "equal", "operand": "find_in_files", "match_all": false }
+        // Is current visible Panel's name == "find_in_files"?,
       { "key": "panel_has_focus", "operator": "equal", "operand": true, "match_all": false }
+        // Is any Panel visible with focus?
     ]
   }
   ```
@@ -188,7 +207,7 @@ The report may also exclude key bindings that do not match the current editing c
 Also specifiable:
 
 - optional output format, default: OUTLINED
-- optional `flags` to specify information and columns to include, and
+- optional `flags` to specify non-default information and columns to include, and
 - an optional name for an alternate platform to report on:  e.g. "windows", "linux", or "osx".
 
 
@@ -213,7 +232,7 @@ Also specifiable:
 
 
 
-### Overview of How to Use Command's Arguments
+### Overview of How to Use this Command's Arguments
 
 Have a look at this table to get the "gist" of how you can vary the arguments you pass to the command to generate different report content.  (The default for all of these arguments is `None` so if the report is run without passing any of these, the report will be empty.)
 
@@ -249,7 +268,50 @@ The value for the `key_groups` argument is optional, and can be a possibly empty
 
 ### `key_names` Argument
 
-Optional:  list of individual key names, e.g. ["space", "tab", "enter", "a", "b"].  Each key in this list will be included in the data gathered, including all possible key-modifier combinations with these keys.  Each key only has an impact on data gathered if it is found in `data.all_key_names` (which is a programmatically assembled list of all key names in `data.key_name_groups`).  `None` or `[]` when not applicable.  Default:  `None`.
+Optional:  list of individual key names, e.g. ["space", "tab", "enter", "a", "b"].  Each key in this list will be included in the data gathered, including all possible key-modifier combinations with these keys.  Each key only has an impact on data gathered if it is found in `data.all_key_names` (which is a programmatically assembled list of all key names in `data.key_name_groups`, shown in the list below).  `None` or `[]` when not applicable.  Default:  `None`.
+
+```
+                                                        Alternate      Specialty
+                    Regular Key Names                   Symbol Names   Keyboards
+    --------------------------------------------------  -------------  -----------------
+    0   a   n   f1   ,   keypad0          up            backquote      close
+    1   b   o   f2   .   keypad1          down          equals         copy
+    2   c   p   f3   \   keypad2          left          forward_slash  cut
+    3   d   q   f4   /   keypad3          right         minus          find
+    4   e   r   f5   ;   keypad4          insert        plus           open
+    5   f   s   f6   '   keypad5          delete                       paste
+    6   g   t   f7   `   keypad6          home                         redo
+    7   h   u   f8   -   keypad7          end                          save
+    8   i   v   f9   =   keypad8          pageup                       sysreq
+    9   j   w   f10  [   keypad9          pagedown                     undo
+        k   x   f11  ]   keypad_period    backspace
+        l   y   f12      keypad_divide    tab                          browser_back
+        m   z   f13      keypad_multiply  enter                        browser_favorites
+                f14      keypad_minus     pause                        browser_forward
+                f15      keypad_plus      break                        browser_home
+                f16      keypad_enter     space                        browser_refresh
+                f17      clear            escape                       browser_search
+                f18                       context_menu                 browser_stop
+                f19
+                f20                                                    + (Spanish keyboard)
+    ^   \___/    ^   ^     ^              \______________________________________________/
+    |     |      |   |     |                                |
+    |     |      |   |     |                                +-- NAMED_KEYS
+    |     |      |   |     +-- KEYPAD_KEYS
+    |     |      |   +-- SYMBOL_KEYS
+    |     |      +-- F_KEYS
+    |     +-- LETTER_KEYS
+    +-- NUMBER_KEYS
+```
+
+And the following are also part of the symbol key group:
+```
+    "  (  )  {  }                  # <-- These can be found in Default keymap
+                                   #     with contexts.
+
+    `  ~  !  @  #  $  %  ^  &      # <-- These are also bind-able (and should
+    *  _  +  |  :  "  <  >  ?      #     have contexts if used).
+```
 
 
 
