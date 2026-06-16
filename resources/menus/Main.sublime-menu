@@ -8,7 +8,7 @@
 				"children": [
 					{
 						"caption": "All KeyBindingReport Commands",
-						"mnemonic": "C",
+						"mnemonic": "A",
 						"command": "show_overlay",
 						"args": {"overlay": "command_palette", "text": "KeyBindingReport: "}
 					},
