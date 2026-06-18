@@ -14,15 +14,18 @@ import sublime
 # Importing ``IntFlag`` in the below is to remain compatible with Python 3.8,
 # which requires it.  Python 3.14 does not.
 from ..lib.debug import IntFlag, DebugBits, is_debugging, set_debugging_bits  # noqa: F401
-from ..keybindingreport import package_name
 from . import platform
 from . import output
+from . import smart_context
 
 
 
 # *************************************************************************
 # Configuration
 # *************************************************************************
+
+# Package Name
+package_name, _, _ = __spec__.parent.rpartition('.')
 
 # Use name of parent directory as `package_name`.
 _cfg_pkg_settings_file                       = package_name + '.sublime-settings'
@@ -171,7 +174,7 @@ def on_plugin_loaded():
     _on_pkg_settings_chgd()
     debugging = is_debugging(DebugBits.LOAD_UNLOAD)
     if debugging:
-        print(f'In {__package__}.core.on_plugin_loaded()')
+        print(f'In {__name__}.on_plugin_loaded()')
 
     # Establish event hook for "settings changed" event. This allows the user
     # to change the lists that partake in the content of the RegEx that detects
@@ -184,6 +187,9 @@ def on_plugin_loaded():
     # names based on platform.
     platform.set_current_platform()
 
+    # Have `smart_context` load `on_query_context()` Listeners and
+    # and snippets for reference later.
+    smart_context.on_plugin_loaded()
 
     # Report.
     if debugging:

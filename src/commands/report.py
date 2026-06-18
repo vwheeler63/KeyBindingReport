@@ -24,7 +24,6 @@ from .. import output
 # Constants
 # *************************************************************************
 
-_report_title          = f'{core.package_name}:  Specified Key-Bindings ({{$platform}})'
 _report_short_title    = 'Key-Binding Report ({$platform})'
 
 
@@ -251,7 +250,7 @@ def _generate_report(
     # -----------------------------------------------------------------
     # Heading
     # -----------------------------------------------------------------
-    rpt_title = _report_title.replace('{$platform}', platform.platform_name)
+    rpt_title = f'{core.package_name}:  Specified Key-Bindings ({platform.platform_name})'
     content_parts = []
     content_parts.append(output.report_heading(rpt_title, note))
     content_parts.append('')

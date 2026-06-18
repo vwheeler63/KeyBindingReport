@@ -1,25 +1,27 @@
-from ...keybindingreport import reload
-
-debugging = False
+debugging = True
 if debugging:
-    print(f'{__package__}  >>> module execution....')
+    print(f'{__name__}  >>> module execution....')
+
+from ...lib import reloader
 
 # These reload needs to include all the used modules in this directory, and
 # all the subdirectories below it through a command that looks like
-# ``reload(__package__ + '.subdirectory_name')``.  This is because the
+# ``reload(__spec__.parent + '.subdirectory_name')``.  This is because the
 # normal ``import`` statements will not do anything once they have been
 # loaded since they are already present in ``sys.modules``.  But when they
 # have since been modified, this forces them to be reloaded.
-if __package__ is not None:
-    reload(__package__, (
-            'report',
-            'which_binding',
-            'keys_used',
-            'keys_available',
-            'context_overrides',
-            'full_overrides'
+if __spec__.parent is not None:
+    reloader.reload(
+            __spec__.parent,
+            (
+                'report',
+                'which_binding',
+                'keys_used',
+                'keys_available',
+                'context_overrides',
+                'full_overrides'
             )
-          )
+            )
 
 # These imports are *below* the calls to ``reload()`` because when they are
 # above the calls to ``reload()``, then the reloads re-load the just-imported
@@ -54,4 +56,4 @@ __all__ = [
 ]
 
 if debugging:
-    print(f'  {__package__}  <<<')
+    print(f'  {__name__}  <<<')
