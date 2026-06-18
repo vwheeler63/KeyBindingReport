@@ -1,8 +1,8 @@
-debugging = True
+debugging = False
 if debugging:
     print(f'{__name__}  >>> module execution....')
 
-from . import reloader
+from . import reloader  # noqa: E402
 
 if __spec__.parent is not None:
     reloader.reload(
