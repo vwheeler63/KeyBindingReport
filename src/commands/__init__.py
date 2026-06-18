@@ -2,7 +2,7 @@ debugging = True
 if debugging:
     print(f'{__name__}  >>> module execution....')
 
-from ...lib import reloader
+from ...lib import reloader  # noqa: E402
 
 # These reload needs to include all the used modules in this directory, and
 # all the subdirectories below it through a command that looks like
