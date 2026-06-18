@@ -467,7 +467,6 @@
 		"children": [
 			{
 				"caption": "Package Settings",
-				"mnemonic": "P",
 				"id": "package-settings",
 				"children": [
 					{
@@ -476,6 +475,7 @@
 						"children": [
 							{
 								"caption": "README",
+								"mnemonic": "R",
 								"command": "open_file",
 								"args": {
 									"file": "${packages}/KeyBindingReport/README.md"
@@ -484,6 +484,7 @@
 							{ "caption": "-" },
 							{
 								"caption": "Settings",
+								"mnemonic": "S",
 								"command": "edit_settings",
 								"args": {
 									"base_file": "${packages}/KeyBindingReport/resources/settings/KeyBindingReport.sublime-settings",
