@@ -1,3 +1,12 @@
+[![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](https://github.com/vwheeler63/KeyBindingReport/blob/master/LICENSE)
+[![Requires Sublime Text Build 4000 or later](https://img.shields.io/badge/Sublime_Text-4000+-ca875a?style=flat-square&logo=sublimetext)](https://www.sublimetext.com)
+[![Download BoxDrawing from Package Control](https://img.shields.io/packagecontrol/dt/KeyBindingReport.svg?style=flat-square&logo=sublime-text)](https://packages.sublimetext.io/packages/BoxDrawing)
+[![Latest Tag](https://img.shields.io/badge/tag-1.0.0-royalblue?style=flat-square&logo=github)](https://github.com/vwheeler63/KeyBindingReport/tags)
+[![GitHub Repository](https://img.shields.io/badge/github-repo-blue?style=flat-square&logo=github)](https://github.com/vwheeler63/KeyBindingReport)
+
+<div id="readme"></div>
+
+
 # KeyBindingReport
 
 **KeyBindingReport** is a Sublime Text Package that produces a wide variety of reports about the current state of Sublime Text key bindings on the system it is running on.  This Package is highly useful to any Sublime Text user who deals with key bindings, especially for Package authors.
