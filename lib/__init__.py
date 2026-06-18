@@ -1,11 +1,18 @@
-from ..keybindingreport import reload
-
 debugging = True
 if debugging:
-    print(f'{__package__}  >>> module execution....')
+    print(f'{__name__}  >>> module execution....')
 
-if __package__ is not None:
-    reload(__package__, ('debug', 'rst_utils', 'output_view', 'ascii_table'))
+from . import reloader
+
+if __spec__.parent is not None:
+    reloader.reload(
+            __spec__.parent,
+            ('debug', 'rst_utils', 'output_view', 'ascii_table')
+            # This list intentionally omits 'reloader' so that its
+            # `_reload_indent_level` state doesn't get disturbed while
+            # reloading is going on.  It does not change very often.
+            # The cost is:  when it does change, ST has to be re-started.
+            )
 
 # These imports are *below* the calls to ``reload()`` because when they are
 # above the calls to ``reload()``, then the reloads re-load the just-imported
@@ -33,4 +40,4 @@ __all__ = [
 ]
 
 if debugging:
-    print(f'{__package__}  <<<')
+    print(f'{__name__}  <<<')

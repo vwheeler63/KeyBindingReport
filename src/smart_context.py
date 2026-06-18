@@ -153,6 +153,7 @@ from xml.etree import ElementTree as ET
 import sublime
 from sublime import QueryOperator
 import sublime_plugin
+from . import core
 from ..lib.debug import IntFlag, DebugBits, is_debugging
 
 
@@ -368,6 +369,23 @@ debugging = is_debugging(DebugBits.LOADING_CONTEXT_ENV)
 # -------------------------------------------------------------------------
 
 
+def on_plugin_loaded():
+    global _on_query_context_listener_list
+    global _on_query_context_file_list
+    global _snippets_by_trigger
+
+    t0 = datetime.now()
+    _on_query_context_listener_list, _on_query_context_file_list = _on_qry_context_listeners()
+    t1 = datetime.now()
+    _snippets_by_trigger = _snippet_triggers_dictionary()
+
+    if debugging:
+        t2 = datetime.now()
+        print(f'Time to load `on_query_context()` listeners: {t1 - t0}.')
+        print(f'Time to load Snippet triggers and scopes   : {t2 - t1}.')
+        print(f'Total                                      : {t2 - t0}.')
+
+
 def _on_qry_context_listeners():
     """
     Generate and return a list of instantiated event-listener objects
@@ -376,8 +394,8 @@ def _on_qry_context_listeners():
     if debugging:
         print('In context._on_qry_context_listeners()...:')
 
-    skip_packages = ["Default.", "Package Control.", "SublimeLinter."]
-    st_modules = [".sublime", ".sublime_plugin", ".sublime_types"]
+    skip_packages = ['Default.', 'Package Control.', 'SublimeLinter.', core.package_name, 'OverrideAudit']
+    st_modules = ['.sublime', '.sublime_plugin', '.sublime_types']
     listeners = []
     files = []
 
@@ -634,16 +652,6 @@ def _snippet_triggers_dictionary():
 
     return result_dict
 
-t0 = datetime.now()
-_on_query_context_listener_list, _on_query_context_file_list = _on_qry_context_listeners()
-t1 = datetime.now()
-_snippets_by_trigger = _snippet_triggers_dictionary()
-
-if debugging:
-    t2 = datetime.now()
-    print(f'Time to load `on_query_context()` listeners: {t1 - t0}.')
-    print(f'Time to load Snippet triggers and scopes   : {t2 - t1}.')
-    print(f'Total                                      : {t2 - t0}.')
 
 
 # *************************************************************************

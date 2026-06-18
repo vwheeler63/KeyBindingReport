@@ -257,7 +257,7 @@ class DebugBits(IntFlag):
 # output, getting away from the profuse "all at once" debug output.
 # *************************************************************************
 
-_debugging: DebugBits = DebugBits.IMPORTING
+_debugging: DebugBits = DebugBits.NONE
 _valid_debugging_string_re = None
 _cfg_debugging_print_format = '08X'
 

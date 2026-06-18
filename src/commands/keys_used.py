@@ -14,6 +14,7 @@ from .. import platform
 from .. import key_binding
 from .. import data
 from .. import output
+from .. import core
 
 
 
@@ -21,13 +22,7 @@ from .. import output
 # Configuration
 # *************************************************************************
 
-_report_title = 'Keys Used in All Keymaps (Current Platform)'
 _report_short_title = 'Keys Used'
-
-
-# *************************************************************************
-# Constants
-# *************************************************************************
 
 
 
@@ -169,7 +164,8 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
         other_key_table.set_tight_columns([True, False])
         other_key_table.set_column_alignments(['^', '>'])
 
-        content_parts = [output.report_heading(_report_title)]
+        rpt_title = f'{core.package_name}:  Keys Used in All Keymaps ({platform.platform_name})'
+        content_parts = [output.report_heading(rpt_title)]
         content_parts.append('')
         content_parts.append('Modifier Keys:')
         content_parts.append( mod_key_table.to_string(ascii_table.Format.OUTLINED) )

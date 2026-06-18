@@ -156,7 +156,7 @@ needed.  Such values are created something like this:
             else:
                 modifier_code |= ModifierKeyBits.CTRL
         else:
-            raise AssertionError(f'{__package__}.Keypress.__init__(): modifier key unrecognized: [{mod_key_name}].')
+            raise AssertionError(f'{__name__}.Keypress.__init__(): modifier key unrecognized: [{mod_key_name}].')
 
 
 
