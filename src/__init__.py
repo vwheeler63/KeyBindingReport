@@ -2,16 +2,17 @@ debugging = True
 if debugging:
     print(f'{__name__}  >>> module execution....')
 
-from ..lib import reloader  # noqa: E402
+# TODO: remove remnants of `reloader` if `InPlaceReloader` works out.
+# from ..lib import reloader  # noqa: E402
 
-# These reload needs to include all the used modules in this directory, and
-# all the subdirectories below it through a command that looks like
-# ``reload(__spec__.parent + '.subdirectory_name')``.  This is because the
-# normal ``import`` statements will not do anything once they have been
-# loaded since they are already present in ``sys.modules``.  But when they
-# have since been modified, this forces them to be reloaded.
-reloader.reload(__spec__.parent, ('core', 'platform', 'smart_context', 'key_binding', 'data', 'output'))
-reloader.reload(__spec__.parent + '.commands')  # Recurse into .commands/ subpackage.
+# # These reload needs to include all the used modules in this directory, and
+# # all the subdirectories below it through a command that looks like
+# # ``reload(__spec__.parent + '.subdirectory_name')``.  This is because the
+# # normal ``import`` statements will not do anything once they have been
+# # loaded since they are already present in ``sys.modules``.  But when they
+# # have since been modified, this forces them to be reloaded.
+# reloader.reload(__spec__.parent, ('core', 'platform', 'smart_context', 'key_binding', 'data', 'output'))
+# reloader.reload(__spec__.parent + '.commands')  # Recurse into .commands/ subpackage.
 
 # These imports are *below* the calls to ``reload()`` because when they are
 # above the calls to ``reload()``, then the reloads re-load the just-imported

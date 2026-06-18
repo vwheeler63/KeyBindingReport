@@ -2,17 +2,18 @@ debugging = True
 if debugging:
     print(f'{__name__}  >>> module execution....')
 
-from . import reloader  # noqa: E402
+# TODO: remove remnants of `reloader` if `InPlaceReloader` works out.
+# from . import reloader  # noqa: E402
 
-if __spec__.parent is not None:
-    reloader.reload(
-            __spec__.parent,
-            ('debug', 'rst_utils', 'output_view', 'ascii_table')
-            # This list intentionally omits 'reloader' so that its
-            # `_reload_indent_level` state doesn't get disturbed while
-            # reloading is going on.  It does not change very often.
-            # The cost is:  when it does change, ST has to be re-started.
-            )
+# if __spec__.parent is not None:
+#     reloader.reload(
+#             __spec__.parent,
+#             ('debug', 'rst_utils', 'output_view', 'ascii_table')
+#             # This list intentionally omits 'reloader' so that its
+#             # `_reload_indent_level` state doesn't get disturbed while
+#             # reloading is going on.  It does not change very often.
+#             # The cost is:  when it does change, ST has to be re-started.
+#             )
 
 # These imports are *below* the calls to ``reload()`` because when they are
 # above the calls to ``reload()``, then the reloads re-load the just-imported

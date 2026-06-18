@@ -66,7 +66,10 @@ See `README.md` and `src/core.py` for more details.
 @version  1.0  11-Apr-2026 18:21 vw  - Created
 *********************************************************************** """
 from datetime import datetime
-
+import importlib.abc
+import importlib.machinery
+import sys
+from types import ModuleType
 
 
 # *************************************************************************
@@ -81,21 +84,88 @@ debugging = True
 if debugging:
     print(f'{__name__}  >>> module execution....')
 
-from . import lib  # noqa: E402
+# from . import lib            # noqa: E402
+
+
+# -------------------------------------------------------------------------
+# kiss-reloader
+# Ref:  https://github.com/kaste/KissReloader#add-a-reloader-to-your-package
+# -------------------------------------------------------------------------
+class InPlaceReloader(importlib.abc.MetaPathFinder, importlib.abc.Loader):
+    def __init__(self, package_name=__spec__.parent, plugin_name=__name__):
+        prefix = package_name + "."
+        self.modules = {
+            name: module
+            for name, module in sys.modules.items()
+            if name.startswith(prefix) and name != plugin_name
+        }
+        self.loaders = {}
+
+    def __enter__(self):
+        return self.install()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.uninstall()
+
+    def install(self):
+        for name in self.modules:
+            sys.modules.pop(name, None)
+
+        self.clear_parent_module_attributes()
+        sys.meta_path.insert(0, self)
+        return self
+
+    def uninstall(self):
+        if self in sys.meta_path:
+            sys.meta_path.remove(self)
+
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname not in self.modules:
+            return None
+
+        spec = importlib.machinery.PathFinder.find_spec(fullname, path)
+        if spec is None or spec.loader is None:
+            return None
+
+        self.loaders[fullname] = spec.loader
+        spec.loader = self
+        return spec
+
+    def create_module(self, spec):
+        return self.modules[spec.name]
+
+    def exec_module(self, module):
+        self.loaders[module.__name__].exec_module(module)
+
+    def clear_parent_module_attributes(self):
+        for name, module in self.modules.items():
+            parent_name, _, attr = name.rpartition(".")
+            parent = self.modules.get(parent_name)
+            if isinstance(parent, ModuleType) and getattr(parent, attr, None) is module:
+                delattr(parent, attr)
+
+
+with InPlaceReloader():
+    # Only `core` and the Commands are actually needed herein, but
+    # the other imports are included so that they are reloaded when
+    # the Package is reloaded (e.g. when this file is saved).
+    from . import lib            # noqa: E402, F401
+    from .src import *           # noqa: E402, F403
+    from .src import core        # noqa: E402 -- Not required, but makes LSP-pyright happy.
 
 
 
 # *************************************************************************
 # Load / Reload
 # *************************************************************************
-lib.reloader.reload(__spec__.parent + '.lib')  # Recurse into .lib/ subpackage.
-lib.reloader.reload(__spec__.parent + '.src')  # Recurse into .src/ subpackage.
+# lib.reloader.reload(__spec__.parent + '.lib')  # Recurse into .lib/ subpackage.
+# lib.reloader.reload(__spec__.parent + '.src')  # Recurse into .src/ subpackage.
 
 # This needs to be BELOW the `reload()` definition above because the modules
 # imported here require `reload()` to already be defined because they need
 # to call it during the imports below.
-from .src import *     # noqa: E402, F403
-from .src import core  # noqa: E402  # Not required, but makes LSP-pyright happy.
+# from .src import *     # noqa: E402, F403
+# from .src import core  # noqa: E402  # Not required, but makes LSP-pyright happy.
 
 
 
