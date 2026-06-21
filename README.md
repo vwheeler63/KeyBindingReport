@@ -302,7 +302,7 @@ Optional:  list of individual key names, e.g. ["space", "tab", "enter", "a", "b"
                 f17      clear            escape                       browser_search
                 f18                       context_menu                 browser_stop
                 f19
-                f20                                                    + (Spanish keyboard)
+                f20                                                    + (Spanish kbd)
     ^   \___/    ^   ^     ^              \___________________________________________/
     |     |      |   |     |                                |
     |     |      |   |     |                                +-- NAMED_KEYS
