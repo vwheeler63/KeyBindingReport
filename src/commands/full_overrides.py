@@ -7,6 +7,7 @@ See ``context_overrides.py`` docstring for detailed description.
 
 import os
 from datetime import datetime
+from typing import Union
 import sublime
 import sublime_plugin
 from ...lib.debug import IntFlag, DebugBits, is_debugging
@@ -37,7 +38,7 @@ _report_title = 'Key-Binding Overrides'
 
 class KeyBindingReportOverridesCommand(sublime_plugin.ApplicationCommand):
     """ Report Key Bindings that override other key bindings. """
-    def run(self, platform_code: str | None = None):
+    def run(self, platform_code: Union[str, None] = None):
         """
         Report Key Bindings that override other key bindings.
         """

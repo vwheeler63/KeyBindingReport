@@ -84,13 +84,13 @@ Usage
 Public API
 ==========
 
-    def set_debugging_bits(setting_value: int | str | bool):
+    def set_debugging_bits(setting_value: Union[int, str, bool]):
         # Set Debug Module setting to ``selection_bits``.
 
-    def add_debugging_bits(setting_value: int | str | bool):
+    def add_debugging_bits(setting_value: Union[int, str, bool]):
         # Add 1 bits in ``selection_bits`` to Debug Module setting.
 
-    def subtract_debugging_bits(setting_value: int | str | bool):
+    def subtract_debugging_bits(setting_value: Union[int, str, bool]):
         # Subtract 1 bits in ``selection_bits`` from Debug Module setting.
 
     def is_debugging(selection_bits: DebugBits = DebugBits.ANY) -> int:
@@ -108,9 +108,10 @@ Public API
         #
         #            If ``True``, at least one of the bits was found.
 *************************************************************************** """
-from typing import Union
+from typing import Union, List
 from enum import IntFlag
 import re
+import sublime
 
 
 class DebugBits(IntFlag):
@@ -300,7 +301,7 @@ def _securely_computed_bits_from_setting_input(
         selection_bits: Union[int,str,bool,DebugBits]
         ) -> DebugBits:
     """
-    Accept any of int | str | bool | DebugBits, and securely compute the
+    Accept any of Union[int, str, bool] | DebugBits, and securely compute the
     applicable Debug Module bits in an int:  ``result``.
     """
     global _valid_debugging_string_re

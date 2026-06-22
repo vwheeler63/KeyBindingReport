@@ -5,6 +5,7 @@ Keys-Available Report
 See docstring under ``KeyBindingReportKeysAvailableCommand.run()`` method.
 """
 
+from typing import Union
 import sublime_plugin
 from ...lib.debug import IntFlag, DebugBits, is_debugging
 from ...lib import ascii_table
@@ -33,7 +34,7 @@ from .. import output
 class KeyBindingReportKeysAvailableCommand(sublime_plugin.TextCommand):
     """ Report Keys-Available Based on All Keymaps Report. """
 
-    def run(self, edit, platform_code: str | None = None):
+    def run(self, edit, platform_code: Union[str, None] = None):
         """
         Generate Key-Binding Keys-Available Report.
 

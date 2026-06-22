@@ -297,6 +297,7 @@ it would be isolated to just those 2 keypresses.
 """
 import os
 from datetime import datetime
+from typing import Union
 import sublime
 import sublime_plugin
 from ...lib.debug import IntFlag, DebugBits, is_debugging
@@ -327,7 +328,7 @@ _report_title = 'Key-Binding Overrides in Current Context'
 
 class KeyBindingReportContextOverridesCommand(sublime_plugin.TextCommand):
     """ Report Key Bindings that override other key bindings. """
-    def run(self, edit, platform_code: str | None = None):
+    def run(self, edit, platform_code: Union[str, None] = None):
         """
         Report Key Bindings that override other key bindings.
         """

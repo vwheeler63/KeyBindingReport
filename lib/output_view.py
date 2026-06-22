@@ -14,13 +14,14 @@ Copyright 2017-2025 Terence Martin
     a new View in window containing current_view if provided,
     otherwise the current active window is used.
 """
+from typing import Union
 import sublime
 
 
 ###----------------------------------------------------------------------------
 
 
-def find_view(window, title, current_view=None) -> sublime.View | None:
+def find_view(window, title, current_view=None) -> Union[sublime.View, None]:
     """
     Attempt to find a view with the given title (name) in the given window.
 

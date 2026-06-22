@@ -7,7 +7,7 @@ end of this file.  The details of the algorithm are in the docstring for
 that command.
 """
 import os
-from typing import Sequence, Tuple
+from typing import Sequence, Tuple, Union
 from datetime import datetime
 import sublime_plugin
 import sublime
@@ -75,7 +75,7 @@ def _key_table_and_footnotes_repr(
         key_group_idx: int,
         tbl_pkg      : output.TablePackage,
         debugging    : int,
-        lead_keypr   : str | None = None,
+        lead_keypr   : Union[str, None] = None,
         ) -> str:
     # if debugging:
     #     print('In _key_table_and_footnotes_repr()....')
@@ -200,10 +200,10 @@ def _key_sequence_table_title(keypress_str: str) -> str:
 
 def _generate_report(
         self,
-        key_groups       : Sequence[data.KeyGroup] | None,
-        key_names        : Sequence[str]           | None,
-        keypress_list    : Sequence[Sequence[str]] | None,
-        limit_to_packages: Sequence[str]           | None,
+        key_groups       : Union[Sequence[data.KeyGroup], None],
+        key_names        : Union[Sequence[str]          , None],
+        keypress_list    : Union[Sequence[Sequence[str]], None],
+        limit_to_packages: Union[Sequence[str]          , None],
         limit_to_context : bool,
         fmt              : ascii_table.Format,
         flags            : data.FlagBits,
@@ -374,14 +374,14 @@ class KeyBindingReportCommand(sublime_plugin.TextCommand):
     def run(
             self,
             edit             : sublime.Edit,
-            key_groups       : Sequence[data.KeyGroup] | None = None,
-            key_names        : Sequence[str]           | None = None,
-            keypress_list    : Sequence[Sequence[str]] | None = None,
-            limit_to_packages: Sequence[str]           | None = None,
+            key_groups       : Union[Sequence[data.KeyGroup], None] = None,
+            key_names        : Union[Sequence[str]          , None] = None,
+            keypress_list    : Union[Sequence[Sequence[str]], None] = None,
+            limit_to_packages: Union[Sequence[str]          , None] = None,
             limit_to_context : bool = False,
             fmt              : ascii_table.Format = ascii_table.Format.OUTLINED,
             flags            : data.FlagBits = data.FlagBits.INCLUDE_UNBOUND_KEYPRESSES,
-            platform_code    : str | None = None
+            platform_code    : Union[str, None] = None
             ):
         r"""
         Generate Key-Binding Report.
