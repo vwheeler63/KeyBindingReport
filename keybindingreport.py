@@ -148,6 +148,10 @@ class InPlaceReloader(importlib.abc.MetaPathFinder, importlib.abc.Loader):
     Because this class inherits from both, it is both a "Finder" and a
     "Loader", i.e. an "Importer".
 
+
+    How it Works
+    ------------
+
     The "key ingredient" in this class is that at the end of ``find_spec()``,
     objects instantiated from this class inject themselves (``self``) as
     the loader, replacing the default loader.  But JUST for the modules in
@@ -205,7 +209,7 @@ class InPlaceReloader(importlib.abc.MetaPathFinder, importlib.abc.Loader):
 
         if len(self.modules) == 0:
             if debugging:
-                print(f'  No "{self.prefix}" modules found to remove. Using default import machinery.')
+                print(f'  No "{__spec__.parent}" modules found to remove. Using default import machinery.')
         else:
             # Remove this Package's modules from ``sys.modules``.
             count = 0
