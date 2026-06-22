@@ -145,7 +145,7 @@ return a Boolean value.
 import os
 import re
 import json
-from typing import List, Tuple
+from typing import List, Tuple, Union
 from enum import IntEnum
 import importlib
 from datetime import datetime
@@ -277,10 +277,10 @@ class Snippet:
     def __init__(
             self,
             path      : str,
-            content   : str | None,
-            tabTrigger: str | None,
-            scope     : str | None,
-            desc      : str | None):
+            content   : Union[str, None],
+            tabTrigger: Union[str, None],
+            scope     : Union[str, None],
+            desc      : Union[str, None]):
         self.path        = path
         self.content     = content
         self.tabTrigger  = tabTrigger
@@ -394,7 +394,7 @@ def _on_qry_context_listeners():
     if debugging:
         print('In context._on_qry_context_listeners()...:')
 
-    skip_packages = ['Default.', 'Package Control.', 'SublimeLinter.', core.package_name, 'OverrideAudit']
+    skip_packages = ['Default.', 'Package Control.', 'SublimeLinter.', core.package_name]
     st_modules = ['.sublime', '.sublime_plugin', '.sublime_types']
     listeners = []
     files = []
@@ -1193,7 +1193,7 @@ def _test_has_snippet(view, operator, operand, match_all):
 # Window Logic
 # =========================================================================
 
-def _group_for_view(view) -> int | None:
+def _group_for_view(view) -> Union[int, None]:
     """ Group number for view.
 
     :return:  None if view not in group.

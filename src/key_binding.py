@@ -116,7 +116,7 @@ See ``can_override()`` docstring.
 ***************************************************************************"""
 
 import json
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Union
 from enum import IntFlag
 from sublime_types import CommandArgs, Value
 from ..lib import rst_utils
@@ -366,8 +366,8 @@ class Keypress:
         |     super     | ---------------- | -------+    |
         |    primary    | -----------------+-------------+
         """
-        self.modifier_key_error_message: str | None = None
-        self.main_key_error_message: str | None = None
+        self.modifier_key_error_message: Union[str, None] = None
+        self.main_key_error_message: Union[str, None] = None
         modifier_code = 0
 
         if keypress_str.endswith('++'):
@@ -521,7 +521,7 @@ class KeyBinding:
         # -----------------------------------------------------------------
         # Context
         # -----------------------------------------------------------------
-        self._smart_context: smart_context.SmartContext | None = None
+        self._smart_context: Union[smart_context.SmartContext, None] = None
 
         if _context_key in decoded_binding:
             self._context = decoded_binding[_context_key]
@@ -602,7 +602,7 @@ class KeyBinding:
     def has_context(self) -> bool:
         return (( self._smart_context is not None ))
 
-    def context_list(self) -> List[dict] | None:
+    def context_list(self) -> Union[List[dict], None]:
         return self._context
 
     def context_json(self) -> str:
@@ -637,13 +637,13 @@ class KeyBinding:
 
         return result
 
-    def smart_context(self) -> smart_context.SmartContext | None:
+    def smart_context(self) -> Union[smart_context.SmartContext, None]:
         return self._smart_context
 
     def source(self) -> str:
         return self._source
 
-    def parts(self) -> Tuple[Tuple[str], str, CommandArgs, List[Dict[str, Value]] | None, str]:
+    def parts(self) -> Tuple[Tuple[str], str, CommandArgs, Union[List[Dict[str, Value]], None], str]:
         """
         Parts of JSON Key-Binding object, extracted as:
 

@@ -4,7 +4,7 @@ Which Binding Report
 """
 import os
 import json
-from typing import List, Tuple
+from typing import List, Tuple, Union
 from datetime import datetime
 import sublime_plugin
 import sublime
@@ -91,7 +91,7 @@ class KeypressListInputHandler(sublime_plugin.TextInputHandler):
         kp_list_json = json.dumps(kp_list)
         return sublime.Html(f'<strong>Keypress List:</strong> {kp_list_json}')
 
-    def validate(self, text: str, event: Event | None = None) -> bool:
+    def validate(self, text: str, event: Union[Event, None] = None) -> bool:
         """
         Called when user hits [Enter] to submit input.  If this method returns
         `False`, nothing happens.  If it returns `True`, the input sequence proceeds.
@@ -138,7 +138,7 @@ class KeypressListInputHandler(sublime_plugin.TextInputHandler):
         """
         print('User cancelled at KeypressListInputHandler.')
 
-    def confirm(self, text: str, event: Event | None = None):
+    def confirm(self, text: str, event: Union[Event, None] = None):
         """
         Called when the input is accepted, after the user has pressed enter and
         the text has been validated.
@@ -218,7 +218,7 @@ class PlatformCodeInputHandler(sublime_plugin.ListInputHandler):
         """
         print('User cancelled at PlatformCodeInputHandler.')
 
-    def confirm(self, text: str, event: Event | None = None):
+    def confirm(self, text: str, event: Union[Event, None] = None):
         """
         Called when the input is accepted, after the user has pressed enter and
         the text has been validated.
@@ -262,8 +262,8 @@ class KeyBindingReportWhichBindingCommand(sublime_plugin.TextCommand):
 
     def run(self,
             edit         : sublime.Edit,
-            keypress_list: List[str] | str,
-            platform_code: str | None
+            keypress_list: Union[List[str], str],
+            platform_code: Union[str, None]
             ):
         """
         By specified key based on current scope Report binding selected the

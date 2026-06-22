@@ -421,7 +421,7 @@ See ``KeyBindingReportCommand`` docstring for details.
 """
 import re
 import pprint
-from typing import Set, Sequence, List, Tuple
+from typing import Set, Sequence, List, Tuple, Union
 from enum import IntEnum, IntFlag
 import sublime
 from ..lib.debug import IntFlag, DebugBits, is_debugging
@@ -806,7 +806,7 @@ class KeyBindingData:
     def _extracted_overrides(self,
             binding_list: List[key_binding.ReportKeyBinding],
             debugging   : int
-            ) -> List[List[key_binding.ReportKeyBinding]] | None:
+            ) -> Union[ List[List[key_binding.ReportKeyBinding]], None ]:
         """
         List of overrides present in ``binding_list``.
 
@@ -838,7 +838,7 @@ class KeyBindingData:
         if binding_list is None or len(binding_list) < 2:
             raise AssertionError('binding_list must exist and contain multiple bindings.')
 
-        result: List[List[key_binding.ReportKeyBinding]] | None = []
+        result: Union[ List[List[key_binding.ReportKeyBinding]], None ] = []
 
         # First make a shallow copy of ``binding_list`` so we're not
         # deleting elements in the the input data.
@@ -937,7 +937,7 @@ class KeyBindingData:
         return result
 
     def binding_overrides(self,
-            view: sublime.View | None = None
+            view: Union[sublime.View, None] = None
             ) -> List[List[key_binding.ReportKeyBinding]]:
         """
         Locate key binding overrides defined as:
@@ -1082,7 +1082,7 @@ class KeyBindingData:
     def which_binding(self,
                 keypress_list: Sequence[str],
                 view         : sublime.View
-                ) -> key_binding.ReportKeyBinding | None:
+                ) -> Union[key_binding.ReportKeyBinding, None]:
         """
         Locate the key binding this ``keypress_list`` would hit (if any),
         based on data already gathered.
@@ -1204,11 +1204,11 @@ class KeyBindingData:
         return result
 
     def gather(self,
-            key_groups       : Sequence[KeyGroup] | None = None,
-            key_names        : Sequence[str] | None = None,
-            keypress_list    : Sequence[Sequence[str]] | None = None,
-            limit_to_packages: Sequence[str] | None = None,
-            view             : sublime.View | None = None
+            key_groups       : Union[Sequence[KeyGroup]     , None] = None,
+            key_names        : Union[Sequence[str]          , None] = None,
+            keypress_list    : Union[Sequence[Sequence[str]], None] = None,
+            limit_to_packages: Union[Sequence[str]          , None] = None,
+            view             : Union[sublime.View           , None] = None
             ):
         r"""
         Generate Key-Binding data, based on argument values provided, if any.
@@ -1656,11 +1656,11 @@ class KeyBindingData:
                 )
 
     def _build_report_data(self,
-            include_key_name_set   : Set[str] | None,
-            keypress_tuple_set     : Set[Tuple[str]] | None,
-            limit_to_packages      : Set[str] | None,
+            include_key_name_set   : Union[Set[str]       , None],
+            keypress_tuple_set     : Union[Set[Tuple[str]], None],
+            limit_to_packages      : Union[Set[str]       , None],
             incl_all_multi_key_seqs: bool,
-            view                   : sublime.View | None
+            view                   : Union[sublime.View   , None]
             ):
         """
         Build report data required by the report dictated by the 3 arguments.
@@ -1824,10 +1824,10 @@ class KeyBindingData:
             path                   : str,
             pkg_name               : str,
             file_name              : str,
-            include_key_name_set   : Set[str] | None,
-            keypress_tuple_set     : Set[Tuple[str]] | None,
+            include_key_name_set   : Union[Set[str]       , None],
+            keypress_tuple_set     : Union[Set[Tuple[str]], None],
             incl_all_multi_key_seqs: bool,
-            view                   : sublime.View | None
+            view                   : Union[sublime.View   , None]
             ):
         """
         Add key bindings from ``path``, which key bindings are included in these args:
@@ -2013,8 +2013,8 @@ class KeyBindingData:
                 self._add_binding_to_main_key_dict(binding, main_key_name, mod_code)
 
     def _build_empty_main_key_dict(self,
-            include_key_name_set: Set[str] | None,
-            keypress_tuple_set  : Set[Tuple[str]] | None,
+            include_key_name_set: Union[Set[str]       , None],
+            keypress_tuple_set  : Union[Set[Tuple[str]], None],
             ):
         r"""
         ``by_main_key_dict`` has a structure that will only ever be partially

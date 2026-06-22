@@ -5,6 +5,7 @@ Keys-Used Report
 See docstring under ``KeyBindingReportKeysUsedCommand.run()`` method.
 """
 
+from typing import Union
 import sublime_plugin
 import sublime
 from ...lib.debug import IntFlag, DebugBits, is_debugging
@@ -33,7 +34,7 @@ _report_short_title = 'Keys Used'
 class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
     """ Report Keys-Used-In-All-Keymaps Report. """
 
-    def run(self, platform_code: str | None = None):
+    def run(self, platform_code: Union[str, None] = None):
         """
         Generate Key-Binding Keys-Used Report.
 
