@@ -20,7 +20,7 @@
   Pre-Built reports that do this:
 
   - Key-Binding Overrides
-  - Key-Binding Overrides (in Current Context, eliminates key bindings that do not apply to the current editing context)
+  - Key-Binding Overrides (in Current Context) (eliminates key bindings that do not apply to the current editing context)
 
 - Find out what key combinations are available for your Plugin or other customization(s).
 
@@ -302,8 +302,8 @@ Optional:  list of individual key names, e.g. ["space", "tab", "enter", "a", "b"
                 f17      clear            escape                       browser_search
                 f18                       context_menu                 browser_stop
                 f19
-                f20                                                    + (Spanish keyboard)
-    ^   \___/    ^   ^     ^              \______________________________________________/
+                f20                                                    + (Spanish kbd)
+    ^   \___/    ^   ^     ^              \___________________________________________/
     |     |      |   |     |                                |
     |     |      |   |     |                                +-- NAMED_KEYS
     |     |      |   |     +-- KEYPAD_KEYS
