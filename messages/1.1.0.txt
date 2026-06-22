@@ -1,0 +1,17 @@
+Version 1.1.0 (2026-06-22 17:16 GMT)
+------------------------------------
+
+- Fixed Union[type1, type2] vs type1 | type2 typing syntax differences
+  between Python 3.8 and 3.14.  (Reverted back to 3.8-legal syntax.)
+  This was causing Package-load failures on systems with ST builds < 4203.
+
+- Implemented a more efficient and compact hot-reloader from example here:
+  https://github.com/kaste/KissReloader#add-a-reloader-to-your-package .
+  This:
+
+  - removed ./lib/reloader.py,
+  - changed how importing was done from the top-level Plugin, and
+  - removed reloading code from the `__init__.py` files in the 3 sub-Packages.
+
+  Reloading (e.g. during a version update or while developing) changed from
+  taking 32 ms down to to taking 22 ms.
