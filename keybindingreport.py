@@ -123,12 +123,8 @@ class InPlaceReloader(importlib.abc.MetaPathFinder, importlib.abc.Loader):
 
 
         with reloader():
-            # Only `core` and the Commands are actually needed herein, but
-            # the other imports are included so that they are reloaded when
-            # the Package is reloaded (e.g. when this file is saved).
-            from . import lib            # noqa: E402, F401
-            from .src import *           # noqa: E402, F403
-            from .src import core        # noqa: E402 -- Not required, but makes LSP-pyright happy.
+            # import your package here ... e.g.
+            from .core.commands import *
 
 
     Inheritance Design
