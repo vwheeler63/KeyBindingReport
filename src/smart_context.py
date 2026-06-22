@@ -394,7 +394,7 @@ def _on_qry_context_listeners():
     if debugging:
         print('In context._on_qry_context_listeners()...:')
 
-    skip_packages = ['Default.', 'Package Control.', 'SublimeLinter.', core.package_name, 'OverrideAudit']
+    skip_packages = ['Default.', 'Package Control.', 'SublimeLinter.', core.package_name]
     st_modules = ['.sublime', '.sublime_plugin', '.sublime_types']
     listeners = []
     files = []
