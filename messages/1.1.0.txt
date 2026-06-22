@@ -14,4 +14,4 @@ Version 1.1.0 (2026-06-22 17:16 GMT)
   - removed reloading code from the `__init__.py` files in the 3 sub-Packages.
 
   Reloading (e.g. during a version update or while developing) changed from
-  taking 32 ms down to to taking 22 ms.
+  taking 32 ms down to to taking 24 ms.
