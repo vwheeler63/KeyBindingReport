@@ -373,7 +373,9 @@ def on_plugin_loaded():
     global _on_query_context_listener_list
     global _on_query_context_file_list
     global _snippets_by_trigger
+    global debugging
 
+    debugging = is_debugging(DebugBits.LOADING_CONTEXT_ENV)
     t0 = datetime.now()
     _on_query_context_listener_list, _on_query_context_file_list = _on_qry_context_listeners()
     t1 = datetime.now()
