@@ -377,8 +377,15 @@ def on_plugin_loaded():
 
     debugging = is_debugging(DebugBits.LOADING_CONTEXT_ENV)
     t0 = datetime.now()
-    _on_query_context_listener_list, _on_query_context_file_list = _on_qry_context_listeners()
+    if core.setting__suppress_loading_on_query_context_modules:
+        _on_query_context_listener_list = []
+        _on_query_context_file_list     = []
+        if debugging:
+            print('Call to context._on_qry_context_listeners() suppressed per configuration.')
+    else:
+        _on_query_context_listener_list, _on_query_context_file_list = _on_qry_context_listeners()
     t1 = datetime.now()
+
     _snippets_by_trigger = _snippet_triggers_dictionary()
 
     if debugging:

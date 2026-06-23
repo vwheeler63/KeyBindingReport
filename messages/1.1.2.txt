@@ -1,0 +1,33 @@
+Version 1.1.2 (2026-06-23 16:46 GMT)
+------------------------------------
+
+- Added configuration item "suppress_loading_on_query_context_modules" and set its
+  default value to `False` (normal behavior).  Reason:  some installations were found
+  to have modules in them that have lingering side effects in the Sublime Text
+  run-time environment when KeyBindingReport loads them for the sake of being able
+  to call their `on_query_context()` functions when needed.
+
+  This feature allows the user to suppress this portion of functionality in the
+  Package through this setting alone.
+
+  Rationale:  99.9% of the features of KeyBindingReport are still powerful and useful
+  without it having `on_query_context()` functions available.  It uses these when:
+
+  - the report takes current editing context into consideration (e.g. in the
+    "Which Binding?" report), and eliminates key bindings that aren't a match for it,
+    and
+
+  - ONLY in THAT context, ONLY when it encounters context-test names ("key" entries)
+    that it does not recognize as part of the standard "set".  Only a small percentage
+    of Packages have their own special name in key-binding context "key" entries,
+    causing Sublime Text to need a `on_query_context()` to get a `True` or `False`
+    answer to the question:  "Does this key binding apply in this editing context?"
+
+  Let's take the BoxDrawing Package as an example:  what this feature enables is to
+  detect exactly when some arrow-key bindings have special binding that Sublime Text
+  will use when "BoxDrawing mode is ON".
+
+  KeyBindingReport correctly detects and reports when this key binding applies in the
+  "Which Binding?" report.  But this type of need is rare, and so it is deemed that
+  this functionality can be safely suppressed without hindering the other 99% of
+  KeyBindingReport's usefulness.

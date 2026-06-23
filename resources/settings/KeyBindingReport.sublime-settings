@@ -74,6 +74,19 @@
 	"timestamp_strftime_format": "%Y-%m-%d %H:%M",
 
 	// --------------------------------------------------------------------
+	// Boolean
+	// --------------------------------------------------------------------
+	// Suppress loading of modules visible to Sublime Text that contain
+	// on_query_context() functions.  Reason:  some installations were
+	// found to have modules in them that have lingering side effects in
+	// the Sublime Text run-time environment when KeyBindingReport loads
+	// them for the sake of being able to call their `on_query_context()`
+	// functions when needed.  If this situation applies to you, set this
+	// setting to `true` to suppress this (very small) part of this
+	// Package's functionality.
+	"suppress_loading_on_query_context_modules": false,
+
+	// --------------------------------------------------------------------
 	// String | Integer | Boolean
 	// --------------------------------------------------------------------
 	// Selectively turn on and off parts of debugging output in Console Panel.
