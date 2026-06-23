@@ -31,3 +31,17 @@ Version 1.1.2 (2026-06-23 16:46 GMT)
   "Which Binding?" report.  But this type of need is rare, and so it is deemed that
   this functionality can be safely suppressed without hindering the other 99% of
   KeyBindingReport's usefulness.
+
+  Side Effects:
+
+  The following reports may not be accurate if they rely upon a custom context-test
+  name (i.e. context "key" entry name) that is not among the standard set of context
+  "key" entry names documented here:
+
+  https://docs.sublimetext.io/reference/key_bindings.html#context-keys
+
+  - Which Binding? report
+  - Key Binding Overrides (in Current Context)
+
+  Alternately, you can use the "Key Binding Overrides" instead, but there is only
+  one "Which Binding?" report.
