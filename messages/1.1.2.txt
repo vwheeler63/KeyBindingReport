@@ -36,9 +36,13 @@ Version 1.1.2 (2026-06-23 16:46 GMT)
 
   The following reports may not be accurate if they rely upon a custom context-test
   name (i.e. context "key" entry name) that is not among the standard set of context
-  "key" entry names documented here:
+  "key" entry names listed here:
 
-  https://docs.sublimetext.io/reference/key_bindings.html#context-keys
+    https://packages.sublimetext.io/packages/KeyBindingReport#details-about-context-test-implementation
+
+  and documented here:
+
+    https://docs.sublimetext.io/reference/key_bindings.html#context-keys
 
   - Which Binding? report
   - Key Binding Overrides (in Current Context)
