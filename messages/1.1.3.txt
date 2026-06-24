@@ -1,0 +1,9 @@
+Version 1.1.3 (2026-06-24 18:00 GMT)
+------------------------------------
+
+- Added minor enhancements to debug output that displays when the Package
+  configuration item "debugging" contains the LOADING_CONTEXT_ENV flag, e.g.:
+
+  {
+    "debugging": "DebugBits.LOADING_CONTEXT_ENV",
+  }
