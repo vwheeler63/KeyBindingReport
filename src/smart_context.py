@@ -2180,7 +2180,7 @@ class SmartContext:
             if not found:
                 msg = (
                         f'  {self.__class__.__name__}:  key [{key}] not recognized\n'
-                        f'  including by an `on_query_context()` Listener.\n'
+                        f'    and no loaded `on_query_context()` EventListener recognized it.\n'
                         f'{self.binding.formatted(1, include_source = True)}'
                       )
                 print(msg)
