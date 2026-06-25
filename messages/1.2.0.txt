@@ -1,0 +1,12 @@
+Version 1.2.0 (2026-06-25 03:00 GMT)
+------------------------------------
+
+- Added `try` block around `sublime.decode_value()` to catch when key bindings
+  are invalid so that the logic does not try to proceed working with an invalid
+  key binding.  Instead an informative message is printed in the Console Panel
+  enabling to user to remedy the problem if appropriate.
+
+- Each key binding, to be valid, must have a "keys" entry and a "command" entry.
+  Omission of these entries are now checked for and instead of causing an
+  exception later in processing, an informative message is printed in the
+  Console Panel enabling to user to remedy the problem if appropriate.

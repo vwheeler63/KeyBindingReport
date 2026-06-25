@@ -1886,8 +1886,19 @@ class KeyBindingData:
             print(f'  {incl_all_multi_key_seqs=}')
             print(f'  {view=}')
 
-        keymap_resource_str = sublime.load_resource(path)
-        decoded_key_bindings = sublime.decode_value(keymap_resource_str)
+        try:
+            keymap_resource_str = sublime.load_resource(path)
+            decoded_key_bindings = sublime.decode_value(keymap_resource_str)
+        except Exception as e:
+            msg1 = f'{__name__}._conditionally_add_bindings_from_keymap() Error:'
+            msg2 = f'  Sublime Text could not parse keymap file at\n  {pkg_name}/{file_name}'
+            msg3 = f'  Exception:  {e}'
+            msg4 =  '  Skipping file.'
+            print(msg1)
+            print(msg2)
+            print(msg3)
+            print(msg4)
+            return
 
         if (   decoded_key_bindings is None
             or isinstance(decoded_key_bindings, bool)
@@ -1902,6 +1913,37 @@ class KeyBindingData:
             # VITAL:  it's vital that `keypress_tuple_bep` is a TUPLE and
             # not a list.  Reason:  to be used in membership tests below.
             # -------------------------------------------------------------
+            # Note:  instantiation of ``ReportKeyBinding`` has a
+            # precondition the binding has:
+            #
+            #   - a "keys" entry, and
+            #   - a "command" entry.
+            #
+            # If it does not, then print an informative error message and
+            # skip this binding.
+            # -------------------------------------------------------------
+            src = pkg_name + '/' + file_name
+            binding_is_valid = True
+            omitted_entries = []
+
+            if 'keys' not in decoded_binding:
+                omitted_entries.append('keys')
+                binding_is_valid = False
+            if 'command' not in decoded_binding:
+                omitted_entries.append('command')
+                binding_is_valid = False
+
+            if not binding_is_valid:
+                msg1 = f'Binding entry {i} in {src} does not have the following entries:'
+                msg2 = f'  {omitted_entries:!r}'
+                msg3 =  '  Skipping this binding since it is not valid.  This is its contents:'
+                msg4 = f'{decoded_binding:!r}'
+                print(msg1)
+                print(msg2)
+                print(msg3)
+                print(msg4)
+                continue
+
             keypress_tuple_bep = tuple(decoded_binding['keys'])
             keypress_count_bep = len(keypress_tuple_bep)
             main_key_name = '' # Make LSP-pyright happy.
@@ -1989,7 +2031,6 @@ class KeyBindingData:
             # Instantiate binding.  This "hooks it up" with context query
             # apparatus in case it is needed below.
             # -------------------------------------------------------------
-            src = pkg_name + '/' + file_name
             binding = key_binding.ReportKeyBinding(decoded_binding, src, i)
 
             # -------------------------------------------------------------
