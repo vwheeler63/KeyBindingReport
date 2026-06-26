@@ -1935,9 +1935,9 @@ class KeyBindingData:
 
             if not binding_is_valid:
                 msg1 = f'Binding entry {i} in {src} does not have the following entries:'
-                msg2 = f'  {omitted_entries:!r}'
+                msg2 = f'  {omitted_entries}'
                 msg3 =  '  Skipping this binding since it is not valid.  This is its contents:'
-                msg4 = f'{decoded_binding:!r}'
+                msg4 = f'{decoded_binding}'
                 print(msg1)
                 print(msg2)
                 print(msg3)
