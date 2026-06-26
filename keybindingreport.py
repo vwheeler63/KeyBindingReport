@@ -83,7 +83,7 @@ from types import ModuleType
 # the import required to support it causes a circular import.
 t0 = datetime.now()
 
-debugging = True
+debugging = False
 if debugging:
     print(f'{__name__}  >>> module execution....')
 
@@ -337,13 +337,9 @@ with reloader():
     # Only `core` and the Commands are actually needed herein, but
     # the other imports are included so that they are reloaded when
     # the Package is reloaded (e.g. when this file is saved).
-    print('>>> from . import lib')
     from . import lib      # noqa: E402, F401
-    print('>>> from .src import *')
     from .src import *     # noqa: E402, F403
-    print('>>> from .src import core')
     from .src import core  # noqa: E402 -- Not required, but makes LSP-pyright happy.
-    print('Importing completed.')
 
 
 
