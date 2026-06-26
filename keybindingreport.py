@@ -63,12 +63,15 @@ See `README.md` and `src/core.py` for more details.
 
 
 
+@version  1.2  26-Jun-2026 11:06 vw  - Replaced reloader
 @version  1.0  11-Apr-2026 18:21 vw  - Created
 *********************************************************************** """
 from datetime import datetime
 import importlib.abc
 import importlib.machinery
 import sys
+from contextlib import nullcontext
+from typing import Dict
 from types import ModuleType
 
 
@@ -80,19 +83,53 @@ from types import ModuleType
 # the import required to support it causes a circular import.
 t0 = datetime.now()
 
-debugging = False
+debugging = True
 if debugging:
     print(f'{__name__}  >>> module execution....')
 
-# from . import lib            # noqa: E402
 
-
-# -------------------------------------------------------------------------
-# kiss-reloader, from:
-# https://github.com/kaste/KissReloader#add-a-reloader-to-your-package
-# -------------------------------------------------------------------------
 class InPlaceReloader(importlib.abc.MetaPathFinder, importlib.abc.Loader):
     """
+    Hot-reloader for use when the containing Package is updated either
+    by development or when PackageControl updates it during run time.
+
+    This is the ``InPlaceReloader`` from the ``README.md`` file at
+      https://github.com/kaste/KissReloader#add-a-reloader-to-your-package
+
+    with documentation added to help make it understandable.
+
+
+    Usage
+    -----
+
+    .. code-block:: py
+
+        import importlib.abc
+        import importlib.machinery
+        import sys
+        from contextlib import nullcontext
+        from typing import Dict
+        from types import ModuleType
+
+        ...
+
+        def reloader(package_name=__spec__.parent, plugin_name=__name__):
+            prefix = package_name + "."
+            modules = {
+                name: module
+                for name, module in sys.modules.items()
+                if name.startswith(prefix) and name != plugin_name
+            }
+            return InPlaceReloader(modules) if modules else nullcontext()
+
+        with reloader():
+            # import your package here ... e.g.
+            from .src.commands import *
+
+
+    Inheritance Design
+    ------------------
+
     Inheriting from ``MetaPathFinder`` requires redefinition of:
 
     - find_spec()
@@ -105,40 +142,43 @@ class InPlaceReloader(importlib.abc.MetaPathFinder, importlib.abc.Loader):
     Because this class inherits from both, it is both a "Finder" and a
     "Loader", i.e. an "Importer".
 
+
+    How it Works
+    ------------
+
     The "key ingredient" in this class is that at the end of ``find_spec()``,
     objects instantiated from this class inject themselves (``self``) as
-    the loader, replacing the default loader.  Thus:
+    the loader, replacing the default loader.  But JUST for the modules in
+    this Package.  Thus:
 
-    - When the ``with`` below this class is executed for the first time,
-      ``__init__()`` below finds no already-existing modules from this Package
-      in ``sys.modules``, and so the Package relies upon normal importing
-      to import all the modules involved in this Package.
+    - When the ``with`` below this module is loaded for the first time, e.g.
+      during Sublime Text start-up, ``reloader()`` below finds no
+      already-existing modules from this Package in ``sys.modules``, and so
+      returns ``nullcontext()`` instead of an object instantiated from this
+      class, and so this class is not instantiated and the loading relies
+      entirely on the normal import mechanisms, without the involvement of
+      this class.
 
     - The next time the ``with`` is executed, all the imported modules in
-      this Package are found in ``sys.modules``, and are "reused" and
-      re-executed in place (to reload them), in the same order as needed
-      by import statements.
+      this Package are found in ``sys.modules``, and collected and adding
+      an additional reference to them in ``self.modules``, thus preserving
+      them when references to them are later removed from ``sys.modules``.
+      Finally, in ``exec_module()`` below, they are re-executed in place
+      (to reload them), in the same order as needed by the import statements
+      (since the reloading is triggered by executing the import machinery
+      called into play by the ``import`` statements themselves).
     """
-    def __init__(self, package_name=__spec__.parent, plugin_name=__name__):
+    def __init__(self, modules_dict: Dict[str, ModuleType]):
         if debugging:
             print(f'In {self.__class__.__name__}.__init__()...')
             print(f'  {self=}')
-            print(f'  {package_name=}')
-            print(f'  {plugin_name=}')
+            print('  Modules:')
+            for module_name in modules_dict:
+                print(f'    {module_name}')
 
-        # Remember Package name for debug output later.
-        self.prefix = package_name + "."
-
-        # Preserve actual modules from this Package for reloading.
-        self.modules = {
-            name: module
-            for name, module in sys.modules.items()
-            if name.startswith(self.prefix) and name != plugin_name
-        }
-        if debugging:
-            print('  self.modules:')
-            for name in self.modules:
-                print(f'    {name}')
+        # Preserve the modules from this Package for reloading by keeping a
+        # reference to them.
+        self.modules = modules_dict
 
         # Prepare loaders list, populated (one for each module) with each
         # successful call to ``self.find_spec()``, done by import machinery.
@@ -159,12 +199,13 @@ class InPlaceReloader(importlib.abc.MetaPathFinder, importlib.abc.Loader):
     def install(self):
         if debugging:
             print(f'In {self.__class__.__name__}.install()...')
-            print(f'  Removing Package "{self.prefix}" modules from `sys.modules`.')
+            print(f'  Removing Package "{__spec__.parent}" modules from `sys.modules`.')
 
         if len(self.modules) == 0:
             if debugging:
-                print(f'  No "{self.prefix}" modules found to remove. Using default import machinery.')
+                print(f'  No "{__spec__.parent}" modules found to remove. Using default import machinery.')
         else:
+            # Remove this Package's modules from ``sys.modules``.
             count = 0
             for name in self.modules:
                 count += 1
@@ -172,28 +213,37 @@ class InPlaceReloader(importlib.abc.MetaPathFinder, importlib.abc.Loader):
             if debugging:
                 print(f'  {count} modules removed.')
 
+            # Disconnect other likely references to those modules.
             self.clear_parent_module_attributes()
             if debugging:
                 print('  Temporarily injecting self (as an "importer" [finder + loader]) into beginning')
                 print('    of `sys.meta_path` list to intercept import statements from this Package that')
                 print('    are not fulfilled by by a search of `sys.modules`.  The 2nd and subsequent times')
                 print('    a module is imported will use the already-loaded module in `sys.modules`.')
+
+            # Insert self (`MetaPathFinder` role, as "importer" [both finder and loader]),
+            # but ONLY for modules in this Package.  This "filter" is implemented in
+            # ``find_spec()`` below by it returning ``None`` when the module is not
+            # part of ``self.modules``.
             sys.meta_path.insert(0, self)
 
         return self
 
     def uninstall(self):
+        if debugging:
+            print(f'In {self.__class__.__name__}.uninstall()...')
+
         if self in sys.meta_path:
             if debugging:
-                print('Removing self from `sys.meta_path` list.')
+                print('  Removing self from `sys.meta_path` list.')
             sys.meta_path.remove(self)
 
     def clear_parent_module_attributes(self):
         """
-        This clean-up is important. Without it, an import such as
+        This clean-up is important.  Without it, an import such as
         ``from package.core import store`` can reuse ``package.core.store``
-        directly from an already loaded parent package and never ask the
-        import machinery to reload ``package.core.store``.
+        directly from an already loaded parent package instead of getting it
+        reloaded and replaced through the import machinery.
         """
         if debugging:
             print(f'In {self.__class__.__name__}.clear_parent_module_attributes()...')
@@ -201,9 +251,11 @@ class InPlaceReloader(importlib.abc.MetaPathFinder, importlib.abc.Loader):
         for name, module in self.modules.items():
             parent_name, _, attr = name.rpartition(".")
             parent = self.modules.get(parent_name)
+            if parent is None:
+                parent = sys.modules.get(parent_name)
             if isinstance(parent, ModuleType) and getattr(parent, attr, None) is module:
                 if debugging:
-                    print(f'  Found attribute {parent_name}.{attr}:  disconnecting it.')
+                    print(f'  Found attribute {parent_name}.{attr}:  disconnecting reference.')
                 delattr(parent, attr)
 
     # =====================================================================
@@ -243,7 +295,7 @@ class InPlaceReloader(importlib.abc.MetaPathFinder, importlib.abc.Loader):
         self.loaders[fullname] = spec.loader
         # Inject ``self`` as the loader, thus "intercepting" normal loader/reloader.
         if debugging:
-            print('  Replacing default loader with self.')
+            print(f'  Replacing default loader with self for {fullname}.')
         spec.loader = self
         return spec
 
@@ -259,22 +311,39 @@ class InPlaceReloader(importlib.abc.MetaPathFinder, importlib.abc.Loader):
 
     def exec_module(self, module):
         if debugging:
-            print(f'  In {self.__class__.__name__}.exec_module().')
-        self.loaders[module.__name__].exec_module(module)
-
+            print(f'  In {self.__class__.__name__}.exec_module({module.__name__}).')
+        loader = self.loaders[module.__name__]
+        if hasattr(loader, "exec_module"):
+            loader.exec_module(module)
+        else:
+            loader.load_module(module.__name__)  # Python 3.8
 
 
 # *************************************************************************
 # Load / Reload
 # *************************************************************************
 
-with InPlaceReloader():
+def reloader(package_name=__spec__.parent, plugin_name=__name__):
+    prefix = package_name + "."
+    modules = {
+        name: module
+        for name, module in sys.modules.items()
+        if name.startswith(prefix) and name != plugin_name
+    }
+    return InPlaceReloader(modules) if modules else nullcontext()
+
+
+with reloader():
     # Only `core` and the Commands are actually needed herein, but
     # the other imports are included so that they are reloaded when
     # the Package is reloaded (e.g. when this file is saved).
-    from . import lib            # noqa: E402, F401
-    from .src import *           # noqa: E402, F403
-    from .src import core        # noqa: E402 -- Not required, but makes LSP-pyright happy.
+    print('>>> from . import lib')
+    from . import lib      # noqa: E402, F401
+    print('>>> from .src import *')
+    from .src import *     # noqa: E402, F403
+    print('>>> from .src import core')
+    from .src import core  # noqa: E402 -- Not required, but makes LSP-pyright happy.
+    print('Importing completed.')
 
 
 
