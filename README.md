@@ -1,7 +1,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](https://github.com/vwheeler63/KeyBindingReport/blob/master/LICENSE)
 [![Requires Sublime Text Build 4000 or later](https://img.shields.io/badge/Sublime_Text-4000+-ca875a?style=flat-square&logo=sublimetext)](https://www.sublimetext.com)
 [![Download KeyBindingReport from Package Control](https://img.shields.io/packagecontrol/dt/KeyBindingReport.svg?style=flat-square&logo=sublime-text)](https://packages.sublimetext.io/packages/KeyBindingReport)
-[![Latest Tag](https://img.shields.io/badge/tag-1.2.0-royalblue?style=flat-square&logo=github)](https://github.com/vwheeler63/KeyBindingReport/tags)
+[![Latest Tag](https://img.shields.io/badge/tag-1.2.1-royalblue?style=flat-square&logo=github)](https://github.com/vwheeler63/KeyBindingReport/tags)
 [![GitHub Repository](https://img.shields.io/badge/github-repo-blue?style=flat-square&logo=github)](https://github.com/vwheeler63/KeyBindingReport)
 
 <div id="readme"></div>
