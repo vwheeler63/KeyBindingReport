@@ -1,0 +1,9 @@
+Version 1.1.1 (2026-06-23 04:45 GMT)
+------------------------------------
+
+- Made it possible to produce debug output from the LOADING_CONTEXT_ENV
+  portion of the Package through Package configuration setting alone, e.g.
+
+  {
+      "debugging": "DebugBits.LOADING_CONTEXT_ENV",
+  }

@@ -63,6 +63,7 @@ See `README.md` and `src/core.py` for more details.
 
 
 
+@version  1.2  26-Jun-2026 11:06 vw  - Replaced reloader
 @version  1.0  11-Apr-2026 18:21 vw  - Created
 *********************************************************************** """
 from datetime import datetime
@@ -82,7 +83,7 @@ from types import ModuleType
 # the import required to support it causes a circular import.
 t0 = datetime.now()
 
-debugging = True
+debugging = False
 if debugging:
     print(f'{__name__}  >>> module execution....')
 
@@ -124,7 +125,7 @@ class InPlaceReloader(importlib.abc.MetaPathFinder, importlib.abc.Loader):
 
         with reloader():
             # import your package here ... e.g.
-            from .core.commands import *
+            from .src.commands import *
 
 
     Inheritance Design
@@ -230,9 +231,12 @@ class InPlaceReloader(importlib.abc.MetaPathFinder, importlib.abc.Loader):
         return self
 
     def uninstall(self):
+        if debugging:
+            print(f'In {self.__class__.__name__}.uninstall()...')
+
         if self in sys.meta_path:
             if debugging:
-                print('Removing self from `sys.meta_path` list.')
+                print('  Removing self from `sys.meta_path` list.')
             sys.meta_path.remove(self)
 
     def clear_parent_module_attributes(self):
@@ -248,6 +252,8 @@ class InPlaceReloader(importlib.abc.MetaPathFinder, importlib.abc.Loader):
         for name, module in self.modules.items():
             parent_name, _, attr = name.rpartition(".")
             parent = self.modules.get(parent_name)
+            if parent is None:
+                parent = sys.modules.get(parent_name)
             if isinstance(parent, ModuleType) and getattr(parent, attr, None) is module:
                 if debugging:
                     print(f'  Found attribute {parent_name}.{attr}:  disconnecting reference.')
@@ -290,7 +296,7 @@ class InPlaceReloader(importlib.abc.MetaPathFinder, importlib.abc.Loader):
         self.loaders[fullname] = spec.loader
         # Inject ``self`` as the loader, thus "intercepting" normal loader/reloader.
         if debugging:
-            print('  Replacing default loader with self.')
+            print(f'  Replacing default loader with self for {fullname}.')
         spec.loader = self
         return spec
 
@@ -306,9 +312,12 @@ class InPlaceReloader(importlib.abc.MetaPathFinder, importlib.abc.Loader):
 
     def exec_module(self, module):
         if debugging:
-            print(f'  In {self.__class__.__name__}.exec_module().')
-        self.loaders[module.__name__].exec_module(module)
-
+            print(f'  In {self.__class__.__name__}.exec_module({module.__name__}).')
+        loader = self.loaders[module.__name__]
+        if hasattr(loader, "exec_module"):
+            loader.exec_module(module)
+        else:
+            loader.load_module(module.__name__)  # Python 3.8
 
 
 # *************************************************************************

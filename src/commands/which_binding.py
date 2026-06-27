@@ -31,7 +31,7 @@ _report_title = 'Which Binding?'
 # Data
 # *************************************************************************
 
-debugging: bool = False
+debugging: int = 0
 
 
 

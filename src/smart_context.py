@@ -294,7 +294,7 @@ _on_query_context_listener_list = []
 _on_query_context_file_list = []
 
 # System-wide list of Snippets
-_snippets_by_trigger = []
+_snippets_by_trigger = {}
 
 # Context test functions by key; populated after test functions below.
 _context_tests_by_name = {}
@@ -373,10 +373,19 @@ def on_plugin_loaded():
     global _on_query_context_listener_list
     global _on_query_context_file_list
     global _snippets_by_trigger
+    global debugging
 
+    debugging = is_debugging(DebugBits.LOADING_CONTEXT_ENV)
     t0 = datetime.now()
-    _on_query_context_listener_list, _on_query_context_file_list = _on_qry_context_listeners()
+    if core.setting__suppress_loading_on_query_context_modules:
+        _on_query_context_listener_list = []
+        _on_query_context_file_list     = []
+        if debugging:
+            print('Call to context._on_qry_context_listeners() suppressed per configuration.')
+    else:
+        _on_query_context_listener_list, _on_query_context_file_list = _on_qry_context_listeners()
     t1 = datetime.now()
+
     _snippets_by_trigger = _snippet_triggers_dictionary()
 
     if debugging:
@@ -394,7 +403,7 @@ def _on_qry_context_listeners():
     if debugging:
         print('In context._on_qry_context_listeners()...:')
 
-    skip_packages = ['Default.', 'Package Control.', 'SublimeLinter.', core.package_name]
+    skip_packages = ['Default.', 'Package Control.', 'SublimeLinter.', core.package_name + '.']
     st_modules = ['.sublime', '.sublime_plugin', '.sublime_types']
     listeners = []
     files = []
@@ -445,7 +454,6 @@ def _on_qry_context_listeners():
         # -----------------------------------------------------------------
         # Skip if module is a Sublime Text module.
         # -----------------------------------------------------------------
-        skip = False
         for st_mod in st_modules:
             if resource.endswith(st_mod):
                 modules_skipped_due_to_being_st_modules_count += 1
@@ -492,6 +500,7 @@ def _on_qry_context_listeners():
             is_class_w_on_query_context = ((
                         isinstance(attribute, type)  # class
                     and hasattr(attribute, "on_query_context")
+                    and callable(attribute)
                     ))
 
             if is_class_w_on_query_context:
@@ -546,6 +555,18 @@ def _on_qry_context_listeners():
 
             listeners.append(listener)  # Append instantiated EventListener class.
             files.append(full_path)
+
+            if debugging:
+                if is_view_event_listener:
+                    listener_subclass_of = 'ViewEventListener'
+                else:
+                    listener_subclass_of = 'EventListener'
+                class_name = attribute.__name__
+                module_path = module.__spec__.origin
+                print(f'  Instantiating and keeping reference to class [{class_name}] from')
+                print(f'    module [{module_path}] because:')
+                print(f'    A) it is a subclass of [{listener_subclass_of}], and')
+                print( '    B) it has an `on_query_context()` callable attribute.')
 
     if debugging:
         print('_on_qry_context_listeners() stats:')
@@ -2159,7 +2180,7 @@ class SmartContext:
             if not found:
                 msg = (
                         f'  {self.__class__.__name__}:  key [{key}] not recognized\n'
-                        f'  including by an `on_query_context()` Listener.\n'
+                        f'    and no loaded `on_query_context()` EventListener recognized it.\n'
                         f'{self.binding.formatted(1, include_source = True)}'
                       )
                 print(msg)

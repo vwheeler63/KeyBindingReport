@@ -216,6 +216,7 @@ class DebugBits(IntFlag):
     OUTPUT                   = 0x00010000
     PLATFORM                 = 0x00020000
     ENGLISH_TRANSLATION      = 0x00040000
+    LOADING_CONTEXT_ENV      = 0x00080000
 
     # ---------------------------------------------------------------------
     # Load/Reload/Import-Time Bits
@@ -238,7 +239,6 @@ class DebugBits(IntFlag):
     # - below    :  _debugging: DebugBits = DebugBits.IMPORTING;
     # - settings :  add DebugBits.IMPORTING to debugging setting string.
     # ---------------------------------------------------------------------
-    LOADING_CONTEXT_ENV      = 0x40000000
     IMPORTING                = 0x80000000
 
     # ---------------------------------------------------------------------

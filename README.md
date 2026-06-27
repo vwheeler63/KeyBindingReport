@@ -1,7 +1,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](https://github.com/vwheeler63/KeyBindingReport/blob/master/LICENSE)
 [![Requires Sublime Text Build 4000 or later](https://img.shields.io/badge/Sublime_Text-4000+-ca875a?style=flat-square&logo=sublimetext)](https://www.sublimetext.com)
 [![Download KeyBindingReport from Package Control](https://img.shields.io/packagecontrol/dt/KeyBindingReport.svg?style=flat-square&logo=sublime-text)](https://packages.sublimetext.io/packages/KeyBindingReport)
-[![Latest Tag](https://img.shields.io/badge/tag-1.0.0-royalblue?style=flat-square&logo=github)](https://github.com/vwheeler63/KeyBindingReport/tags)
+[![Latest Tag](https://img.shields.io/badge/tag-1.2.1-royalblue?style=flat-square&logo=github)](https://github.com/vwheeler63/KeyBindingReport/tags)
 [![GitHub Repository](https://img.shields.io/badge/github-repo-blue?style=flat-square&logo=github)](https://github.com/vwheeler63/KeyBindingReport)
 
 <div id="readme"></div>
@@ -149,7 +149,7 @@ Currently there are 59 pre-built reports that this package can generate, plus an
 
   To catch the context in part of the user interface (i.e. in a Panel or Overlay), you will need to bind the Command to a keypress or mouse action, and pass a hard-coded "keypress_list" and "platform_code"—otherwise the user prompt to enter the keypress list will move focus (and thus context) away from the Panel or Overlay that it is in when the Command is initiated.
 
-  Here is an example of a key binding that runs this report for the :kbd:`Enter` key:
+  Here is an example of a key binding that runs this report for the <kbd>Enter</kbd> key when focus is in the top text-entry box in the Find-in-Files Panel:
 
   ```json
   {
@@ -477,6 +477,7 @@ Key:
       { "key": "eol_selector"              , "operator": "not_equal"         , "operand": "string.quoted.double - punctuation.definition.string.end", "match_all": true }
         // Does selector [string.quoted.double - punctuation.definition.string.end] NOT match scope at EOL (for all selections)?
     ]
+
 (2):
     "context": [
       { "key": "setting.auto_match_enabled" }
@@ -484,6 +485,7 @@ Key:
       { "key": "selection_empty"           , "operand": false, "match_all": true }
         // Is selection NOT empty (for all selections)?
     ]
+
 (3):
     "context": [
       { "key": "setting.auto_match_enabled" }
@@ -501,7 +503,7 @@ Key:
 
 
 
-### Details about KeyBindingReport's Context Test Implementation
+### Details about Context Test Implementation
 
 KeyBindingReport's Context testing is as complete an implementation as could be implemented given the logic and API calls currently available from within a Plugin.  Specifically, here is is the list of implemented context tests ("key"-entry names):
 

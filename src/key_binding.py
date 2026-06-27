@@ -478,9 +478,11 @@ class KeyBinding:
         By design, original decoded JSON values are kept
         """
         if _keys_key not in decoded_binding:
-            raise AssertionError(f'Invalid `decoded_binding` missing "keys" entry: {decoded_binding!r}')
+            msg = f'Invalid `decoded_binding` missing "keys" entry: {decoded_binding!r}\n  {source=}\n  Entry {source_entry_no}'
+            raise AssertionError(msg)
         if _command_key not in decoded_binding:
-            raise AssertionError(f'Invalid `decoded_binding` missing "command" entry: {decoded_binding!r}')
+            msg = f'Invalid `decoded_binding` missing "command" entry: {decoded_binding!r}\n  {source=}\n  Entry {source_entry_no}'
+            raise AssertionError(msg)
 
         # -----------------------------------------------------------------
         # Keys

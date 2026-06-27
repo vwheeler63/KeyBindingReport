@@ -66,8 +66,19 @@ class KeyBindingReportKeysUsedCommand(sublime_plugin.ApplicationCommand):
         keymap_paths = sublime.find_resources('*.sublime-keymap')
 
         for path in keymap_paths:
-            keymap_resource_str = sublime.load_resource(path)
-            decoded_key_bindings = sublime.decode_value(keymap_resource_str)
+            try:
+                keymap_resource_str = sublime.load_resource(path)
+                decoded_key_bindings = sublime.decode_value(keymap_resource_str)
+            except Exception as e:
+                msg1 = f'{__name__}._conditionally_add_bindings_from_keymap() Error:'
+                msg2 = f'  Sublime Text could not parse keymap file at\n  {path}'
+                msg3 = f'  Exception:  {e}'
+                msg4 =  '  Skipping file.'
+                print(msg1)
+                print(msg2)
+                print(msg3)
+                print(msg4)
+                continue
 
             if (   decoded_key_bindings is None
                 or isinstance(decoded_key_bindings, bool)

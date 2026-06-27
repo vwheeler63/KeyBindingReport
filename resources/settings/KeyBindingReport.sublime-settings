@@ -9,11 +9,12 @@
 	// screen when the `output.FlagBits.OUTPUT_TO_FILES` bit is passed as one
 	// of the `flags` bits to the command, set this setting to the path to
 	// the directory to use in your platform-native syntax.  If existing
-	// files are there, they are silently overwritten. They contain the exact
-	// content of the screen report coded in UTF-8, in the requested format.
+	// files are there, they are silently overwritten. They will contain the
+	// exact content of the screen report coded in UTF-8, in the requested
+	// format.
 	//
 	// The reports that have the following partial names in the report name
-	// have this capability:
+	// use the following file names:
 	//
 	// Name                        File Name Written
 	// -------------------------   -------------------------------
@@ -24,9 +25,28 @@
 	// Named Keys                  named_keys.txt
 	// Keypad Keys                 keypad_keys.txt
 	// Multi-Keypress Bindings     multi-keypress_{$leading_keypress}.txt
+	//                               Example:  multi-keypress_k.txt
 	// Single-Keypress Bindings    single-keypress.txt
-	//                               or the individual file names above
-	//                               if separate tables are requested.
+	//                               only used when `ALL_IN_ONE_TABLE` flag
+	//                               is passed to the report.  Otherwise the
+	//                               individual file names above are used.
+	//
+	// Note:  these strings are used with:
+	//
+	//   - os.path.join() and
+	//   - open()
+	//
+	// Python functions, so they need to be valid syntax for your platform.
+	// For this reason, Windows/Linux dual-boot Sublime Text users will need
+	// to maintain 2 sets of configuration values, while keeping ONE of them
+	// commented out like this:
+	//
+	// "output_directory_for_windows": "E:\\path\\to\\generated\\windows",
+	// "output_directory_for_linux"  : "E:\\path\\to\\generated\\linux",
+	// "output_directory_for_osx"    : "E:\\path\\to\\generated\\osx",
+	// // "output_directory_for_windows": "/e/path/to/generated/windows",
+	// // "output_directory_for_linux"  : "/e/path/to/generated/linux",
+	// // "output_directory_for_osx"    : "/e/path/to/generated/osx",
 	"output_directory_for_windows": "",
 	"output_directory_for_linux": "",
 	"output_directory_for_osx": "",
@@ -72,6 +92,19 @@
 	// "%Y-%m-%d %H:%M" => 2025-05-22 17:31
 	// "%d-%b-%Y %H:%M" => 22-May-2025 17:31
 	"timestamp_strftime_format": "%Y-%m-%d %H:%M",
+
+	// --------------------------------------------------------------------
+	// Boolean
+	// --------------------------------------------------------------------
+	// Suppress loading of modules visible to Sublime Text that contain
+	// on_query_context() functions.  Reason:  some installations were
+	// found to have modules in them that have lingering side effects in
+	// the Sublime Text run-time environment when KeyBindingReport loads
+	// them for the sake of being able to call their `on_query_context()`
+	// functions when needed.  If this situation applies to you, set this
+	// setting to `true` to suppress this (very small) part of this
+	// Package's functionality.
+	"suppress_loading_on_query_context_modules": false,
 
 	// --------------------------------------------------------------------
 	// String | Integer | Boolean
