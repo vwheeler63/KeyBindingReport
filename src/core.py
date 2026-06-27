@@ -13,7 +13,7 @@ from datetime import datetime
 import sublime
 # Importing ``IntFlag`` in the below is to remain compatible with Python 3.8,
 # which requires it.  Python 3.14 does not.
-from ..lib.debug import IntFlag, DebugBits, is_debugging, set_debugging_bits  # noqa: F401
+from ..lib.debug import IntFlag, DebugBits, is_debugging, replace_bits  # noqa: F401
 from . import platform
 from . import output
 from . import smart_context
@@ -141,7 +141,7 @@ def _on_pkg_settings_chgd():
 
     # Initialize debugging subsystem.
     bit_val = kbr_setting(_cfg_stg_name__debugging)
-    set_debugging_bits(bit_val)
+    replace_bits(bit_val)
     debugging = is_debugging(DebugBits.SETTINGS_CHANGED_EVENT)
     if debugging:
         print('In _on_pkg_settings_chgd()')

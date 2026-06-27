@@ -43,10 +43,7 @@ Usage
 
 .. code-block:: py
 
-    # Python 3.8 needs the ``IntFlag``, Python 3.14 does not.
-    # ``set_debugging_bits`` is only needed in the module that is
-    # going to call it in response to the ``plugin_loaded`` event.
-    from .lib.debug import IntFlag, DebugBits, is_debugging, set_debugging_bits
+    from .lib.debug import DebugBits, is_debugging
 
     def pc_setting():
         # ...function used to store and retrieve cached Package settings.
@@ -55,7 +52,7 @@ Usage
     def plugin_loaded():
         pc_setting.obj = sublime.load_settings('my_package.sublime-settings')
         temp = pc_setting('debugging')
-        set_debugging_bits(temp)
+        replace_bits(temp)
         # Other Plugin initialization here.
 
     # Then later in Plugin code:
@@ -84,13 +81,13 @@ Usage
 Public API
 ==========
 
-    def set_debugging_bits(setting_value: Union[int, str, bool]):
+    def replace_bits(setting_value: Union[int, str, bool]):
         # Set Debug Module setting to ``selection_bits``.
 
-    def add_debugging_bits(setting_value: Union[int, str, bool]):
+    def set_bits(setting_value: Union[int, str, bool]):
         # Add 1 bits in ``selection_bits`` to Debug Module setting.
 
-    def subtract_debugging_bits(setting_value: Union[int, str, bool]):
+    def clear_bits(setting_value: Union[int, str, bool]):
         # Subtract 1 bits in ``selection_bits`` from Debug Module setting.
 
     def is_debugging(selection_bits: DebugBits = DebugBits.ANY) -> int:
@@ -107,6 +104,14 @@ Public API
         #            were found.
         #
         #            If ``True``, at least one of the bits was found.
+
+
+
+@version  1.1  27-Jun-2026 07:50 vw  - Refactor:  renamed
+                                       - set_bits                => replace_bits
+                                       - add_debugging_bits      => set_bits
+                                       - subtract_debugging_bits => clear_bits
+@version  1.0  20-Feb-2026 00:58 vw  - Created
 *************************************************************************** """
 from typing import Union, List
 from enum import IntFlag
@@ -138,7 +143,6 @@ class DebugBits(IntFlag):
         # ---------------------------------------------------------------------
         # Core Bits
         # ---------------------------------------------------------------------
-        NONE                   = 0x00000000
         DEBUGGING              = 0x00000001
         LOAD_UNLOAD            = 0x00000002
         INITIALIZATION         = 0x00000004
@@ -183,6 +187,7 @@ class DebugBits(IntFlag):
         # ---------------------------------------------------------------------
         # Utility Bits
         # ---------------------------------------------------------------------
+        NONE                   = 0x00000000
         ALL                    = 0xFFFFFFFF
         ANY                    = 0xFFFFFFFF
 
@@ -268,6 +273,28 @@ _cfg_debugging_print_format = '08X'
 # Module Definitions
 # *************************************************************************
 
+def debug_show_regions(
+        view    : sublime.View,
+        regions : List[sublime.Region],
+        key     : str,
+        comment : str,
+        pkg_name: str = ''
+        ):
+    """ Temporarily show `regions` on screen. """
+    view.add_regions(
+        key,
+        regions,
+        "region.orangish",
+        "bookmark",
+        flags=sublime.RegionFlags.DRAW_EMPTY | sublime.RegionFlags.DRAW_NO_FILL
+    )
+
+    # Delay so user can look at regions highlighted in View before they are erased.
+    msg = f'{pkg_name}:\n\n{comment}'
+    sublime.message_dialog(msg)
+    view.erase_regions(key)
+
+
 def _debugging_string_validator_regex():
     r"""
     Only valid string expressions look like this:
@@ -328,6 +355,7 @@ def _securely_computed_bits_from_setting_input(
                     f'Debug Module:  Error:  invalid string:  [{selection_bits}]\n'
                     f'  did not match [{_valid_debugging_string_re.pattern}].'
                     )
+
     # ---------------------------------------------------------------------
     # Boolean
     # ---------------------------------------------------------------------
@@ -336,11 +364,13 @@ def _securely_computed_bits_from_setting_input(
             result = DebugBits.ALL
         else:
             result = DebugBits.NONE
+
     # ---------------------------------------------------------------------
     # Integer
     # ---------------------------------------------------------------------
     elif isinstance(selection_bits, int):
         result = selection_bits
+
     # ---------------------------------------------------------------------
     # Unknown
     # ---------------------------------------------------------------------
@@ -379,40 +409,40 @@ def _report_debugging_setting():
                             )
 
 
-def _set_debugging_bits(selection_bits: DebugBits):
+def _replace_bits(selection_bits: DebugBits):
     global _debugging
     _debugging = selection_bits
     _report_debugging_setting()
 
 
-def _add_debugging_bits(selection_bits: DebugBits):
+def _set_bits(selection_bits: DebugBits):
     global _debugging
     _debugging |= selection_bits
     _report_debugging_setting()
 
 
-def _subtract_debugging_bits(selection_bits: DebugBits):
+def _clear_bits(selection_bits: DebugBits):
     global _debugging
     _debugging &= ~(selection_bits)
     _report_debugging_setting()
 
 
-def set_debugging_bits(setting_value: Union[int,str,bool,DebugBits]):
+def replace_bits(setting_value: Union[int,str,bool,DebugBits]):
     """ Set Debug Module setting to ``selection_bits``. """
     bits = _securely_computed_bits_from_setting_input(setting_value)
-    _set_debugging_bits(bits)
+    _replace_bits(bits)
 
 
-def add_debugging_bits(setting_value: Union[int,str,bool,DebugBits]):
+def set_bits(setting_value: Union[int,str,bool,DebugBits]):
     """ Add '1' bits in ``selection_bits`` to Debug Module setting.  """
     bits = _securely_computed_bits_from_setting_input(setting_value)
-    _add_debugging_bits(bits)
+    _set_bits(bits)
 
 
-def subtract_debugging_bits(setting_value: Union[int,str,bool,DebugBits]):
+def clear_bits(setting_value: Union[int,str,bool,DebugBits]):
     """ Subtract '1' bits in ``selection_bits`` from Debug Module setting.  """
     bits = _securely_computed_bits_from_setting_input(setting_value)
-    _subtract_debugging_bits(bits)
+    _clear_bits(bits)
 
 
 def is_debugging(selection_bits: DebugBits = DebugBits.ANY) -> int:
