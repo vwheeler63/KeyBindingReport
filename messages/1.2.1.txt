@@ -4,4 +4,4 @@ Version 1.2.1 (2026-06-26 16:52 GMT)
 - Fixed exception:  AttributeError: 'zipimporter' object has no attribute 'exec_module'
   When in `.sublime-package` form, the `zipimporter` was being used, which in
   Python 3.8 had not been given the `exec_module()` method.  Re-coded so that when
-  it is not present, it falls back to the v3.8 `load_module()` function instead.
+  it is not present, it falls back to the v3.8 `load_module()` method instead.
