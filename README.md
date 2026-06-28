@@ -9,7 +9,11 @@
 
 # KeyBindingReport
 
-**KeyBindingReport** is a Sublime Text Package that produces a wide variety of reports about the current state of Sublime Text key bindings on the system it is running on.  This Package is highly useful to any Sublime Text user who deals with key bindings, especially for Package authors.
+**KeyBindingReport** is a Sublime Text Package that produces a wide variety of reports about the current state of Sublime Text key bindings on the system it is running on.  This Package is expected to be very useful to:
+
+- Sublime Text user who deals with key bindings,
+- Package authors, and
+- any Sublime Text users who just want to understand what is currently going on with their current key bindings.
 
 
 
