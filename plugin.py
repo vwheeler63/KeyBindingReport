@@ -1,69 +1,42 @@
 """ ***********************************************************************
-Key Binding Report
+Package Plugin
 ***************************************************************************
 
-KeyBindingReport is a Sublime Text Package that produces a wide variety of
-reports about the current state of Sublime Text key bindings on the system
-it is running on, with a choice of output formats.
+****************************************************
+>>> See `src/core.py` for Package documentation. <<<
+****************************************************
+
+This is a generic Package plugin that provides module loading and reloading
+services for the package it is part of.
+
+Module loading happens the first time Sublime Text is started through
+the standard "import" machinery.
+
+Module reloading on the other hand is uniquely fitted to a Sublime Text
+environment where 2 things commonly cause the Package to need to be
+reloaded periodically:
+
+:Package development:   Changes to any Package modules are best met by
+                        an entire reload of all Package modules in the
+                        same order they were originally loaded in.
+
+:Package updates:       The Package Control Package itself updates other
+                        Packages at run time without re-starting the
+                        Python interpreter.  When Sublime Text Packages
+                        are complex enough to require sub-packages, then
+                        care must be taken on these updates that no
+                        in-memory references attached to parts of of the
+                        old Package are still present after the reload.
+
+This module, as the top-level Package Plugin, takes care of both of those
+circumstances:  whenever its file modification date gets updated (e.g. when
+it is saved or overwritten with a new version), Sublime Text reloads this
+module, which in turn reloads the other modules of the Package.
 
 
 
-Package Overview
-****************
-
-Directory        Description
-./lib/           Reusable Components
-./messages/      Install and update messages for PackageControl to display
-./resources/     Package resource files (commands, menus, settings)
-./src/           Python source code for Package logic
-./src/commands/  Package Commands, one per file
-
-This file:  coordinates it at the top.  It's function is to load
-(or reload) all the modules in the Package as a response to being
-loaded itself.  This happens:
-
-- at Sublime Text start-up,
-- when PackageControl updates the package, and
-- when this file is saved during development.
-
-
-
-The Big Report
-**************
-
-While there are smaller, more narrowly-focused reports, the one "big"
-report that this package was written for (and supplies logic for most
-of the reports in the Tools > KeyBindingReport > ... menu) is contained
-in these files:
-
-- ./src/commands/report.py   <-- The `KeyBindingReportCommand` Command
-- ./src/data.py              <-- Gathers input data from system-wide key
-                                   binding resources.  That data thereafter
-                                   lives in a `KeyBindingData` object
-                                   until it is disposed of.
-- ./src/output.py            <-- Reads from `KeyBindingData` objects and
-                                   produces output in specified format.
-
-
-
-Other Reports
-*************
-
-The following reports also use `data.py` to gather their data, but
-to a lesser extent:
-
-- full_overrides.py
-- context_overrides.py
-- which_binding.py
-
-The logic for the remaining reports is contained in their respective
-Command files.
-
-See `README.md` and `src/core.py` for more details.
-
-
-
-@version  1.2  26-Jun-2026 11:06 vw  - Replaced reloader
+@version  Current revision:  @(#) v1.1  26-Jun-2026 11:06
+@version  1.1  26-Jun-2026 11:06 vw  - Replaced reloader
 @version  1.0  11-Apr-2026 18:21 vw  - Created
 *********************************************************************** """
 from datetime import datetime
@@ -73,6 +46,7 @@ import sys
 from contextlib import nullcontext
 from typing import Dict
 from types import ModuleType
+
 
 
 # *************************************************************************
@@ -88,13 +62,18 @@ if debugging:
     print(f'{__name__}  >>> module execution....')
 
 
+
+# *************************************************************************
+# Reloader
+# *************************************************************************
+
 class InPlaceReloader(importlib.abc.MetaPathFinder, importlib.abc.Loader):
     """
     Hot-reloader for use when the containing Package is updated either
     by development or when PackageControl updates it during run time.
 
     This is the ``InPlaceReloader`` from the ``README.md`` file at
-      https://github.com/kaste/KissReloader#add-a-reloader-to-your-package
+    https://github.com/kaste/KissReloader.
 
     with documentation added to help make it understandable.
 
@@ -338,8 +317,11 @@ with reloader():
     # Only `core` and the Commands are actually needed herein, but
     # the other imports are included so that they are reloaded when
     # the Package is reloaded (e.g. when this file is saved).
-    from . import lib      # noqa: E402, F401
+    if debugging:
+        print('>>> from .src import *')
     from .src import *     # noqa: E402, F403
+    if debugging:
+        print('>>> from .src import core')
     from .src import core  # noqa: E402 -- Not required, but makes LSP-pyright happy.
 
 

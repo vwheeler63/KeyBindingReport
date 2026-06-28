@@ -1,13 +1,85 @@
-r"""***********************************************************************
-KeyBindingReport
+""" ***********************************************************************
+KeyBindingReport Core
+***************************************************************************
+
+This module provides:
+
+- Package settings + response to when those settings change,
+- other package-specific utilities, and
+- plugin_loaded/plugin_unloaded event catching.
+
+
+
+***************************************************************************
+Key Binding Report
+***************************************************************************
+
+*KeyBindingReport* is a Sublime Text Package that produces a wide variety of
+reports about the current state of Sublime Text key bindings on the system
+it is running on.  This Package is expected to be very useful to:
+
+- Sublime Text user who deals with key bindings,
+- Package authors, or
+- any users who just want to understand the current state of their
+  Sublime Text key bindings.
+
+
+Package Overview
 ****************
 
-This module provides package utilities and event catching, such as:
+Directory        Description
+./lib/           Reusable Components
+./messages/      Install and update messages for PackageControl to display
+./resources/     Package resource files (commands, menus, settings)
+./src/           Python source code for Package logic
+./src/commands/  Package Commands, one per file
 
-- response to plugin_loaded(),
-- response to plugin_unloaded(),
-- Package settings + response to when those settings change,
-"""
+This file:  coordinates it at the top.  It's function is to load
+(or reload) all the modules in the Package as a response to being
+loaded itself.  This happens:
+
+- at Sublime Text start-up,
+- when PackageControl updates the package, and
+- when this file is saved during development.
+
+
+
+The Big Report
+**************
+
+While there are smaller, more narrowly-focused reports, the one "big"
+report that this package was written for (and supplies logic for most
+of the reports in the Tools > KeyBindingReport > ... menu) is contained
+in these files:
+
+- ./src/commands/report.py   <-- The `KeyBindingReportCommand` Command
+- ./src/data.py              <-- Gathers input data from system-wide key
+                                   binding resources.  That data thereafter
+                                   lives in a `KeyBindingData` object
+                                   until it is disposed of.
+- ./src/output.py            <-- Reads from `KeyBindingData` objects and
+                                   produces output in specified format.
+
+
+
+Other Reports
+*************
+
+The following reports also use `data.py` to gather their data, but
+to a lesser extent:
+
+- full_overrides.py
+- context_overrides.py
+- which_binding.py
+
+The logic for the remaining reports is contained in their respective
+Command files.
+
+See `README.md` and source code for more details.
+
+@version  Current revision:  @(#) v1.0  11-Apr-2026 18:21
+@version  1.0  11-Apr-2026 18:21 vw  - Created
+*********************************************************************** """
 
 from datetime import datetime
 import sublime
